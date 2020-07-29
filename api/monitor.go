@@ -71,7 +71,7 @@ func (status *PollStatus) Down(reason string) {
 	status.Reason = reason
 }
 
-// Down update the poll status to be unknown
+// Unknown update the poll status to be unknown
 func (status *PollStatus) Unknown(reason string) {
 	status.StatusCode = ServiceUnknownCode
 	status.StatusName = ServiceUnknown
