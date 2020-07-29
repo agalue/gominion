@@ -54,7 +54,7 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 		for {
 			if request, err := cli.rpcStream.Recv(); err == nil {
 				/*
-					if request.ExpirationTime < uint64(time.Now().Unix()) {
+					if request.ExpirationTime < uint64(time.Now().Unix() * 1000) {
 						log.Printf("TTL already expired for the request id = %s, won't process", request.RpcId)
 						continue
 					}
@@ -101,6 +101,9 @@ func (cli *GrpcClient) Stop() {
 	}
 	if cli.sinkStream != nil {
 		cli.sinkStream.CloseSend()
+	}
+	for _, module := range api.GetAllSinkModules() {
+		module.Stop()
 	}
 	if cli.conn != nil {
 		cli.conn.Close()

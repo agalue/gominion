@@ -19,7 +19,7 @@ func main() {
 	flag.StringVar(&config.Location, "location", "", "Minion Location")
 	flag.StringVar(&config.OnmsURL, "onms-url", "http://localhost:8980/opennms", "OpenNMS URL")
 	flag.StringVar(&config.BrokerURL, "broker-url", "localhost:8990", "OpenNMS gRPC server connection string")
-	flag.IntVar(&config.TrapPort, "trap-port", 1161, "Trap Listener Port")
+	flag.IntVar(&config.TrapPort, "trap-port", 1162, "Trap Listener Port")
 	flag.IntVar(&config.SyslogPort, "syslog-port", 1514, "Syslog Listener Port")
 	flag.Parse()
 
