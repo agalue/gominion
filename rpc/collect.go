@@ -26,12 +26,11 @@ func (module *CollectorClientRPCModule) Execute(request *ipc.RpcRequestProto) *i
 		return transformResponse(request, bytes)
 	}
 	collectorID := req.GetCollector()
-	response := &api.CollectorResponseDTO{}
-	// FIXME
+	// FIXME: Start
+	response := &api.CollectorResponseDTO{Error: "Implementation comming soon"}
 	log.Printf("%s", string(request.RpcContent))
 	log.Printf("Ignoring executing of collector %s against %s", collectorID, req.CollectionAgent.IPAddress)
-	response.Error = "Implementation comming soon"
-	//
+	// FIXME: End
 	bytes, _ := xml.Marshal(response)
 	return transformResponse(request, bytes)
 }

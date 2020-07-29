@@ -7,12 +7,22 @@ import (
 
 // CollectionAttributeDTO represents a collection attribute
 type CollectionAttributeDTO struct {
+	Key     string `xml:"key,attr"`
+	Content string `xml:",innerxml"`
 }
 
 // CollectionAgentDTO represents a collection agent
 type CollectionAgentDTO struct {
-	IPAddress  string                   `xml:"address,attr"`
-	Attributes []CollectionAttributeDTO `xml:"attribute,omitempty"`
+	IPAddress           string                   `xml:"address,attr"`
+	StoreByFS           bool                     `xml:"store-by-fs,attr"`
+	NodeID              int                      `xml:"node-id,attr"`
+	NodeLabel           string                   `xml:"node-label,attr"`
+	ForeignSource       string                   `xml:"foreign-source,attr"`
+	ForeignID           string                   `xml:"foreign-id,attr"`
+	Location            string                   `xml:"location,attr"`
+	StorageResourcePath string                   `xml:"storage-resource-path,attr"`
+	SysUpTime           int                      `xml:"sys-up-time,attr"`
+	Attributes          []CollectionAttributeDTO `xml:"attribute,omitempty"`
 }
 
 // CollectorRequestDTO represents a collector request
