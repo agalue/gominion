@@ -1,0 +1,18 @@
+// Source: https://github.com/OpenNMS/opennms/blob/develop/core/ipc/rpc/kafka/src/main/proto/kafka-rpc.proto
+
+syntax = "proto3";
+
+package rpc;
+
+option go_package = ".;rpc";
+
+message RpcMessageProto {
+    string rpc_id = 1;
+    bytes rpc_content = 2;
+    string system_id = 3;
+    uint64 expiration_time = 4;
+    int32 current_chunk_number = 5;
+    int32 total_chunks = 6;
+    map<string, string> tracing_info = 7;
+    string module_id = 8;
+}
