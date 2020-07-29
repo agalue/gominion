@@ -37,8 +37,6 @@ func (agent *SNMPAgentDTO) GetSNMPClient() *gosnmp.GoSNMP {
 	case 3:
 		version = gosnmp.Version3
 	}
-	opts := make(map[string]interface{})
-	opts["c"] = true
 	return &gosnmp.GoSNMP{
 		Target:             agent.Address,
 		Port:               uint16(agent.Port),
@@ -46,8 +44,8 @@ func (agent *SNMPAgentDTO) GetSNMPClient() *gosnmp.GoSNMP {
 		Community:          agent.ReadCommunity,
 		Version:            version,
 		Timeout:            time.Duration(agent.Timeout) * time.Millisecond,
-		ExponentialTimeout: true, // default
-		MaxOids:            60,   // default
+		ExponentialTimeout: false,
+		MaxOids:            60, // default
 		Retries:            agent.Retries,
 		MaxRepetitions:     uint8(agent.MaxRepetitions),
 	}
