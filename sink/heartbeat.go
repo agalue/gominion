@@ -13,6 +13,11 @@ import (
 // HeartbeatModule represents the heartbeat module
 type HeartbeatModule struct{}
 
+// GetID gets the ID of the sink module
+func (module *HeartbeatModule) GetID() string {
+	return "Heartbeat"
+}
+
 // Start initiates a blocking loop that sends heartbeats to OpenNMS
 func (module *HeartbeatModule) Start(config *api.MinionConfig, stream ipc.OpenNMSIpc_SinkStreamingClient) {
 	log.Printf("Starting Sink Heartbeat Module")
@@ -25,6 +30,9 @@ func (module *HeartbeatModule) Start(config *api.MinionConfig, stream ipc.OpenNM
 		time.Sleep(30 * time.Second)
 	}
 }
+
+// Stop shutdowns the sink module
+func (module *HeartbeatModule) Stop() {}
 
 func (module *HeartbeatModule) getIdentity(config *api.MinionConfig) *api.MinionIdentityDTO {
 	return &api.MinionIdentityDTO{
@@ -44,4 +52,10 @@ func (module *HeartbeatModule) getSinkMessage(config *api.MinionConfig) *ipc.Sin
 		Location:  config.Location,
 		Content:   bytes,
 	}
+}
+
+var heartbeatModule = &HeartbeatModule{}
+
+func init() {
+	api.RegisterSinkModule(heartbeatModule)
 }

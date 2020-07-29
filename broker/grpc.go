@@ -8,7 +8,6 @@ import (
 
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/protobuf/ipc"
-	"github.com/agalue/gominion/sink"
 	"google.golang.org/grpc"
 )
 
@@ -85,10 +84,11 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 		return err
 	}
 
-	go func() {
-		heartbeat := &sink.HeartbeatModule{}
-		heartbeat.Start(cli.config, cli.sinkStream)
-	}()
+	for _, sinkModule := range api.GetAllSinkModules() {
+		go func(module api.SinkModule) {
+			module.Start(cli.config, cli.sinkStream)
+		}(sinkModule)
+	}
 
 	return nil
 }

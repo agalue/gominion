@@ -9,6 +9,7 @@ import (
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/broker"
 	_ "github.com/agalue/gominion/rpc"
+	_ "github.com/agalue/gominion/sink"
 )
 
 func main() {
