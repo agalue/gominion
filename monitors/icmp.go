@@ -2,7 +2,6 @@ package monitors
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/tools"
@@ -19,22 +18,12 @@ func (monitor *ICMPMonitor) GetID() string {
 
 // Poll execute the monitor request and return the service status
 func (monitor *ICMPMonitor) Poll(request *api.PollerRequestDTO) api.PollStatus {
-	var status api.PollStatus
+	status := api.PollStatus{}
 	if duration, err := tools.Ping(request.IPAddress, request.GetTimeout()); err == nil {
-		status = api.PollStatus{
-			ResponseTime: duration.Seconds(),
-			StatusCode:   api.ServiceAvailableCode,
-			StatusName:   api.ServiceAvailable,
-			Timestamp:    &api.Timestamp{Time: time.Now()},
-		}
-		status.SetProperty("response-time", status.ResponseTime)
+		status.Up(duration.Seconds())
 	} else {
 		fmt.Printf("Error while executing ICMP against %s: %v", request.IPAddress, err)
-		status = api.PollStatus{
-			StatusCode: api.ServiceUnavailableCode,
-			StatusName: api.ServiceUnavailable,
-			Reason:     err.Error(),
-		}
+		status.Down(err.Error())
 	}
 	return status
 }

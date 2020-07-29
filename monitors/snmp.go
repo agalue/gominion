@@ -22,12 +22,7 @@ func (monitor *SNMPMonitor) GetID() string {
 func (monitor *SNMPMonitor) Poll(request *api.PollerRequestDTO) api.PollStatus {
 	oid := request.GetAttributeValue("oid")
 	agent := &api.SNMPAgentDTO{}
-
-	status := api.PollStatus{
-		StatusCode: api.ServiceUnavailableCode,
-		StatusName: api.ServiceUnavailable,
-	}
-
+	status := api.PollStatus{}
 	if err := xml.Unmarshal([]byte(request.GetAttributeContent("agent")), agent); err == nil {
 		log.Printf("Requesting OID %s from %s", oid, agent.Address)
 		start := time.Now()
@@ -36,20 +31,16 @@ func (monitor *SNMPMonitor) Poll(request *api.PollerRequestDTO) api.PollStatus {
 			defer client.Conn.Close()
 			if _, err := client.Get([]string{oid}); err == nil {
 				duration := time.Since(start)
-				status.StatusCode = api.ServiceAvailableCode
-				status.StatusName = api.ServiceAvailable
-				status.ResponseTime = duration.Seconds()
-				status.SetProperty("response-time", status.ResponseTime)
+				status.Up(duration.Seconds())
 			} else {
-				status.Reason = err.Error()
+				status.Down(err.Error())
 			}
 		} else {
-			status.Reason = err.Error()
+			status.Down(err.Error())
 		}
 	} else {
-		status.Reason = err.Error()
+		status.Unknown(err.Error())
 	}
-
 	return status
 }
 

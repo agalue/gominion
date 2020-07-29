@@ -1,8 +1,6 @@
 package monitors
 
 import (
-	"time"
-
 	"github.com/agalue/gominion/api"
 )
 
@@ -17,21 +15,12 @@ func (monitor *JMXMonitor) GetID() string {
 
 // Poll execute the monitor request and return the service status
 func (monitor *JMXMonitor) Poll(request *api.PollerRequestDTO) api.PollStatus {
-	var status api.PollStatus
+	status := api.PollStatus{}
+	// Whitelist JMX-Minion by default to avoid outages.
 	if request.ServiceName == "JMX-Minion" && request.IPAddress == "127.0.0.1" {
-		status = api.PollStatus{
-			ResponseTime: 1.0,
-			StatusCode:   api.ServiceAvailableCode,
-			StatusName:   api.ServiceAvailable,
-			Timestamp:    &api.Timestamp{Time: time.Now()},
-		}
-		status.SetProperty("response-time", status.ResponseTime)
+		status.Up(0.0)
 	} else {
-		status = api.PollStatus{
-			StatusCode: api.ServiceUnknownCode,
-			StatusName: api.ServiceUnknown,
-			Reason:     "JMX not supported by gominion",
-		}
+		status.Unknown("JMX not supported by gominion")
 	}
 	return status
 }

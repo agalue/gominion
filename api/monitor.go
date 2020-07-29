@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/xml"
+	"time"
 )
 
 // ServiceUnknown poll status name unknown
@@ -37,7 +38,7 @@ type PollStatusProperties struct {
 // PollStatusProperty represents a poll status property
 type PollStatusProperty struct {
 	XMLName xml.Name `xml:"property"`
-	Key     string   `xml:"property,attr"`
+	Key     string   `xml:"key,attr"`
 	Value   float64  `xml:",chardata"`
 }
 
@@ -50,6 +51,32 @@ type PollStatus struct {
 	StatusCode   int                   `xml:"code,attr"`
 	StatusName   string                `xml:"name,attr"`
 	Properties   *PollStatusProperties `xml:"properties,omitempty"`
+}
+
+// Up update the poll status for an available service
+func (status *PollStatus) Up(responseTime float64) *PollStatus {
+	status.StatusCode = ServiceAvailableCode
+	status.StatusName = ServiceAvailable
+	status.Timestamp = &Timestamp{Time: time.Now()}
+	status.ResponseTime = responseTime
+	status.SetProperty("response-time", responseTime)
+	return status
+}
+
+// Down update the poll status for an unavailable service
+func (status *PollStatus) Down(reason string) {
+	status.StatusCode = ServiceUnavailableCode
+	status.StatusName = ServiceUnavailable
+	status.Timestamp = &Timestamp{Time: time.Now()}
+	status.Reason = reason
+}
+
+// Down update the poll status to be unknown
+func (status *PollStatus) Unknown(reason string) {
+	status.StatusCode = ServiceUnknownCode
+	status.StatusName = ServiceUnknown
+	status.Timestamp = &Timestamp{Time: time.Now()}
+	status.Reason = reason
 }
 
 // SetProperty adds or updates an existing property
