@@ -27,8 +27,8 @@ func (module *CollectorClientRPCModule) Execute(request *ipc.RpcRequestProto) *i
 	}
 	collectorID := req.GetCollector()
 	// FIXME: Start
-	response := &api.CollectorResponseDTO{Error: "Implementation comming soon"}
-	log.Printf("%s", string(request.RpcContent))
+	response := &api.CollectorResponseDTO{Error: "There is no collector implementation for " + collectorID}
+	// log.Printf("%s", string(request.RpcContent))
 	log.Printf("Ignoring executing of collector %s against %s", collectorID, req.CollectionAgent.IPAddress)
 	// FIXME: End
 	bytes, _ := xml.Marshal(response)

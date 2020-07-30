@@ -14,7 +14,7 @@ import (
 
 func main() {
 	hostname, _ := os.Hostname()
-	config := &api.MinionConfig{}
+	config := &api.MinionConfig{BrokerType: "grpc"}
 	flag.StringVar(&config.ID, "id", hostname, "Minion ID")
 	flag.StringVar(&config.Location, "location", "", "Minion Location")
 	flag.StringVar(&config.OnmsURL, "onms-url", "http://localhost:8980/opennms", "OpenNMS URL")
@@ -23,14 +23,14 @@ func main() {
 	flag.IntVar(&config.SyslogPort, "syslog-port", 1514, "Syslog Listener Port")
 	flag.Parse()
 
-	log.Printf("Starting OpenNMS Minion, using %s", config.String())
+	log.Printf("Starting OpenNMS Minion...\n%s", config.String())
 	if err := config.IsValid(); err != nil {
 		log.Fatalf("Invalid configuration: %v", err)
 	}
 
 	client := &broker.GrpcClient{}
 	if err := client.Start(config); err != nil {
-		log.Fatalf("Cannot connect to OpenNMS: %v", err)
+		log.Fatalf("Cannot connect to OpenNMS gRPC server: %v", err)
 	}
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)

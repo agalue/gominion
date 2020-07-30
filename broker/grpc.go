@@ -9,6 +9,7 @@ import (
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/protobuf/ipc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 )
 
 // GrpcClient represents the gRPC client implementation
@@ -53,12 +54,6 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 		// Main Loop
 		for {
 			if request, err := cli.rpcStream.Recv(); err == nil {
-				/*
-					if request.ExpirationTime < uint64(time.Now().Unix() * 1000) {
-						log.Printf("TTL already expired for the request id = %s, won't process", request.RpcId)
-						continue
-					}
-				*/
 				log.Printf("Received RPC request with ID %s for module %s at location %s", request.RpcId, request.ModuleId, request.Location)
 				if module, ok := api.GetRPCModule(request.ModuleId); ok {
 					go func() {
@@ -74,7 +69,8 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 				if err == io.EOF {
 					return
 				}
-				log.Printf("Error while getting an RPC Request: %v", err)
+				errStatus, _ := status.FromError(err)
+				log.Printf("Error while receiving an RPC Request: code=%s, message=%s", errStatus.Code(), errStatus.Message())
 			}
 		}
 	}()
