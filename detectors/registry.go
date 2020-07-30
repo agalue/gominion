@@ -20,7 +20,7 @@ func RegisterDetector(detector api.ServiceDetector) {
 
 // UnregisterDetector unregister an existing detector implementation
 func UnregisterDetector(detector api.ServiceDetector) {
-	log.Printf("Unregistering poller monitor: %s", detector.GetID())
+	log.Printf("Unregistering detector: %s", detector.GetID())
 	detectorRegistryMutex.Lock()
 	delete(detectorRegistryMap, detector.GetID())
 	detectorRegistryMutex.Unlock()
