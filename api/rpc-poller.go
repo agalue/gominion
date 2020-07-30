@@ -36,7 +36,7 @@ type PollerRequestDTO struct {
 
 // GetTimeout extracts the duration of the timeout attribute if available; otherwise returns default value
 func (req *PollerRequestDTO) GetTimeout() time.Duration {
-	if value := req.GetAttributeValue("timeout"); value != "" {
+	if value := req.GetAttributeValue("timeout", ""); value != "" {
 		if t, err := strconv.Atoi(value); err != nil {
 			return time.Duration(t) * time.Microsecond
 		}
@@ -46,7 +46,7 @@ func (req *PollerRequestDTO) GetTimeout() time.Duration {
 
 // GetRetries extracts the retries attribute if available; otherwise returns default value
 func (req *PollerRequestDTO) GetRetries() int {
-	if value := req.GetAttributeValue("retries"); value != "" {
+	if value := req.GetAttributeValue("retries", ""); value != "" {
 		if t, err := strconv.Atoi(value); err != nil {
 			return t
 		}
@@ -64,7 +64,7 @@ func (req *PollerRequestDTO) GetMonitor() string {
 }
 
 // GetAttributeValue gets the value of a given attribute
-func (req *PollerRequestDTO) GetAttributeValue(key string) string {
+func (req *PollerRequestDTO) GetAttributeValue(key string, defaultValue string) string {
 	if req.Attributes != nil && len(req.Attributes) > 0 {
 		for _, attr := range req.Attributes {
 			if strings.ToLower(attr.Key) == key {
@@ -72,7 +72,7 @@ func (req *PollerRequestDTO) GetAttributeValue(key string) string {
 			}
 		}
 	}
-	return ""
+	return defaultValue
 }
 
 // GetAttributeContent gets the value of a given attribute

@@ -20,7 +20,7 @@ func (monitor *SNMPMonitor) GetID() string {
 // Poll execute the monitor request and return the service status
 // TODO Implement all pending features
 func (monitor *SNMPMonitor) Poll(request *api.PollerRequestDTO) api.PollStatus {
-	oid := request.GetAttributeValue("oid")
+	oid := request.GetAttributeValue("oid", ".1.3.6.1.2.1.1.2.0")
 	agent := &api.SNMPAgentDTO{}
 	status := api.PollStatus{}
 	if err := xml.Unmarshal([]byte(request.GetAttributeContent("agent")), agent); err == nil {

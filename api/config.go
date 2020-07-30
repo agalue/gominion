@@ -9,7 +9,6 @@ import (
 type MinionConfig struct {
 	ID               string            `yaml:"id" json:"id"`
 	Location         string            `yaml:"location" json:"location"`
-	OnmsURL          string            `yaml:"onms_url" json:"onms_url"`
 	BrokerURL        string            `yaml:"broker_url" json:"broker_url"`
 	BrokerType       string            `yaml:"broker_type" json:"broker_type"`
 	BrokerProperties map[string]string `yaml:"broker_properties,omitempty" json:"broker_properties,omitempty"`
@@ -26,9 +25,6 @@ func (cfg *MinionConfig) String() string {
 func (cfg *MinionConfig) IsValid() error {
 	if cfg.Location == "" {
 		return fmt.Errorf("Location required")
-	}
-	if cfg.OnmsURL == "" {
-		return fmt.Errorf("OpenNMS URL required")
 	}
 	if cfg.BrokerURL == "" {
 		return fmt.Errorf("Broker URL required")

@@ -17,10 +17,8 @@ func (monitor *EmptyMonitor) GetID() string {
 
 // Poll execute the monitor request and return the service status
 func (monitor *EmptyMonitor) Poll(request *api.PollerRequestDTO) api.PollStatus {
-	status := api.PollStatus{
-		StatusCode: api.ServiceUnknownCode,
-		StatusName: api.ServiceUnknown,
-	}
+	status := api.PollStatus{}
+	status.Unknown("Not implemented")
 	return status
 }
 

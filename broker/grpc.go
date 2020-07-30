@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"time"
 
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/protobuf/ipc"
@@ -29,14 +30,18 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 
 	cli.conn, err = grpc.Dial(config.BrokerURL, grpc.WithInsecure())
 	if err != nil {
-		return fmt.Errorf("Cannot start gRPC client: %v", err)
+		return fmt.Errorf("Cannot dial gRPC server: %v", err)
 	}
 
 	cli.onms = ipc.NewOpenNMSIpcClient(cli.conn)
 
-	cli.rpcStream, err = cli.onms.RpcStreaming(context.Background())
-	if err != nil {
-		return err
+	for {
+		cli.rpcStream, err = cli.onms.RpcStreaming(context.Background())
+		if err == nil {
+			break
+		}
+		log.Printf("Cannot reach gRPC server, retrying in 5 seconds...")
+		time.Sleep(5 * time.Second)
 	}
 
 	go func() {
@@ -70,7 +75,9 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 					return
 				}
 				errStatus, _ := status.FromError(err)
-				log.Printf("Error while receiving an RPC Request: code=%s, message=%s", errStatus.Code(), errStatus.Message())
+				if errStatus.Code().String() != "Unavailable" {
+					log.Printf("Error while receiving an RPC Request: code=%s, message=%s", errStatus.Code(), errStatus.Message())
+				}
 			}
 		}
 	}()
@@ -92,12 +99,6 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 // Stop finilizes the gRPC client
 func (cli *GrpcClient) Stop() {
 	log.Printf("Stopping gRPC client")
-	if cli.rpcStream != nil {
-		cli.rpcStream.CloseSend()
-	}
-	if cli.sinkStream != nil {
-		cli.sinkStream.CloseSend()
-	}
 	for _, module := range api.GetAllSinkModules() {
 		module.Stop()
 	}

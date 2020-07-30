@@ -56,19 +56,6 @@ func (module *SyslogModule) Stop() {
 	module.server.Kill()
 }
 
-/*
-{
-  "client": "127.0.0.1:64557",
-  "content": ": 2020 Jul 29 17:07:29 EDT: %ETHPORT-5-IF_DOWN_LINK_FAILURE: Interface eth1 is down (Link failure)",
-  "facility": 23,
-  "hostname": "127.0.0.1",
-  "priority": 189,
-  "severity": 5,
-  "tag": "",
-  "timestamp": "2020-07-29T17:54:29-04:00",
-  "tls_peer": ""
-}
-*/
 func (module *SyslogModule) handleLogParts(logParts map[string]interface{}) {
 	clientParts := strings.Split(logParts["client"].(string), ":")
 	clientPort, _ := strconv.Atoi(clientParts[1])
@@ -82,6 +69,7 @@ func (module *SyslogModule) handleLogParts(logParts map[string]interface{}) {
 	if logParts["content"].(string) == "X" {
 		return
 	}
+	log.Printf("Received Syslog message from %s\n", messageLog.SourceAddress)
 	content := fmt.Sprintf("<%d>%s", logParts["priority"].(int), logParts["content"].(string))
 	message := api.SyslogMessageDTO{
 		Timestamp: timestamp.Format(api.TimeFormat),

@@ -50,7 +50,7 @@ func (module *SnmpTrapModule) Stop() {
 }
 
 func (module *SnmpTrapModule) trapHandler(packet *gosnmp.SnmpPacket, addr *net.UDPAddr) {
-	log.Printf("Received trap data from %s\n", addr.IP)
+	log.Printf("Received SNMP trap from %s\n", addr.IP)
 
 	trap := api.TrapDTO{
 		AgentAddress: addr.IP.String(),

@@ -62,7 +62,7 @@ func TestPollerRequestUnmarshal(t *testing.T) {
 	request := &PollerRequestDTO{}
 	err := xml.Unmarshal([]byte(requestXML), request)
 	assert.NilError(t, err)
-	assert.Equal(t, ".1.3.6.1.2.1.1.2.0", request.GetAttributeValue("oid"))
+	assert.Equal(t, ".1.3.6.1.2.1.1.2.0", request.GetAttributeValue("oid", ""))
 	agent := &SNMPAgentDTO{}
 	err = xml.Unmarshal([]byte(request.GetAttributeContent("agent")), agent)
 	assert.NilError(t, err)
