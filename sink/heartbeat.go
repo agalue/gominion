@@ -19,12 +19,12 @@ func (module *HeartbeatModule) GetID() string {
 }
 
 // Start initiates a blocking loop that sends heartbeats to OpenNMS
-func (module *HeartbeatModule) Start(config *api.MinionConfig, stream ipc.OpenNMSIpc_SinkStreamingClient) {
+func (module *HeartbeatModule) Start(config *api.MinionConfig, broker api.Broker) {
 	log.Printf("Starting Sink Heartbeat Module")
 	for {
 		log.Printf("Sending heartbeat for Minion with id %s at location %s", config.ID, config.Location)
 		msg := module.getSinkMessage(config)
-		if err := stream.Send(msg); err != nil {
+		if err := broker.Send(msg); err != nil {
 			log.Printf("Error while sending heartbeat: %v", err)
 		}
 		time.Sleep(30 * time.Second)

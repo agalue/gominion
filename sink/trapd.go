@@ -18,7 +18,7 @@ import (
 
 // SnmpTrapModule represents the SNMP trap receiver module
 type SnmpTrapModule struct {
-	stream   ipc.OpenNMSIpc_SinkStreamingClient
+	broker   api.Broker
 	config   *api.MinionConfig
 	listener *gosnmp.TrapListener
 }
@@ -28,11 +28,11 @@ func (module *SnmpTrapModule) GetID() string {
 	return "Trapd"
 }
 
-// Start initiates a blocking loop that sends heartbeats to OpenNMS
-func (module *SnmpTrapModule) Start(config *api.MinionConfig, stream ipc.OpenNMSIpc_SinkStreamingClient) {
+// Start initiates a blocking loop with the SNMP trap listener
+func (module *SnmpTrapModule) Start(config *api.MinionConfig, broker api.Broker) {
 	log.Printf("Starting SNMP Trap receiver on port UDP %d", config.TrapPort)
 	module.config = config
-	module.stream = stream
+	module.broker = broker
 	module.listener = gosnmp.NewTrapListener()
 	module.listener.OnNewTrap = module.trapHandler
 	module.listener.Params = gosnmp.Default
@@ -102,7 +102,9 @@ func (module *SnmpTrapModule) sendSinkMessage(trapLog api.TrapLogDTO) {
 		Location:  module.config.Location,
 		Content:   bytes,
 	}
-	module.stream.Send(msg)
+	if err := module.broker.Send(msg); err != nil {
+		log.Printf("Error while sending trap: %v", err)
+	}
 }
 
 func (module *SnmpTrapModule) extractTrapIdentity(pdu gosnmp.SnmpPDU) *api.TrapIdentityDTO {
