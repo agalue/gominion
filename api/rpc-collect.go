@@ -47,6 +47,20 @@ func (req *CollectorRequestDTO) GetCollector() string {
 
 // CollectorResponseDTO represents a collector response
 type CollectorResponseDTO struct {
-	XMLName xml.Name `xml:"collector-response"`
-	Error   string   `xml:"error,attr"`
+	XMLName       xml.Name          `xml:"collector-response"`
+	Error         string            `xml:"error,attr"`
+	CollectionSet *CollectionSetDTO `xml:"collection-set"`
+}
+
+// RRA represents an RRA object
+type RRA struct {
+	XMLName xml.Name `xml:"rra"`
+	Content string   `xml:",chardata"`
+}
+
+// RRD represents an RRD object
+type RRD struct {
+	XMLName xml.Name `xml:"rrd"`
+	Step    int      `xml:"step,attr"`
+	RRAs    []RRA    `xml:"rra"`
 }
