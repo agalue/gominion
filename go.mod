@@ -10,5 +10,6 @@ require (
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	google.golang.org/grpc v1.30.0
 	google.golang.org/protobuf v1.25.0
+	gopkg.in/mcuadros/go-syslog.v2 v2.3.0
 	gotest.tools v2.2.0+incompatible
 )
