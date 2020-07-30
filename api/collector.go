@@ -4,6 +4,15 @@ import (
 	"encoding/xml"
 )
 
+// CollectionStatusUnknown status unknown
+const CollectionStatusUnknown = "UNKNOWN"
+
+// CollectionStatusSucceded collection finished successfully
+const CollectionStatusSucceded = "SUCCEEDED"
+
+// CollectionStatusFailed collection failed
+const CollectionStatusFailed = "FAILED"
+
 // CollectionAttributeValueDTO represents a collection resource attribute value
 type CollectionAttributeValueDTO struct {
 	XMLName xml.Name `xml:"value"`
