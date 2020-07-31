@@ -3,6 +3,8 @@ package collectors
 // Placeholder for implementing new collectors
 
 import (
+	"time"
+
 	"github.com/agalue/gominion/api"
 )
 
@@ -11,20 +13,24 @@ type EmptyCollector struct {
 }
 
 // GetID gets the detector ID (simple class name from its Java counterpart)
-func (detector *EmptyCollector) GetID() string {
+func (collector *EmptyCollector) GetID() string {
 	return "EMPTY"
 }
 
 // Collect execute the collector request and return the collection set
-func (detector *EmptyCollector) Collect(request *api.CollectorRequestDTO) api.CollectionSetDTO {
-	results := api.CollectionSetDTO{
-		Status: api.CollectionStatusUnknown,
+func (collector *EmptyCollector) Collect(request *api.CollectorRequestDTO) api.CollectorResponseDTO {
+	response := api.CollectorResponseDTO{
+		Error: "Not Implemented",
+		CollectionSet: &api.CollectionSetDTO{
+			Timestamp: &api.Timestamp{Time: time.Now()},
+			Status:    api.CollectionStatusUnknown,
+		},
 	}
-	return results
+	return response
 }
 
 var emptyCollector = &EmptyCollector{}
 
 func init() {
-	//	RegisterDetector(emptyCollector)
+	//	RegisterCollector(emptyCollector)
 }

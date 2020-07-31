@@ -24,15 +24,27 @@ type CollectionAttributeValueDTO struct {
 type CollectionResourceAttributeDTO struct {
 	XMLName xml.Name                     `xml:"attribute"`
 	Name    string                       `xml:"name,attr"`
-	Value   *CollectionAttributeValueDTO `xml:"value,attr"`
+	Value   *CollectionAttributeValueDTO `xml:"value"`
 }
 
 // CollectionResourceDTO represents a collection resource
 type CollectionResourceDTO struct {
-	XMLName    xml.Name                 `xml:"resource"`
-	Name       string                   `xml:"name,attr"`
-	Resources  []CollectionResourceDTO  `xml:"resource"`
-	Attributes []CollectionAttributeDTO `xml:"attribute"`
+	XMLName    xml.Name                         `xml:"resource"`
+	Name       string                           `xml:"name,attr"`
+	Resources  []CollectionResourceDTO          `xml:"resource"`
+	Attributes []CollectionResourceAttributeDTO `xml:"attribute"`
+}
+
+// AddAttribute adds a new attribute to the resource
+func (resource *CollectionResourceDTO) AddAttribute(aType string, aName string, aContent string) {
+	attr := CollectionResourceAttributeDTO{
+		Name: aName,
+		Value: &CollectionAttributeValueDTO{
+			Type:    aType,
+			Content: aContent,
+		},
+	}
+	resource.Attributes = append(resource.Attributes, attr)
 }
 
 // CollectionSetDTO represents a collection set
@@ -46,8 +58,13 @@ type CollectionSetDTO struct {
 	Resources                 []CollectionResourceDTO `xml:"collection-resource"`
 }
 
+// AddResource adds a new resource to the collection set
+func (set *CollectionSetDTO) AddResource(resource CollectionResourceDTO) {
+	set.Resources = append(set.Resources, resource)
+}
+
 // ServiceCollector represents the service collector interface
 type ServiceCollector interface {
 	GetID() string
-	Collect(request *CollectorRequestDTO) CollectionSetDTO
+	Collect(request *CollectorRequestDTO) CollectorResponseDTO
 }

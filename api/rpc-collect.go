@@ -17,11 +17,11 @@ type CollectionAgentDTO struct {
 	StoreByFS           bool                     `xml:"store-by-fs,attr"`
 	NodeID              int                      `xml:"node-id,attr"`
 	NodeLabel           string                   `xml:"node-label,attr"`
-	ForeignSource       string                   `xml:"foreign-source,attr"`
-	ForeignID           string                   `xml:"foreign-id,attr"`
-	Location            string                   `xml:"location,attr"`
+	ForeignSource       string                   `xml:"foreign-source,attr,omitempty"`
+	ForeignID           string                   `xml:"foreign-id,attr,omitempty"`
+	Location            string                   `xml:"location,attr,omitempty"`
 	StorageResourcePath string                   `xml:"storage-resource-path,attr"`
-	SysUpTime           int                      `xml:"sys-up-time,attr"`
+	SysUpTime           int64                    `xml:"sys-up-time,attr"`
 	Attributes          []CollectionAttributeDTO `xml:"attribute,omitempty"`
 }
 
@@ -45,10 +45,20 @@ func (req *CollectorRequestDTO) GetCollector() string {
 	return sections[len(sections)-1]
 }
 
+// GetAttributeValue gets the value of a given attribute
+func (req *CollectorRequestDTO) GetAttributeValue(key string) string {
+	for _, attr := range req.Attributes {
+		if attr.Key == key {
+			return attr.Content
+		}
+	}
+	return ""
+}
+
 // CollectorResponseDTO represents a collector response
 type CollectorResponseDTO struct {
 	XMLName       xml.Name          `xml:"collector-response"`
-	Error         string            `xml:"error,attr"`
+	Error         string            `xml:"error,attr,omitempty"`
 	CollectionSet *CollectionSetDTO `xml:"collection-set"`
 }
 

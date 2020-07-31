@@ -8,7 +8,7 @@ import (
 type HTTPAttribute struct {
 	XMLName    xml.Name `xml:"attrib"`
 	Alias      string   `xml:"alias,attr"`
-	MatchGroup string   `xml:"match-group,attr"`
+	MatchGroup int      `xml:"match-group,attr"`
 	Type       string   `xml:"type,attr"`
 }
 
@@ -41,6 +41,19 @@ func (uri *HTTPUri) AddAttribute(attrib HTTPAttribute) {
 		uri.Attributes = &HTTPAttributeList{}
 	}
 	uri.Attributes.AttributeList = append(uri.Attributes.AttributeList, attrib)
+}
+
+// FindAttributeByMatchGroup finds an attribute by metch group
+func (uri *HTTPUri) FindAttributeByMatchGroup(matchGroup int) *HTTPAttribute {
+	if uri.Attributes == nil {
+		uri.Attributes = &HTTPAttributeList{}
+	}
+	for _, attr := range uri.Attributes.AttributeList {
+		if attr.MatchGroup == matchGroup {
+			return &attr
+		}
+	}
+	return nil
 }
 
 // HTTPUriList represents a list of HTTP URI object

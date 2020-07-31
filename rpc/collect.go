@@ -28,10 +28,9 @@ func (module *CollectorClientRPCModule) Execute(request *ipc.RpcRequestProto) *i
 		return transformResponse(request, bytes)
 	}
 	collectorID := req.GetCollector()
-	response := &api.CollectorResponseDTO{}
+	response := api.CollectorResponseDTO{}
 	if collector, ok := collectors.GetCollector(collectorID); ok {
-		set := collector.Collect(req)
-		response.CollectionSet = &set
+		response = collector.Collect(req)
 	} else {
 		msg := fmt.Sprintf("Error cannot find implementation for collector %s, ignoring request with ID %s", collectorID, request.RpcId)
 		response.Error = msg
