@@ -77,7 +77,7 @@ func (monitor *HTTPMonitor) Poll(request *api.PollerRequestDTO) api.PollStatus {
 	}
 	min, max := monitor.getResponseRange(request)
 	if response.StatusCode < min || response.StatusCode > max {
-		status.Down(fmt.Sprintf("Response code %d out of expected range: %d:%d", response.StatusCode, min, max))
+		status.Down(fmt.Sprintf("Response code %d out of expected range: %d-%d", response.StatusCode, min, max))
 		return status
 	}
 	responseText := request.GetAttributeValue("response-text", "")

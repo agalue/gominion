@@ -20,10 +20,12 @@ var mockHTTPCollection = `
 	</rrd>
 	<uris>
 		<uri name="sample">
-			<url path="/" user-agent="Mozilla/5.0" matches="(?s).*var1=([0-9]+).*var2=([0-9]+).*" response-range="100-399"/>
+			<url path="/stats" user-agent="Mozilla/5.0"
+				matches="(?s).*Temperature: ([0-9]+).*Humidity: ([0-9]+)" response-range="100-399" >
+			</url>
 			<attributes>
-				<attrib alias="var1" match-group="1" type="counter"/>
-				<attrib alias="var2" match-group="2" type="gauge"/>
+				<attrib alias="temperature" match-group="1" type="gauge"/>
+				<attrib alias="humidity" match-group="2" type="gauge"/>
 			</attributes>
 		</uri>
 	</uris>
@@ -32,8 +34,8 @@ var mockHTTPCollection = `
 
 var mockHTML = `
 <html>
-	<p>var1=10</p>
-	<p>var2=20</p>
+	<p>Temperature: 29</p>
+	<p>Humidity: 66</p>
 </html>
 `
 
@@ -46,14 +48,13 @@ func TestAddResourceAttributes(t *testing.T) {
 	err = httpCollector.AddResourceAttributes(resource, uri, mockHTML)
 	assert.NilError(t, err)
 	assert.Equal(t, 2, len(resource.Attributes))
-	assert.Equal(t, "10", resource.Attributes[0].Value.Content)
-	assert.Equal(t, "20", resource.Attributes[1].Value.Content)
+	assert.Equal(t, "29", resource.Attributes[0].Value.Content)
+	assert.Equal(t, "66", resource.Attributes[1].Value.Content)
 }
 
 func TestHttpCollector(t *testing.T) {
 	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		res.Write([]byte(mockHTML))
-		res.WriteHeader(http.StatusOK)
 	}))
 	defer testServer.Close()
 	u, err := url.Parse(testServer.URL)
@@ -77,4 +78,6 @@ func TestHttpCollector(t *testing.T) {
 	assert.NilError(t, err)
 	fmt.Println(string(bytes))
 	assert.Equal(t, api.CollectionStatusSucceded, response.CollectionSet.Status)
+	assert.Equal(t, 1, len(response.CollectionSet.Resources))
+	assert.Equal(t, 2, len(response.CollectionSet.Resources[0].Attributes))
 }

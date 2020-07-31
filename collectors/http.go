@@ -71,7 +71,7 @@ func (collector *HTTPCollector) Collect(request *api.CollectorRequestDTO) api.Co
 		}
 		min, max := tools.ParseHTTPResponseRange(uri.URL.ResponseRange)
 		if httpres.StatusCode < min || httpres.StatusCode > max {
-			response.Error = fmt.Sprintf("Response code %d out of expected range: %d:%d", httpres.StatusCode, min, max)
+			response.Error = fmt.Sprintf("Response code %d out of expected range: %d-%d", httpres.StatusCode, min, max)
 			return response
 		}
 		data, err := ioutil.ReadAll(httpres.Body)

@@ -24,6 +24,7 @@ func (collector *EmptyCollector) Collect(request *api.CollectorRequestDTO) api.C
 		CollectionSet: &api.CollectionSetDTO{
 			Timestamp: &api.Timestamp{Time: time.Now()},
 			Status:    api.CollectionStatusUnknown,
+			Agent:     request.CollectionAgent,
 		},
 	}
 	return response
