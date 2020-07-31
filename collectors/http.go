@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -36,7 +37,7 @@ func (collector *HTTPCollector) Collect(request *api.CollectorRequestDTO) api.Co
 	httpCollection := &api.HTTPCollection{}
 	err := xml.Unmarshal([]byte(request.GetAttributeValue("httpCollection")), httpCollection)
 	if err != nil {
-		response.Error = err.Error()
+		response.Error = fmt.Sprintf("Error cannot parse httpCollection: %s", err.Error())
 		return response
 	}
 
@@ -47,6 +48,7 @@ func (collector *HTTPCollector) Collect(request *api.CollectorRequestDTO) api.Co
 			Host:   request.CollectionAgent.IPAddress + ":" + request.GetAttributeValue("port"),
 			Path:   uri.URL.Path,
 		}
+		log.Printf("Executing an HTTP GET against %s", u.String())
 		httpreq, err := http.NewRequest("GET", u.String(), nil)
 		if err != nil {
 			response.Error = err.Error()

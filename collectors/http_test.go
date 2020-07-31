@@ -23,7 +23,7 @@ var mockHTTPCollection = `
 			<url path="/" user-agent="Mozilla/5.0" matches="(?s).*var1=([0-9]+).*var2=([0-9]+).*" response-range="100-399"/>
 			<attributes>
 				<attrib alias="var1" match-group="1" type="counter"/>
-				<attrib alias="var2" match-group="2" type="integer"/>
+				<attrib alias="var2" match-group="2" type="gauge"/>
 			</attributes>
 		</uri>
 	</uris>

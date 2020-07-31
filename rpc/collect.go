@@ -29,6 +29,7 @@ func (module *CollectorClientRPCModule) Execute(request *ipc.RpcRequestProto) *i
 	}
 	collectorID := req.GetCollector()
 	response := api.CollectorResponseDTO{}
+	log.Printf("Executing %s collector against %s", collectorID, req.CollectionAgent.IPAddress)
 	if collector, ok := collectors.GetCollector(collectorID); ok {
 		response = collector.Collect(req)
 	} else {
