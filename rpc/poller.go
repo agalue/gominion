@@ -37,6 +37,7 @@ func (module *PollerClientRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.
 		pollerResponse.Error = msg
 		log.Printf(msg)
 	}
+	log.Printf("Sending polling status of %s on %s as %s", req.ServiceName, req.IPAddress, pollerResponse.Status.StatusName)
 	bytes, _ := xml.Marshal(pollerResponse)
 	return transformResponse(request, bytes)
 }

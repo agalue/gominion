@@ -45,7 +45,7 @@ func (module *DNSLookupClientRPCModule) Execute(request *ipc.RpcRequestProto) *i
 	} else {
 		response.Error = fmt.Sprintf("Invalid query type: %s", req.QueryType)
 	}
-	log.Printf("Sending DNS %s response for '%s' = '%s'", req.QueryType, req.HostRequest, response.HostResponse)
+	log.Printf("Sending DNS %s response for %s as %s", req.QueryType, req.HostRequest, response.HostResponse)
 	bytes, _ := xml.Marshal(response)
 	return transformResponse(request, bytes)
 }

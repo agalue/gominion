@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/xml"
+	"fmt"
 	"strings"
 )
 
@@ -120,6 +121,18 @@ type CollectorResponseDTO struct {
 	XMLName       xml.Name          `xml:"collector-response"`
 	Error         string            `xml:"error,attr,omitempty"`
 	CollectionSet *CollectionSetDTO `xml:"collection-set"`
+}
+
+// GetStatus returns the collection status as a string
+func (set *CollectorResponseDTO) GetStatus() string {
+	if set.CollectionSet == nil {
+		return "nothing collected"
+	}
+	total := 0
+	for _, r := range set.CollectionSet.Resources {
+		total += len(r.Attributes)
+	}
+	return fmt.Sprintf("%d attributes in %d resources", total, len(set.CollectionSet.Resources))
 }
 
 // RRA represents an RRA object

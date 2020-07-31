@@ -38,7 +38,7 @@ func (module *DetectorClientRPCModule) Execute(request *ipc.RpcRequestProto) *ip
 		response.Error = msg
 		log.Printf(msg)
 	}
-	log.Printf("Sending detector response for %s on %s ? %v", detectorID, req.IPAddress, response.Detected)
+	log.Printf("Sending detection status %s on %s as %s", detectorID, req.IPAddress, response.GetStatus())
 	bytes, _ := xml.Marshal(response)
 	return transformResponse(request, bytes)
 }

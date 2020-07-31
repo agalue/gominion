@@ -37,6 +37,7 @@ func (module *CollectorClientRPCModule) Execute(request *ipc.RpcRequestProto) *i
 		response.Error = msg
 		log.Printf(msg)
 	}
+	log.Printf("Sending collection of %s from %s", response.GetStatus(), req.CollectionAgent.IPAddress)
 	bytes, _ := xml.Marshal(response)
 	return transformResponse(request, bytes)
 }

@@ -110,3 +110,11 @@ type DetectorResponseDTO struct {
 	Detected   bool                   `xml:"detected,attr"`
 	Attributes []DetectorAttributeDTO `xml:"attribute,omitempty"`
 }
+
+// GetStatus returns the detection status as a string
+func (response DetectorResponseDTO) GetStatus() string {
+	if response.Detected {
+		return "detected"
+	}
+	return "not detected"
+}
