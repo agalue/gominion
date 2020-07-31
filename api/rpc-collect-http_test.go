@@ -67,7 +67,7 @@ func TestHTTPRequest(t *testing.T) {
 	request := &CollectorRequestDTO{}
 	err := xml.Unmarshal([]byte(xmlstr), request)
 	assert.NilError(t, err)
-	collectionParam := request.GetAttributeValue("httpCollection")
+	collectionParam := request.GetAttributeValue("httpCollection", "")
 	collection := &HTTPCollection{}
 	err = xml.Unmarshal([]byte(collectionParam), collection)
 	assert.NilError(t, err)

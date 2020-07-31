@@ -46,14 +46,14 @@ func (req *CollectorRequestDTO) GetCollector() string {
 }
 
 // GetAttributeValue gets the value of a given attribute
-func (req *CollectorRequestDTO) GetAttributeValue(key string) string {
+func (req *CollectorRequestDTO) GetAttributeValue(key string, defaultValue string) string {
 	for _, attr := range req.Attributes {
 		if attr.Key == key {
 			s := strings.Replace(attr.Content, "<![CDATA[", "", -1)
 			return strings.Replace(s, "]]>", "", -1)
 		}
 	}
-	return ""
+	return defaultValue
 }
 
 // CollectorResponseDTO represents a collector response

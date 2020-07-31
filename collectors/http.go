@@ -35,7 +35,7 @@ func (collector *HTTPCollector) Collect(request *api.CollectorRequestDTO) api.Co
 	}
 
 	httpCollection := &api.HTTPCollection{}
-	err := xml.Unmarshal([]byte(request.GetAttributeValue("httpCollection")), httpCollection)
+	err := xml.Unmarshal([]byte(request.GetAttributeValue("httpCollection", "")), httpCollection)
 	if err != nil {
 		response.Error = fmt.Sprintf("Error cannot parse httpCollection: %s", err.Error())
 		return response
@@ -45,7 +45,7 @@ func (collector *HTTPCollector) Collect(request *api.CollectorRequestDTO) api.Co
 	for _, uri := range httpCollection.URIs.URIList {
 		u := url.URL{
 			Scheme: "http",
-			Host:   request.CollectionAgent.IPAddress + ":" + request.GetAttributeValue("port"),
+			Host:   request.CollectionAgent.IPAddress + ":" + request.GetAttributeValue("port", "80"),
 			Path:   uri.URL.Path,
 		}
 		log.Printf("Executing an HTTP GET against %s", u.String())
@@ -58,7 +58,7 @@ func (collector *HTTPCollector) Collect(request *api.CollectorRequestDTO) api.Co
 			httpreq.Header.Set("User-Agent", uri.URL.UserAgent)
 		}
 		var timeout time.Duration = 3 * time.Second
-		if t := request.GetAttributeValue("timeout"); t != "" {
+		if t := request.GetAttributeValue("timeout", "3000"); t != "" {
 			if v, err := strconv.Atoi(t); err != nil {
 				timeout = time.Duration(v) * time.Millisecond
 			}
