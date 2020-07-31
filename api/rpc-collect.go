@@ -49,7 +49,8 @@ func (req *CollectorRequestDTO) GetCollector() string {
 func (req *CollectorRequestDTO) GetAttributeValue(key string) string {
 	for _, attr := range req.Attributes {
 		if attr.Key == key {
-			return attr.Content
+			s := strings.Replace(attr.Content, "<![CDATA[", "", -1)
+			return strings.Replace(s, "]]>", "", -1)
 		}
 	}
 	return ""
