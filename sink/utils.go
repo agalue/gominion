@@ -2,7 +2,9 @@ package sink
 
 import (
 	"encoding/xml"
+	"fmt"
 	"log"
+	"net"
 	"time"
 
 	"github.com/agalue/gominion/api"
@@ -56,4 +58,17 @@ func wrapMessageToTelemetry(config *api.MinionConfig, sourceAddress string, sour
 		return nil
 	}
 	return msg
+}
+
+func startUDPServer(name string, port int) *net.UDPConn {
+	log.Printf("Starting %s UDP Forwarder Module", name)
+	udpAddr, err := net.ResolveUDPAddr("udp4", fmt.Sprintf(":%d", port))
+	if err != nil {
+		log.Fatalf("Error cannot resolve address for %s: %s", name, err)
+	}
+	conn, err := net.ListenUDP("udp4", udpAddr)
+	if err != nil {
+		log.Fatalf("Error cannot start %s UDP Forwarder: %s", name, err)
+	}
+	return conn
 }

@@ -3,7 +3,24 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
+
+// MinionListener represents a Minion Listener
+type MinionListener struct {
+	Name   string `yaml:"name" json:"name"`
+	Parser string `yaml:"parser" json:"parser"`
+	Port   int    `yaml:"port" json:"port"`
+}
+
+// GetParser returns the simple class name for the parser implementation
+func (listener *MinionListener) GetParser() string {
+	if listener.Parser == "" {
+		return ""
+	}
+	sections := strings.Split(listener.Parser, ".")
+	return sections[len(sections)-1]
+}
 
 // MinionConfig represents basic Minion Configuration
 type MinionConfig struct {
@@ -15,6 +32,17 @@ type MinionConfig struct {
 	TrapPort         int               `yaml:"trap_port" json:"trap_port"`
 	SyslogPort       int               `yaml:"syslog_port" json:"syslog_port"`
 	NxosGrpcPort     int               `yaml:"nxos_grpc_port" json:"nxos_grpc_port"`
+	Listeners        []MinionListener  `yaml:"listeners" json:"listeners"`
+}
+
+// GetListener gets a given listener by name
+func (cfg *MinionConfig) GetListener(name string) *MinionListener {
+	for _, listener := range cfg.Listeners {
+		if listener.Name == name {
+			return &listener
+		}
+	}
+	return nil
 }
 
 func (cfg *MinionConfig) String() string {
