@@ -26,10 +26,15 @@ func (module *SyslogModule) GetID() string {
 
 // Start initiates a blocking loop with the Syslog Listener
 func (module *SyslogModule) Start(config *api.MinionConfig, broker api.Broker) {
+	if config.SyslogPort == 0 {
+		log.Printf("Syslog Module disabled")
+		return
+	}
+
 	log.Printf("Starting Syslog receiver on port UDP/TCP %d", config.SyslogPort)
+
 	module.config = config
 	module.broker = broker
-
 	channel := make(syslog.LogPartsChannel)
 	handler := syslog.NewChannelHandler(channel)
 
@@ -56,7 +61,9 @@ func (module *SyslogModule) Start(config *api.MinionConfig, broker api.Broker) {
 
 // Stop shutdowns the sink module
 func (module *SyslogModule) Stop() {
-	module.server.Kill()
+	if module.server != nil {
+		module.server.Kill()
+	}
 }
 
 func (module *SyslogModule) buildMessageLog(logParts map[string]interface{}) *api.SyslogMessageLogDTO {

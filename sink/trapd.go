@@ -27,7 +27,13 @@ func (module *SnmpTrapModule) GetID() string {
 
 // Start initiates a blocking loop with the SNMP trap listener
 func (module *SnmpTrapModule) Start(config *api.MinionConfig, broker api.Broker) {
+	if config.TrapPort == 0 {
+		log.Printf("Trap Module disabled")
+		return
+	}
+
 	log.Printf("Starting SNMP Trap receiver on port UDP %d", config.TrapPort)
+
 	module.config = config
 	module.broker = broker
 	module.listener = gosnmp.NewTrapListener()
