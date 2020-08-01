@@ -36,14 +36,13 @@ func sendBytes(moduleID string, config *api.MinionConfig, broker api.Broker, byt
 	}
 }
 
-func wrapMessageToTelemetry(config *api.MinionConfig, sourceAddress string, data []byte) []byte {
+func wrapMessageToTelemetry(config *api.MinionConfig, sourceAddress string, sourcePort uint32, data []byte) []byte {
 	now := uint64(time.Now().UnixNano() / int64(time.Millisecond))
-	port := uint32(config.NxosGrpcPort)
 	telemetryLogMsg := &telemetry.TelemetryMessageLog{
 		SystemId:      &config.ID,
 		Location:      &config.Location,
 		SourceAddress: &sourceAddress,
-		SourcePort:    &port,
+		SourcePort:    &sourcePort,
 		Message: []*telemetry.TelemetryMessage{
 			{
 				Timestamp: &now,

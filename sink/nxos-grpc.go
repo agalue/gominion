@@ -24,7 +24,7 @@ func (module *NxosGrpcModule) GetID() string {
 	return "NXOS"
 }
 
-// Start initiates a blocking loop that sends heartbeats to OpenNMS
+// Start initiates a blocking loop that starts the gRPC Server for NX-OS telemetry
 func (module *NxosGrpcModule) Start(config *api.MinionConfig, broker api.Broker) {
 	if config.NxosGrpcPort == 0 {
 		log.Printf("NX-OS Telemetry Module disabled")
@@ -39,16 +39,14 @@ func (module *NxosGrpcModule) Start(config *api.MinionConfig, broker api.Broker)
 	module.server = grpc.NewServer()
 	mdt_dialout.RegisterGRPCMdtDialoutServer(module.server, module)
 
-	go func() {
-		log.Printf("Starting NX-OS gRPC server on port %d\n", config.NxosGrpcPort)
-		listener, err := net.Listen("tcp", fmt.Sprintf(":%d", config.NxosGrpcPort))
-		if err != nil {
-			log.Fatalf("Error cannot start TCP listener: %s", err)
-		}
-		if err := module.server.Serve(listener); err != nil {
-			log.Fatalf("Error could not serve: %v", err)
-		}
-	}()
+	log.Printf("Starting NX-OS gRPC server on port %d\n", config.NxosGrpcPort)
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", config.NxosGrpcPort))
+	if err != nil {
+		log.Fatalf("Error cannot start TCP listener: %s", err)
+	}
+	if err := module.server.Serve(listener); err != nil {
+		log.Fatalf("Error could not serve: %v", err)
+	}
 }
 
 // Stop shutdowns the sink module
@@ -79,7 +77,8 @@ func (module *NxosGrpcModule) MdtDialout(stream mdt_dialout.GRPCMdtDialout_MdtDi
 			continue
 		}
 		log.Printf("Received request with ID %d of %d bytes from %s\n", dialoutArgs.ReqId, len(dialoutArgs.Data), peer.Addr)
-		if bytes := wrapMessageToTelemetry(module.config, peer.Addr.String(), dialoutArgs.Data); bytes != nil {
+		port := uint32(module.config.NxosGrpcPort)
+		if bytes := wrapMessageToTelemetry(module.config, peer.Addr.String(), port, dialoutArgs.Data); bytes != nil {
 			sendBytes(module.GetID(), module.config, module.broker, bytes)
 		}
 	}
