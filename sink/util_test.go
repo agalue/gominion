@@ -6,6 +6,8 @@ import (
 
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/protobuf/ipc"
+	"github.com/agalue/gominion/protobuf/telemetry"
+	"github.com/golang/protobuf/proto"
 
 	"gotest.tools/assert"
 )
@@ -35,8 +37,31 @@ func TestSendResponse(t *testing.T) {
 	assert.Equal(t, 1, len(broker.messages))
 	msg := broker.messages[0]
 	assert.Equal(t, config.ID, msg.SystemId)
+
 	received := &Person{}
 	err := xml.Unmarshal(msg.Content, received)
+	assert.NilError(t, err)
+	assert.Equal(t, object.FirstName, received.FirstName)
+}
+
+func TestWrapMessageToTelemetry(t *testing.T) {
+	config := &api.MinionConfig{ID: "minion1", Location: "Test", NxosGrpcPort: 50000}
+	object := Person{FirstName: "Alejandro", LastName: "Galue"}
+	data, err := xml.Marshal(object)
+	assert.NilError(t, err)
+
+	bytes := wrapMessageToTelemetry(config, "10.0.0.1", data)
+
+	telemetry := &telemetry.TelemetryMessageLog{}
+	err = proto.Unmarshal(bytes, telemetry)
+	assert.NilError(t, err)
+	assert.Equal(t, uint32(config.NxosGrpcPort), telemetry.GetSourcePort())
+	assert.Equal(t, "10.0.0.1", telemetry.GetSourceAddress())
+	assert.Equal(t, 1, len(telemetry.Message))
+
+	msg := telemetry.Message[0]
+	received := &Person{}
+	err = xml.Unmarshal(msg.Bytes, received)
 	assert.NilError(t, err)
 	assert.Equal(t, object.FirstName, received.FirstName)
 }

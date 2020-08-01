@@ -20,6 +20,7 @@ func main() {
 	flag.StringVar(&config.BrokerURL, "broker-url", "localhost:8990", "OpenNMS gRPC server connection string")
 	flag.IntVar(&config.TrapPort, "trap-port", 1162, "Trap Listener Port")
 	flag.IntVar(&config.SyslogPort, "syslog-port", 1514, "Syslog Listener Port")
+	flag.IntVar(&config.NxosGrpcPort, "nxos-port", 0, "NX-OS gRPC Telemetry Port")
 	flag.Parse()
 
 	log.Printf("Starting OpenNMS Minion...\n%s", config.String())

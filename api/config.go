@@ -14,6 +14,7 @@ type MinionConfig struct {
 	BrokerProperties map[string]string `yaml:"broker_properties,omitempty" json:"broker_properties,omitempty"`
 	TrapPort         int               `yaml:"trap_port" json:"trap_port"`
 	SyslogPort       int               `yaml:"syslog_port" json:"syslog_port"`
+	NxosGrpcPort     int               `yaml:"nxos_grpc_port" json:"nxos_grpc_port"`
 }
 
 func (cfg *MinionConfig) String() string {
