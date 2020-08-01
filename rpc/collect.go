@@ -24,8 +24,7 @@ func (module *CollectorClientRPCModule) Execute(request *ipc.RpcRequestProto) *i
 	req := &api.CollectorRequestDTO{}
 	if err := xml.Unmarshal(request.RpcContent, req); err != nil {
 		response := &api.CollectorResponseDTO{Error: getError(request, err)}
-		bytes, _ := xml.Marshal(response)
-		return transformResponse(request, bytes)
+		return transformResponse(request, response)
 	}
 	collectorID := req.GetCollector()
 	response := api.CollectorResponseDTO{}
@@ -38,8 +37,7 @@ func (module *CollectorClientRPCModule) Execute(request *ipc.RpcRequestProto) *i
 		log.Printf(msg)
 	}
 	log.Printf("Sending collection of %s from %s", response.GetStatus(), req.CollectionAgent.IPAddress)
-	bytes, _ := xml.Marshal(response)
-	return transformResponse(request, bytes)
+	return transformResponse(request, response)
 }
 
 var collectModule = &CollectorClientRPCModule{}

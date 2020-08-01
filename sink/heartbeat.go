@@ -1,13 +1,10 @@
 package sink
 
 import (
-	"encoding/xml"
 	"log"
 	"time"
 
 	"github.com/agalue/gominion/api"
-	"github.com/agalue/gominion/protobuf/ipc"
-	"github.com/google/uuid"
 )
 
 // HeartbeatModule represents the heartbeat module
@@ -23,10 +20,7 @@ func (module *HeartbeatModule) Start(config *api.MinionConfig, broker api.Broker
 	log.Printf("Starting Sink Heartbeat Module")
 	for {
 		log.Printf("Sending heartbeat for Minion with id %s at location %s", config.ID, config.Location)
-		msg := module.getSinkMessage(config)
-		if err := broker.Send(msg); err != nil {
-			log.Printf("Error while sending heartbeat: %v", err)
-		}
+		sendResponse(module.GetID(), config, broker, module.getIdentity(config))
 		time.Sleep(30 * time.Second)
 	}
 }
@@ -39,18 +33,6 @@ func (module *HeartbeatModule) getIdentity(config *api.MinionConfig) *api.Minion
 		ID:        config.ID,
 		Location:  config.Location,
 		Timestamp: &api.Timestamp{Time: time.Now()},
-	}
-}
-
-func (module *HeartbeatModule) getSinkMessage(config *api.MinionConfig) *ipc.SinkMessage {
-	identity := module.getIdentity(config)
-	bytes, _ := xml.Marshal(identity)
-	return &ipc.SinkMessage{
-		MessageId: uuid.New().String(),
-		ModuleId:  "Heartbeat",
-		SystemId:  config.ID,
-		Location:  config.Location,
-		Content:   bytes,
 	}
 }
 

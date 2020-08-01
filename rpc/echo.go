@@ -23,8 +23,7 @@ func (module *EchoRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.RpcRespo
 	req := &api.EchoRequest{}
 	if err := xml.Unmarshal(request.RpcContent, req); err != nil {
 		response := &api.EchoResponse{Error: getError(request, err)}
-		bytes, _ := xml.Marshal(response)
-		return transformResponse(request, bytes)
+		return transformResponse(request, response)
 	}
 	if req.Delay > 0 {
 		time.Sleep(time.Duration(req.Delay) * time.Microsecond)
@@ -35,8 +34,7 @@ func (module *EchoRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.RpcRespo
 		Body:    req.Body,
 	}
 	log.Printf("Sending echo response for ID %v", response.ID)
-	bytes, _ := xml.Marshal(response)
-	return transformResponse(request, bytes)
+	return transformResponse(request, response)
 }
 
 var echoModule = &EchoRPCModule{}

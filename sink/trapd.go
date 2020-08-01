@@ -1,7 +1,6 @@
 package sink
 
 import (
-	"encoding/xml"
 	"fmt"
 	"log"
 	"net"
@@ -10,9 +9,7 @@ import (
 	"time"
 
 	"github.com/agalue/gominion/api"
-	"github.com/agalue/gominion/protobuf/ipc"
 	"github.com/agalue/gominion/tools"
-	"github.com/google/uuid"
 	"github.com/soniah/gosnmp"
 )
 
@@ -25,7 +22,7 @@ type SnmpTrapModule struct {
 
 // GetID gets the ID of the sink module
 func (module *SnmpTrapModule) GetID() string {
-	return "Trapd"
+	return "Trap"
 }
 
 // Start initiates a blocking loop with the SNMP trap listener
@@ -50,7 +47,8 @@ func (module *SnmpTrapModule) Stop() {
 }
 
 func (module *SnmpTrapModule) trapHandler(packet *gosnmp.SnmpPacket, addr *net.UDPAddr) {
-	log.Printf("Received SNMP trap from %s\n", addr.IP)
+	version := fmt.Sprintf("v%s", packet.Version)
+	log.Printf("Received SNMP%s trap (type: 0x%X) from %s\n", version, packet.PDUType, addr.IP)
 
 	trap := api.TrapDTO{
 		AgentAddress: addr.IP.String(),
@@ -58,7 +56,7 @@ func (module *SnmpTrapModule) trapHandler(packet *gosnmp.SnmpPacket, addr *net.U
 		CreationTime: time.Now().Unix() * 1000,
 		Timestamp:    int64(packet.Timestamp),
 		Community:    packet.Community,
-		Version:      "v" + packet.Version.String(),
+		Version:      version,
 	}
 
 	trapLog := api.TrapLogDTO{
@@ -90,21 +88,7 @@ func (module *SnmpTrapModule) trapHandler(packet *gosnmp.SnmpPacket, addr *net.U
 	}
 
 	trapLog.AddTrap(trap)
-	module.sendSinkMessage(trapLog)
-}
-
-func (module *SnmpTrapModule) sendSinkMessage(trapLog api.TrapLogDTO) {
-	bytes, _ := xml.MarshalIndent(trapLog, "", "   ")
-	msg := &ipc.SinkMessage{
-		MessageId: uuid.New().String(),
-		ModuleId:  "Trap",
-		SystemId:  module.config.ID,
-		Location:  module.config.Location,
-		Content:   bytes,
-	}
-	if err := module.broker.Send(msg); err != nil {
-		log.Printf("Error while sending trap: %v", err)
-	}
+	sendResponse(module.GetID(), module.config, module.broker, trapLog)
 }
 
 func (module *SnmpTrapModule) extractTrapIdentity(pdu gosnmp.SnmpPDU) *api.TrapIdentityDTO {

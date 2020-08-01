@@ -24,14 +24,12 @@ func (module *SNMPProxyRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.Rpc
 	req := &api.SNMPRequestDTO{}
 	if err := xml.Unmarshal(request.RpcContent, req); err != nil {
 		response := &api.SNMPMultiResponseDTO{Error: getError(request, err)}
-		bytes, _ := xml.Marshal(response)
-		return transformResponse(request, bytes)
+		return transformResponse(request, response)
 	}
 	client := req.Agent.GetSNMPClient()
 	if err := client.Connect(); err != nil {
 		response := &api.SNMPMultiResponseDTO{Error: getError(request, err)}
-		bytes, _ := xml.Marshal(response)
-		return transformResponse(request, bytes)
+		return transformResponse(request, response)
 	}
 	defer client.Conn.Close()
 	multiResponse := &api.SNMPMultiResponseDTO{}
@@ -39,13 +37,7 @@ func (module *SNMPProxyRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.Rpc
 		response := snmpModule.snmpWalk(client, walk)
 		multiResponse.Responses = append(multiResponse.Responses, response)
 	}
-	bytes, err := xml.Marshal(multiResponse)
-	if err == nil {
-		return transformResponse(request, bytes)
-	}
-	response := &api.SNMPMultiResponseDTO{Error: getError(request, err)}
-	bytes, _ = xml.Marshal(response)
-	return transformResponse(request, bytes)
+	return transformResponse(request, multiResponse)
 }
 
 func (module *SNMPProxyRPCModule) snmpWalk(client *gosnmp.GoSNMP, walk api.SNMPWalkRequestDTO) api.SNMPResponseDTO {

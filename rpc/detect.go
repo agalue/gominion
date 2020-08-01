@@ -24,8 +24,7 @@ func (module *DetectorClientRPCModule) Execute(request *ipc.RpcRequestProto) *ip
 	req := &api.DetectorRequestDTO{}
 	if err := xml.Unmarshal(request.RpcContent, req); err != nil {
 		response := &api.DetectorResponseDTO{Error: getError(request, err)}
-		bytes, _ := xml.Marshal(response)
-		return transformResponse(request, bytes)
+		return transformResponse(request, response)
 	}
 	detectorID := req.GetDetector()
 	response := &api.DetectorResponseDTO{}
@@ -39,8 +38,7 @@ func (module *DetectorClientRPCModule) Execute(request *ipc.RpcRequestProto) *ip
 		log.Printf(msg)
 	}
 	log.Printf("Sending detection status %s on %s as %s", detectorID, req.IPAddress, response.GetStatus())
-	bytes, _ := xml.Marshal(response)
-	return transformResponse(request, bytes)
+	return transformResponse(request, response)
 }
 
 var detectorModule = &DetectorClientRPCModule{}

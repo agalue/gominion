@@ -24,8 +24,7 @@ func (module *DNSLookupClientRPCModule) Execute(request *ipc.RpcRequestProto) *i
 	req := &api.DNSLookupRequestDTO{}
 	if err := xml.Unmarshal(request.RpcContent, req); err != nil {
 		response := &api.DNSLookupResponseDTO{Error: getError(request, err)}
-		bytes, _ := xml.Marshal(response)
-		return transformResponse(request, bytes)
+		return transformResponse(request, response)
 	}
 	response := &api.DNSLookupResponseDTO{}
 	if req.QueryType == "LOOKUP" {
@@ -46,8 +45,7 @@ func (module *DNSLookupClientRPCModule) Execute(request *ipc.RpcRequestProto) *i
 		response.Error = fmt.Sprintf("Invalid query type: %s", req.QueryType)
 	}
 	log.Printf("Sending DNS %s response for %s as %s", req.QueryType, req.HostRequest, response.HostResponse)
-	bytes, _ := xml.Marshal(response)
-	return transformResponse(request, bytes)
+	return transformResponse(request, response)
 }
 
 var dnsModule = &DNSLookupClientRPCModule{}

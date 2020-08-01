@@ -24,8 +24,7 @@ func (module *PingProxyRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.Rpc
 	req := &api.PingRequest{}
 	if err := xml.Unmarshal(request.RpcContent, req); err != nil {
 		response := &api.PingResponse{Error: getError(request, err)}
-		bytes, _ := xml.Marshal(response)
-		return transformResponse(request, bytes)
+		return transformResponse(request, response)
 	}
 	response := &api.PingResponse{}
 	if duration, err := tools.Ping(req.Address, req.GetTimeout()); err == nil {
@@ -34,8 +33,7 @@ func (module *PingProxyRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.Rpc
 		response.Error = fmt.Sprintf("Cannot ping address %s: %v", req.Address, err)
 	}
 	log.Printf("Sending Ping response for %s", req.Address)
-	bytes, _ := xml.Marshal(response)
-	return transformResponse(request, bytes)
+	return transformResponse(request, response)
 }
 
 var pingProxyModule = &PingProxyRPCModule{}

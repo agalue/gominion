@@ -1,19 +1,25 @@
 package rpc
 
 import (
+	"encoding/xml"
 	"fmt"
 	"log"
 
 	"github.com/agalue/gominion/protobuf/ipc"
 )
 
-func transformResponse(request *ipc.RpcRequestProto, content []byte) *ipc.RpcResponseProto {
+func transformResponse(request *ipc.RpcRequestProto, object interface{}) *ipc.RpcResponseProto {
+	bytes, err := xml.MarshalIndent(object, "", "   ")
+	if err != nil {
+		log.Printf("Error cannot parse RPC content: %v", err)
+		return nil
+	}
 	response := &ipc.RpcResponseProto{
 		ModuleId:   request.ModuleId,
 		Location:   request.Location,
 		SystemId:   request.SystemId,
 		RpcId:      request.RpcId,
-		RpcContent: content,
+		RpcContent: bytes,
 	}
 	return response
 }

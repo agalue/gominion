@@ -23,23 +23,21 @@ func (module *PollerClientRPCModule) GetID() string {
 func (module *PollerClientRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.RpcResponseProto {
 	req := &api.PollerRequestDTO{}
 	if err := xml.Unmarshal(request.RpcContent, req); err != nil {
-		pollerResponse := &api.PollerResponseDTO{Error: getError(request, err)}
-		bytes, _ := xml.Marshal(pollerResponse)
-		return transformResponse(request, bytes)
+		response := &api.PollerResponseDTO{Error: getError(request, err)}
+		return transformResponse(request, response)
 	}
-	pollerResponse := &api.PollerResponseDTO{}
+	response := &api.PollerResponseDTO{}
 	monitorID := req.GetMonitor()
 	log.Printf("Executing monitor %s for service %s through %s", monitorID, req.ServiceName, req.IPAddress)
 	if monitor, ok := monitors.GetMonitor(monitorID); ok {
-		pollerResponse.Status = monitor.Poll(req)
+		response.Status = monitor.Poll(req)
 	} else {
 		msg := fmt.Sprintf("Error cannot find implementation for monitor %s, ignoring request with ID %s", monitorID, request.RpcId)
-		pollerResponse.Error = msg
+		response.Error = msg
 		log.Printf(msg)
 	}
-	log.Printf("Sending polling status of %s on %s as %s", req.ServiceName, req.IPAddress, pollerResponse.Status.StatusName)
-	bytes, _ := xml.Marshal(pollerResponse)
-	return transformResponse(request, bytes)
+	log.Printf("Sending polling status of %s on %s as %s", req.ServiceName, req.IPAddress, response.Status.StatusName)
+	return transformResponse(request, response)
 }
 
 var pollerModule = &PollerClientRPCModule{}
