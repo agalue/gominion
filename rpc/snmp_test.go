@@ -10,6 +10,7 @@ import (
 	"gotest.tools/assert"
 )
 
+// WARNING: This test requires reaching a Linux Net-SNMP's agent at 192.168.0.17
 func TestSNMP(t *testing.T) {
 	requestXML := `
 	<snmp-request location="Test" description="SnmpCollectors for 192.168.0.17">
