@@ -1,7 +1,6 @@
 package collectors
 
 import (
-	"log"
 	"sync"
 
 	"github.com/agalue/gominion/api"
@@ -12,7 +11,6 @@ var collectorRegistryMutex = sync.RWMutex{}
 
 // RegisterCollector registers a new collector implementation
 func RegisterCollector(collector api.ServiceCollector) {
-	log.Printf("Registering collector: %s", collector.GetID())
 	collectorRegistryMutex.Lock()
 	collectorRegistryMap[collector.GetID()] = collector
 	collectorRegistryMutex.Unlock()
@@ -20,7 +18,6 @@ func RegisterCollector(collector api.ServiceCollector) {
 
 // UnregisterCollector unregister an existing collector implementation
 func UnregisterCollector(collector api.ServiceCollector) {
-	log.Printf("Unregistering collector: %s", collector.GetID())
 	collectorRegistryMutex.Lock()
 	delete(collectorRegistryMap, collector.GetID())
 	collectorRegistryMutex.Unlock()
@@ -32,4 +29,15 @@ func GetCollector(id string) (api.ServiceCollector, bool) {
 	defer collectorRegistryMutex.RUnlock()
 	collector, ok := collectorRegistryMap[id]
 	return collector, ok
+}
+
+// GetAllCollectors gets all the registered collector modules
+func GetAllCollectors() []api.ServiceCollector {
+	collectorRegistryMutex.RLock()
+	defer collectorRegistryMutex.RUnlock()
+	modules := make([]api.ServiceCollector, 0, len(collectorRegistryMap))
+	for _, v := range collectorRegistryMap {
+		modules = append(modules, v)
+	}
+	return modules
 }

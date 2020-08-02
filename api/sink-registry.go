@@ -1,7 +1,6 @@
 package api
 
 import (
-	"log"
 	"sync"
 )
 
@@ -10,7 +9,6 @@ var sinkRegistryMutex = sync.RWMutex{}
 
 // RegisterSinkModule registers a new RPC Module implementation
 func RegisterSinkModule(module SinkModule) {
-	log.Printf("Registering Sink module: %s", module.GetID())
 	sinkRegistryMutex.Lock()
 	sinkRegistryMap[module.GetID()] = module
 	sinkRegistryMutex.Unlock()
@@ -18,7 +16,6 @@ func RegisterSinkModule(module SinkModule) {
 
 // UnregisterSinkModule unregister an existing RPC Module implementation
 func UnregisterSinkModule(module SinkModule) {
-	log.Printf("Unregistering Sink module: %s", module.GetID())
 	sinkRegistryMutex.Lock()
 	delete(sinkRegistryMap, module.GetID())
 	sinkRegistryMutex.Unlock()

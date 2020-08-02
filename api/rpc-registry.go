@@ -1,7 +1,6 @@
 package api
 
 import (
-	"log"
 	"sync"
 )
 
@@ -10,7 +9,6 @@ var rpcRegistryMutex = sync.RWMutex{}
 
 // RegisterRPCModule registers a new RPC Module implementation
 func RegisterRPCModule(module RPCModule) {
-	log.Printf("Registering RPC module: %s", module.GetID())
 	rpcRegistryMutex.Lock()
 	rpcRegistryMap[module.GetID()] = module
 	rpcRegistryMutex.Unlock()
@@ -18,7 +16,6 @@ func RegisterRPCModule(module RPCModule) {
 
 // UnregisterRPCModule unregister an existing RPC Module implementation
 func UnregisterRPCModule(module RPCModule) {
-	log.Printf("Unregistering RPC module: %s", module.GetID())
 	rpcRegistryMutex.Lock()
 	delete(rpcRegistryMap, module.GetID())
 	rpcRegistryMutex.Unlock()
@@ -30,4 +27,15 @@ func GetRPCModule(id string) (RPCModule, bool) {
 	defer rpcRegistryMutex.RUnlock()
 	module, ok := rpcRegistryMap[id]
 	return module, ok
+}
+
+// GetAllRPCModules gets all the registered RPC modules
+func GetAllRPCModules() []RPCModule {
+	rpcRegistryMutex.RLock()
+	defer rpcRegistryMutex.RUnlock()
+	modules := make([]RPCModule, 0, len(rpcRegistryMap))
+	for _, v := range rpcRegistryMap {
+		modules = append(modules, v)
+	}
+	return modules
 }

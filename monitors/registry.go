@@ -1,7 +1,6 @@
 package monitors
 
 import (
-	"log"
 	"sync"
 
 	"github.com/agalue/gominion/api"
@@ -12,7 +11,6 @@ var monitorRegistryMutex = sync.RWMutex{}
 
 // RegisterMonitor registers a new poller monitor implementation
 func RegisterMonitor(monitor api.ServiceMonitor) {
-	log.Printf("Registering poller monitor: %s", monitor.GetID())
 	monitorRegistryMutex.Lock()
 	monitorRegistryMap[monitor.GetID()] = monitor
 	monitorRegistryMutex.Unlock()
@@ -20,7 +18,6 @@ func RegisterMonitor(monitor api.ServiceMonitor) {
 
 // UnregisterMonitor unregister an existing polller monitor implementation
 func UnregisterMonitor(monitor api.ServiceMonitor) {
-	log.Printf("Unregistering poller monitor: %s", monitor.GetID())
 	monitorRegistryMutex.Lock()
 	delete(monitorRegistryMap, monitor.GetID())
 	monitorRegistryMutex.Unlock()
@@ -32,4 +29,15 @@ func GetMonitor(id string) (api.ServiceMonitor, bool) {
 	defer monitorRegistryMutex.RUnlock()
 	monitor, ok := monitorRegistryMap[id]
 	return monitor, ok
+}
+
+// GetAllMonitors gets all the registered monitor modules
+func GetAllMonitors() []api.ServiceMonitor {
+	monitorRegistryMutex.RLock()
+	defer monitorRegistryMutex.RUnlock()
+	modules := make([]api.ServiceMonitor, 0, len(monitorRegistryMap))
+	for _, v := range monitorRegistryMap {
+		modules = append(modules, v)
+	}
+	return modules
 }

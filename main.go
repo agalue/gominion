@@ -1,39 +1,9 @@
 package main
 
 import (
-	"flag"
-	"log"
-	"os"
-	"os/signal"
-
-	"github.com/agalue/gominion/api"
-	"github.com/agalue/gominion/broker"
-	_ "github.com/agalue/gominion/rpc"
-	_ "github.com/agalue/gominion/sink"
+	"github.com/agalue/gominion/cmd"
 )
 
 func main() {
-	hostname, _ := os.Hostname()
-	config := &api.MinionConfig{BrokerType: "grpc"}
-	flag.StringVar(&config.ID, "id", hostname, "Minion ID")
-	flag.StringVar(&config.Location, "location", "", "Minion Location")
-	flag.StringVar(&config.BrokerURL, "broker-url", "localhost:8990", "OpenNMS gRPC server connection string")
-	flag.IntVar(&config.TrapPort, "trap-port", 1162, "Trap Listener Port")
-	flag.IntVar(&config.SyslogPort, "syslog-port", 1514, "Syslog Listener Port")
-	flag.IntVar(&config.NxosGrpcPort, "nxos-grpc-port", 0, "NX-OS gRPC Telemetry Port")
-	flag.Parse()
-
-	log.Printf("Starting OpenNMS Minion...\n%s", config.String())
-	if err := config.IsValid(); err != nil {
-		log.Fatalf("Invalid configuration: %v", err)
-	}
-
-	client := &broker.GrpcClient{}
-	if err := client.Start(config); err != nil {
-		log.Fatalf("Cannot connect to OpenNMS gRPC server: %v", err)
-	}
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt)
-	<-stop
-	client.Stop()
+	cmd.Execute()
 }

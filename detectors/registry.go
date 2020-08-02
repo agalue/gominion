@@ -1,7 +1,6 @@
 package detectors
 
 import (
-	"log"
 	"sync"
 
 	"github.com/agalue/gominion/api"
@@ -12,7 +11,6 @@ var detectorRegistryMutex = sync.RWMutex{}
 
 // RegisterDetector registers a new detector implementation
 func RegisterDetector(detector api.ServiceDetector) {
-	log.Printf("Registering detector: %s", detector.GetID())
 	detectorRegistryMutex.Lock()
 	detectorRegistryMap[detector.GetID()] = detector
 	detectorRegistryMutex.Unlock()
@@ -20,7 +18,6 @@ func RegisterDetector(detector api.ServiceDetector) {
 
 // UnregisterDetector unregister an existing detector implementation
 func UnregisterDetector(detector api.ServiceDetector) {
-	log.Printf("Unregistering detector: %s", detector.GetID())
 	detectorRegistryMutex.Lock()
 	delete(detectorRegistryMap, detector.GetID())
 	detectorRegistryMutex.Unlock()
@@ -32,4 +29,15 @@ func GetDetector(id string) (api.ServiceDetector, bool) {
 	defer detectorRegistryMutex.RUnlock()
 	detector, ok := detectorRegistryMap[id]
 	return detector, ok
+}
+
+// GetAllDetectors gets all the registered detector modules
+func GetAllDetectors() []api.ServiceDetector {
+	detectorRegistryMutex.RLock()
+	defer detectorRegistryMutex.RUnlock()
+	modules := make([]api.ServiceDetector, 0, len(detectorRegistryMap))
+	for _, v := range detectorRegistryMap {
+		modules = append(modules, v)
+	}
+	return modules
 }
