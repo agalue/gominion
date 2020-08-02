@@ -52,17 +52,14 @@ func (cfg *MinionConfig) String() string {
 
 // IsValid returns an error if the configuration is not valid
 func (cfg *MinionConfig) IsValid() error {
+	if cfg.ID == "" {
+		return fmt.Errorf("Minion ID required")
+	}
 	if cfg.Location == "" {
 		return fmt.Errorf("Location required")
 	}
 	if cfg.BrokerURL == "" {
 		return fmt.Errorf("Broker URL required")
-	}
-	if cfg.TrapPort == 0 {
-		return fmt.Errorf("SNMP Trap port required")
-	}
-	if cfg.SyslogPort == 0 {
-		return fmt.Errorf("Syslog port required")
 	}
 	return nil
 }
