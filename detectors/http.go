@@ -25,9 +25,9 @@ func (detector *HTTPDetector) GetID() string {
 }
 
 // Detect execute the detector request and return the service status
-func (detector *HTTPDetector) Detect(request *api.DetectorRequestDTO) api.DetectResults {
-	results := api.DetectResults{
-		IsServiceDetected: detector.isDetected(request),
+func (detector *HTTPDetector) Detect(request *api.DetectorRequestDTO) *api.DetectorResponseDTO {
+	results := &api.DetectorResponseDTO{
+		Detected: detector.isDetected(request),
 	}
 	return results
 }

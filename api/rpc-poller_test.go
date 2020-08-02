@@ -71,7 +71,7 @@ func TestPollerRequestUnmarshal(t *testing.T) {
 
 func TestPollerResponse(t *testing.T) {
 	response := &PollerResponseDTO{
-		Status: PollStatus{
+		Status: &PollStatus{
 			StatusCode:   ServiceAvailableCode,
 			StatusName:   ServiceAvailable,
 			ResponseTime: 0.0562,
@@ -93,7 +93,7 @@ func TestPollerResponse(t *testing.T) {
 
 func TestPollerResponseEmpty(t *testing.T) {
 	response := &PollerResponseDTO{
-		Status: PollStatus{
+		Status: &PollStatus{
 			StatusCode: ServiceUnknownCode,
 			StatusName: ServiceUnknown,
 		},

@@ -26,8 +26,8 @@ func (monitor *HTTPMonitor) GetID() string {
 }
 
 // Poll execute the monitor request and return the service status
-func (monitor *HTTPMonitor) Poll(request *api.PollerRequestDTO) api.PollStatus {
-	status := api.PollStatus{}
+func (monitor *HTTPMonitor) Poll(request *api.PollerRequestDTO) *api.PollerResponseDTO {
+	response := &api.PollerResponseDTO{Status: &api.PollStatus{}}
 	start := time.Now()
 	client := monitor.getClient(request)
 	u := url.URL{
@@ -41,8 +41,8 @@ func (monitor *HTTPMonitor) Poll(request *api.PollerRequestDTO) api.PollStatus {
 	}
 	httpreq, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
-		status.Down(err.Error())
-		return status
+		response.Status.Down(err.Error())
+		return response
 	}
 	basicAuth := request.GetAttributeValue("basic-authentication", "")
 	if basicAuth != "" {
@@ -70,32 +70,32 @@ func (monitor *HTTPMonitor) Poll(request *api.PollerRequestDTO) api.PollStatus {
 	} else {
 		httpreq.Header.Set("Host", hostName)
 	}
-	response, err := client.Do(httpreq)
+	httpres, err := client.Do(httpreq)
 	if err != nil {
-		status.Down(err.Error())
-		return status
+		response.Status.Down(err.Error())
+		return response
 	}
 	min, max := monitor.getResponseRange(request)
-	if response.StatusCode < min || response.StatusCode > max {
-		status.Down(fmt.Sprintf("Response code %d out of expected range: %d-%d", response.StatusCode, min, max))
-		return status
+	if httpres.StatusCode < min || httpres.StatusCode > max {
+		response.Status.Down(fmt.Sprintf("Response code %d out of expected range: %d-%d", httpres.StatusCode, min, max))
+		return response
 	}
 	responseText := request.GetAttributeValue("response-text", "")
 	if responseText != "" {
-		data, err := ioutil.ReadAll(response.Body)
+		data, err := ioutil.ReadAll(httpres.Body)
 		if err != nil {
-			status.Down(err.Error())
-			return status
+			response.Status.Down(err.Error())
+			return response
 		}
 		if !strings.Contains(string(data), responseText) {
-			status.Down(fmt.Sprintf("Response doesn't containt text %s", responseText))
-			return status
+			response.Status.Down(fmt.Sprintf("Response doesn't containt text %s", responseText))
+			return response
 		}
 	}
 
 	duration := time.Since(start)
-	status.Up(duration.Seconds())
-	return status
+	response.Status.Up(duration.Seconds())
+	return response
 }
 
 func (monitor *HTTPMonitor) getClient(request *api.PollerRequestDTO) *http.Client {

@@ -30,12 +30,9 @@ func (module *DetectorClientRPCModule) Execute(request *ipc.RpcRequestProto) *ip
 	response := &api.DetectorResponseDTO{}
 	log.Printf("Executing detector %s against %s", detectorID, req.IPAddress)
 	if monitor, ok := detectors.GetDetector(detectorID); ok {
-		results := monitor.Detect(req)
-		response.Detected = results.IsServiceDetected
+		response = monitor.Detect(req)
 	} else {
-		msg := fmt.Sprintf("Error cannot find implementation for detector %s, ignoring request with ID %s", detectorID, request.RpcId)
-		response.Error = msg
-		log.Printf(msg)
+		response.Error = getError(request, fmt.Errorf("Cannot find implementation for detector %s", detectorID))
 	}
 	log.Printf("Sending detection status %s on %s as %s", detectorID, req.IPAddress, response.GetStatus())
 	return transformResponse(request, response)

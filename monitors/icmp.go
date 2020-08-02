@@ -17,15 +17,15 @@ func (monitor *ICMPMonitor) GetID() string {
 }
 
 // Poll execute the monitor request and return the service status
-func (monitor *ICMPMonitor) Poll(request *api.PollerRequestDTO) api.PollStatus {
-	status := api.PollStatus{}
+func (monitor *ICMPMonitor) Poll(request *api.PollerRequestDTO) *api.PollerResponseDTO {
+	response := &api.PollerResponseDTO{Status: &api.PollStatus{}}
 	if duration, err := tools.Ping(request.IPAddress, request.GetTimeout()); err == nil {
-		status.Up(duration.Seconds())
+		response.Status.Up(duration.Seconds())
 	} else {
 		msg := fmt.Sprintf("Error while executing ICMP against %s: %v", request.IPAddress, err)
-		status.Down(msg)
+		response.Status.Down(msg)
 	}
-	return status
+	return response
 }
 
 var icmpMonitor = &ICMPMonitor{}

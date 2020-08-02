@@ -181,7 +181,7 @@ func (req *PollerRequestDTO) GetAttributeContent(key string) string {
 
 // PollerResponseDTO represents a poller response
 type PollerResponseDTO struct {
-	XMLName xml.Name   `xml:"poller-response"`
-	Error   string     `xml:"error,attr,omitempty"`
-	Status  PollStatus `xml:"poll-status"`
+	XMLName xml.Name    `xml:"poller-response"`
+	Error   string      `xml:"error,attr,omitempty"`
+	Status  *PollStatus `xml:"poll-status"`
 }

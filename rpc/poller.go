@@ -30,11 +30,9 @@ func (module *PollerClientRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.
 	monitorID := req.GetMonitor()
 	log.Printf("Executing monitor %s for service %s through %s", monitorID, req.ServiceName, req.IPAddress)
 	if monitor, ok := monitors.GetMonitor(monitorID); ok {
-		response.Status = monitor.Poll(req)
+		response = monitor.Poll(req)
 	} else {
-		msg := fmt.Sprintf("Error cannot find implementation for monitor %s, ignoring request with ID %s", monitorID, request.RpcId)
-		response.Error = msg
-		log.Printf(msg)
+		response.Error = getError(request, fmt.Errorf("Cannot find implementation for monitor %s", monitorID))
 	}
 	log.Printf("Sending polling status of %s on %s as %s", req.ServiceName, req.IPAddress, response.Status.StatusName)
 	return transformResponse(request, response)

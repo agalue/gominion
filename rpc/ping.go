@@ -30,7 +30,7 @@ func (module *PingProxyRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.Rpc
 	if duration, err := tools.Ping(req.Address, req.GetTimeout()); err == nil {
 		response.RTT = duration.Seconds()
 	} else {
-		response.Error = fmt.Sprintf("Cannot ping address %s: %v", req.Address, err)
+		response.Error = getError(request, fmt.Errorf("Cannot ping address %s: %v", req.Address, err))
 	}
 	log.Printf("Sending Ping response for %s", req.Address)
 	return transformResponse(request, response)

@@ -16,11 +16,9 @@ func (detector *EmptyDetector) GetID() string {
 }
 
 // Detect execute the detector request and return the service status
-func (detector *EmptyDetector) Detect(request *api.DetectorRequestDTO) api.DetectResults {
-	results := api.DetectResults{
-		IsServiceDetected: false,
-	}
-	return results
+func (detector *EmptyDetector) Detect(request *api.DetectorRequestDTO) *api.DetectorResponseDTO {
+	response := &api.DetectorResponseDTO{Detected: false}
+	return response
 }
 
 var emptyDetector = &EmptyDetector{}

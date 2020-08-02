@@ -17,13 +17,13 @@ func (detector *ICMPDetector) GetID() string {
 }
 
 // Detect execute the detector request and return the service status
-func (detector *ICMPDetector) Detect(request *api.DetectorRequestDTO) api.DetectResults {
-	results := api.DetectResults{}
+func (detector *ICMPDetector) Detect(request *api.DetectorRequestDTO) *api.DetectorResponseDTO {
+	results := &api.DetectorResponseDTO{}
 	if _, err := tools.Ping(request.IPAddress, request.GetTimeout()); err == nil {
-		results.IsServiceDetected = true
+		results.Detected = true
 	} else {
 		log.Printf("Error during detection: %v", err)
-		results.IsServiceDetected = false
+		results.Detected = false
 	}
 	return results
 }

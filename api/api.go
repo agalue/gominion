@@ -42,9 +42,9 @@ type ServiceCollector interface {
 	// Returns the ID of the Service Collector implementation
 	GetID() string
 
-	// Executes the data collection operation from the request, and returns the collected metrics
+	// Executes the data collection operation from the request
 	// The response tells if the operation was successful or not
-	Collect(request *CollectorRequestDTO) CollectorResponseDTO
+	Collect(request *CollectorRequestDTO) *CollectorResponseDTO
 }
 
 // ServiceDetector represents the service detector interface
@@ -53,8 +53,9 @@ type ServiceDetector interface {
 	// Returns the ID of the Service Detector implementation
 	GetID() string
 
-	// Executes the detection operation from the request, and returns if it was successful or not
-	Detect(request *DetectorRequestDTO) DetectResults
+	// Executes the detection operation from the request
+	// The response tells if the operation was successful or not
+	Detect(request *DetectorRequestDTO) *DetectorResponseDTO
 }
 
 // ServiceMonitor represents the service monitor interface
@@ -63,6 +64,7 @@ type ServiceMonitor interface {
 	// Returns the ID of the Service Monitor implementation
 	GetID() string
 
-	// Executes the polling operation from the request, and returns the status
-	Poll(request *PollerRequestDTO) PollStatus
+	// Executes the polling operation from the request
+	// The response tells if the operation was successful or not
+	Poll(request *PollerRequestDTO) *PollerResponseDTO
 }

@@ -30,19 +30,19 @@ func (module *DNSLookupClientRPCModule) Execute(request *ipc.RpcRequestProto) *i
 	if req.QueryType == "LOOKUP" {
 		addresses, err := net.LookupIP(req.HostRequest)
 		if err != nil || len(addresses) == 0 {
-			response.Error = fmt.Sprintf("Cannot lookup for address %s: %v", req.HostRequest, err)
+			response.Error = getError(request, fmt.Errorf("Cannot lookup for address %s: %v", req.HostRequest, err))
 		} else {
 			response.HostResponse = addresses[0].String()
 		}
 	} else if req.QueryType == "REVERSE_LOOKUP" {
 		hostnames, err := net.LookupAddr(req.HostRequest)
 		if err != nil && len(hostnames) == 0 {
-			response.Error = fmt.Sprintf("Cannot reverse lookup for address %s: %v", req.HostRequest, err)
+			response.Error = getError(request, fmt.Errorf("Cannot reverse lookup for address %s: %v", req.HostRequest, err))
 		} else {
 			response.HostResponse = hostnames[0]
 		}
 	} else {
-		response.Error = fmt.Sprintf("Invalid query type: %s", req.QueryType)
+		response.Error = getError(request, fmt.Errorf("Invalid query type: %s", req.QueryType))
 	}
 	log.Printf("Sending DNS %s response for %s as %s", req.QueryType, req.HostRequest, response.HostResponse)
 	return transformResponse(request, response)

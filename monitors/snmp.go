@@ -19,10 +19,10 @@ func (monitor *SNMPMonitor) GetID() string {
 
 // Poll execute the monitor request and return the service status
 // TODO Implement all pending features
-func (monitor *SNMPMonitor) Poll(request *api.PollerRequestDTO) api.PollStatus {
+func (monitor *SNMPMonitor) Poll(request *api.PollerRequestDTO) *api.PollerResponseDTO {
 	oid := request.GetAttributeValue("oid", ".1.3.6.1.2.1.1.2.0")
 	agent := &api.SNMPAgentDTO{}
-	status := api.PollStatus{}
+	response := &api.PollerResponseDTO{Status: &api.PollStatus{}}
 	if err := xml.Unmarshal([]byte(request.GetAttributeContent("agent")), agent); err == nil {
 		log.Printf("Requesting OID %s from %s", oid, agent.Address)
 		start := time.Now()
@@ -31,17 +31,17 @@ func (monitor *SNMPMonitor) Poll(request *api.PollerRequestDTO) api.PollStatus {
 			defer client.Conn.Close()
 			if _, err := client.Get([]string{oid}); err == nil {
 				duration := time.Since(start)
-				status.Up(duration.Seconds())
+				response.Status.Up(duration.Seconds())
 			} else {
-				status.Down(err.Error())
+				response.Status.Down(err.Error())
 			}
 		} else {
-			status.Down(err.Error())
+			response.Status.Down(err.Error())
 		}
 	} else {
-		status.Unknown(err.Error())
+		response.Status.Unknown(err.Error())
 	}
-	return status
+	return response
 }
 
 var snmpMonitor = &SNMPMonitor{}

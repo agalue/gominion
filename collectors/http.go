@@ -25,8 +25,8 @@ func (collector *HTTPCollector) GetID() string {
 }
 
 // Collect execute the collector request and return the collection set
-func (collector *HTTPCollector) Collect(request *api.CollectorRequestDTO) api.CollectorResponseDTO {
-	response := api.CollectorResponseDTO{
+func (collector *HTTPCollector) Collect(request *api.CollectorRequestDTO) *api.CollectorResponseDTO {
+	response := &api.CollectorResponseDTO{
 		CollectionSet: &api.CollectionSetDTO{
 			Timestamp: &api.Timestamp{Time: time.Now()},
 			Status:    api.CollectionStatusFailed,

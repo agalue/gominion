@@ -25,7 +25,7 @@ func transformResponse(request *ipc.RpcRequestProto, object interface{}) *ipc.Rp
 }
 
 func getError(request *ipc.RpcRequestProto, err error) string {
-	msg := fmt.Sprintf("Error while parsing %s RPC Request with ID %s: %v", request.ModuleId, request.RpcId, err)
+	msg := fmt.Sprintf("Error while processing %s RPC Request with ID %s: %v", request.ModuleId, request.RpcId, err)
 	log.Printf("%s\n%s", msg, string(request.RpcContent))
 	return msg
 }

@@ -17,10 +17,8 @@ func (detector *TCPDetector) GetID() string {
 }
 
 // Detect execute the detector request and return the service status
-func (detector *TCPDetector) Detect(request *api.DetectorRequestDTO) api.DetectResults {
-	results := api.DetectResults{
-		IsServiceDetected: false,
-	}
+func (detector *TCPDetector) Detect(request *api.DetectorRequestDTO) *api.DetectorResponseDTO {
+	results := &api.DetectorResponseDTO{Detected: false}
 
 	servAddr := fmt.Sprintf("%s:%s", request.IPAddress, request.GetAttributeValue("port", "23"))
 	tcpAddr, err := net.ResolveTCPAddr("tcp", servAddr)
@@ -34,7 +32,7 @@ func (detector *TCPDetector) Detect(request *api.DetectorRequestDTO) api.DetectR
 	}
 	conn.Close()
 
-	results.IsServiceDetected = true
+	results.Detected = true
 	return results
 }
 

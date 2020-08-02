@@ -18,10 +18,8 @@ func (detector *SNMPDetector) GetID() string {
 }
 
 // Detect execute the detector request and return the service status
-func (detector *SNMPDetector) Detect(request *api.DetectorRequestDTO) api.DetectResults {
-	results := api.DetectResults{
-		IsServiceDetected: false,
-	}
+func (detector *SNMPDetector) Detect(request *api.DetectorRequestDTO) *api.DetectorResponseDTO {
+	results := &api.DetectorResponseDTO{Detected: false}
 
 	agent := detector.getAgent(request)
 	client := agent.GetSNMPClient()
@@ -33,7 +31,7 @@ func (detector *SNMPDetector) Detect(request *api.DetectorRequestDTO) api.Detect
 
 	oid := request.GetAttributeValue("oid", defaultOID)
 	if _, err := client.Get([]string{oid}); err == nil {
-		results.IsServiceDetected = true
+		results.Detected = true
 	}
 
 	return results

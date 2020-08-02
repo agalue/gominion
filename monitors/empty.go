@@ -16,10 +16,10 @@ func (monitor *EmptyMonitor) GetID() string {
 }
 
 // Poll execute the monitor request and return the service status
-func (monitor *EmptyMonitor) Poll(request *api.PollerRequestDTO) api.PollStatus {
-	status := api.PollStatus{}
-	status.Unknown("Not implemented")
-	return status
+func (monitor *EmptyMonitor) Poll(request *api.PollerRequestDTO) *api.PollerResponseDTO {
+	response := &api.PollerResponseDTO{Status: &api.PollStatus{}}
+	response.Status.Unknown("Not implemented")
+	return response
 }
 
 var emptyMonitor = &EmptyMonitor{}
