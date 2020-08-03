@@ -8,9 +8,9 @@ import (
 )
 
 // SNMPAgentDTO represents an SNMP agent
-// TODO SNMPv3
 type SNMPAgentDTO struct {
 	Address         string `xml:"address"`
+	ProxyFor        string `xml:"proxyFor"`
 	Version         int    `xml:"version"`
 	VersionAsString string `xml:"versionAsString"`
 	MaxRepetitions  int    `xml:"maxRepetitions"`
@@ -23,32 +23,102 @@ type SNMPAgentDTO struct {
 	WriteCommunity  string `xml:"writeCommunity"`
 	SecurityLevel   int    `xml:"securityLevel"`
 	SecurityName    string `xml:"securityName"`
+	AuthPassPhrase  string `xml:"authPassPhrase"`
+	AuthProtocol    string `xml:"authProtocol"`
+	PrivPassPhrase  string `xml:"privPassPhrase"`
+	PrivProtocol    string `xml:"privProtocol"`
+	ContextName     string `xml:"contextName"`
+	ContextEngineID string `xml:"contextEngineId"`
+	EngineID        string `xml:"engineId"`
 }
 
 // GetSNMPClient gets an SNMP Client instance
-// TODO SNMPv3: https://github.com/soniah/gosnmp/blob/master/examples/example3/main.go
 func (agent *SNMPAgentDTO) GetSNMPClient() *gosnmp.GoSNMP {
-	var version gosnmp.SnmpVersion
-	switch agent.Version {
-	case 1:
-		version = gosnmp.Version1
-	case 2:
-		version = gosnmp.Version2c
-	case 3:
-		version = gosnmp.Version3
-	}
-	return &gosnmp.GoSNMP{
+	session := &gosnmp.GoSNMP{
 		Target:             agent.Address,
 		Port:               uint16(agent.Port),
 		Transport:          "udp", // default
 		Community:          agent.ReadCommunity,
-		Version:            version,
+		Version:            agent.getVersion(),
 		Timeout:            time.Duration(agent.Timeout) * time.Millisecond,
 		ExponentialTimeout: false,
 		MaxOids:            60, // default
 		Retries:            agent.Retries,
 		MaxRepetitions:     uint8(agent.MaxRepetitions),
 	}
+	if agent.Version == 3 {
+		session.SecurityModel = gosnmp.UserSecurityModel
+		session.MsgFlags = agent.getV3Flags()
+		session.SecurityParameters = agent.getSecurityParameters()
+	}
+	return session
+}
+
+func (agent *SNMPAgentDTO) getVersion() gosnmp.SnmpVersion {
+	switch agent.Version {
+	case 3:
+		return gosnmp.Version3
+	case 2:
+		return gosnmp.Version2c
+	case 1:
+		fallthrough
+	default:
+		return gosnmp.Version1
+	}
+}
+
+func (agent *SNMPAgentDTO) getV3Flags() gosnmp.SnmpV3MsgFlags {
+	switch agent.SecurityLevel {
+	case 3:
+		return gosnmp.AuthPriv
+	case 2:
+		return gosnmp.AuthNoPriv
+	case 1:
+		fallthrough
+	default:
+		return gosnmp.NoAuthNoPriv
+	}
+}
+
+func (agent *SNMPAgentDTO) getAuthProtocol() gosnmp.SnmpV3AuthProtocol {
+	switch agent.AuthProtocol {
+	case "SHA":
+		return gosnmp.SHA
+	case "MD5":
+		fallthrough
+	default:
+		return gosnmp.MD5
+	}
+}
+
+func (agent *SNMPAgentDTO) getPrivProtocol() gosnmp.SnmpV3PrivProtocol {
+	switch agent.PrivProtocol {
+	case "AES":
+		return gosnmp.AES
+	case "AES192":
+		return gosnmp.AES192
+	case "AES256":
+		return gosnmp.AES256
+	case "DES":
+		fallthrough
+	default:
+		return gosnmp.DES
+	}
+}
+
+func (agent *SNMPAgentDTO) getSecurityParameters() *gosnmp.UsmSecurityParameters {
+	params := &gosnmp.UsmSecurityParameters{
+		UserName: agent.SecurityName,
+	}
+	if agent.SecurityLevel > 1 {
+		params.AuthenticationPassphrase = agent.AuthPassPhrase
+		params.AuthenticationProtocol = agent.getAuthProtocol()
+	}
+	if agent.SecurityLevel > 2 {
+		params.PrivacyPassphrase = agent.PrivPassPhrase
+		params.PrivacyProtocol = agent.getPrivProtocol()
+	}
+	return params
 }
 
 // SNMPGetRequestDTO represents an SNMP get request
@@ -105,4 +175,9 @@ type SNMPMultiResponseDTO struct {
 	XMLName   xml.Name          `xml:"snmp-response"`
 	Error     string            `xml:"error,attr,omitempty"`
 	Responses []SNMPResponseDTO `xml:"response"`
+}
+
+// AddResponse adds a response to the multi-response list
+func (dto *SNMPMultiResponseDTO) AddResponse(response *SNMPResponseDTO) {
+	dto.Responses = append(dto.Responses, *response)
 }
