@@ -35,6 +35,7 @@ var rootCmd = &cobra.Command{
 	Short:   "An implementation of OpenNMS Minion in Go",
 	Version: "0.1.0-alpha1",
 	Run:     rootHandler,
+	Args:    cobra.NoArgs,
 }
 
 // Execute prepares the root command and sets flags appropriately.
@@ -47,25 +48,29 @@ func Execute() {
 }
 
 func init() {
+	// Initialize Configuration
 	cobra.OnInitialize(initConfig)
 
 	// Initialize Flags
 	hostname, _ := os.Hostname()
-	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is gominion.yaml)")
+	rootCmd.Flags().SortFlags = false
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is ~/.gominion.yaml)")
 	rootCmd.Flags().StringVarP(&minionConfig.ID, "id", "i", "", fmt.Sprintf("Minion ID (default is %s)", hostname))
 	rootCmd.Flags().StringVarP(&minionConfig.Location, "location", "l", "", fmt.Sprintf("Minion Location (default is %s)", defaultLocation))
-	rootCmd.Flags().StringVarP(&minionConfig.BrokerURL, "broker", "b", "", fmt.Sprintf("Broker URL (default is %s)", defaultBroker))
+	rootCmd.Flags().StringVarP(&minionConfig.BrokerURL, "brokerUrl", "b", "", fmt.Sprintf("Broker URL (default is %s)", defaultBroker))
 	rootCmd.Flags().IntVarP(&minionConfig.TrapPort, "trapPort", "t", 0, fmt.Sprintf("SNMP Trap port (default is %d)", defaultTrapPort))
 	rootCmd.Flags().IntVarP(&minionConfig.SyslogPort, "syslogPort", "s", 0, fmt.Sprintf("Syslog port (default is %d)", defaultSyslogPort))
 	rootCmd.Flags().IntVarP(&minionConfig.NxosGrpcPort, "nxosGrpcPort", "n", 0, "Cisco NX-OS gRPC port")
 
 	// Initialize Flag Binding
-	viper.BindPFlag("id", rootCmd.Flags().Lookup("id"))
-	viper.BindPFlag("location", rootCmd.Flags().Lookup("location"))
-	viper.BindPFlag("broker", rootCmd.Flags().Lookup("broker"))
-	viper.BindPFlag("trapPort", rootCmd.Flags().Lookup("trapPort"))
-	viper.BindPFlag("syslogPort", rootCmd.Flags().Lookup("syslogPort"))
-	viper.BindPFlag("nxosGrpcPort", rootCmd.Flags().Lookup("nxosGrpcPort"))
+	viper.BindPFlags(rootCmd.Flags())
+
+	// Initialize Defaults
+	viper.SetDefault("id", hostname)
+	viper.SetDefault("brokerUrl", defaultBroker)
+	viper.SetDefault("location", defaultLocation)
+	viper.SetDefault("trapPort", defaultTrapPort)
+	viper.SetDefault("syslogPort", defaultSyslogPort)
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -90,21 +95,16 @@ func initConfig() {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
 
-	// Initialize configuration, applying defaults on missing attributes
-	hostname, _ := os.Hostname()
-	minionConfig.ID = getString("id", hostname)
-	minionConfig.Location = getString("location", defaultLocation)
-	minionConfig.BrokerURL = getString("broker", defaultBroker)
-	minionConfig.TrapPort = getInt("trapPort", defaultTrapPort)
-	minionConfig.SyslogPort = getInt("syslogPort", defaultSyslogPort)
-	minionConfig.NxosGrpcPort = getInt("nxosGrpcPort", 0)
+	viper.Unmarshal(minionConfig)
 }
 
 func rootHandler(cmd *cobra.Command, args []string) {
 	log.Printf("Starting OpenNMS Minion...\n%s", minionConfig.String())
+	// Validate Configuration
 	if err := minionConfig.IsValid(); err != nil {
 		log.Fatalf("Invalid configuration: %v", err)
 	}
+	// Display registered modules
 	for _, m := range api.GetAllRPCModules() {
 		log.Printf("Registered RPC module %s", m.GetID())
 	}
@@ -120,6 +120,7 @@ func rootHandler(cmd *cobra.Command, args []string) {
 	for _, m := range monitors.GetAllMonitors() {
 		log.Printf("Registered poller module %s", m.GetID())
 	}
+	// Start client
 	if err := client.Start(minionConfig); err != nil {
 		log.Fatalf("Cannot connect to OpenNMS gRPC server: %v", err)
 	}
@@ -127,20 +128,4 @@ func rootHandler(cmd *cobra.Command, args []string) {
 	signal.Notify(stop, os.Interrupt)
 	<-stop
 	client.Stop()
-}
-
-func getString(key string, defaultValue string) string {
-	value := viper.GetString(key)
-	if value == "" {
-		return defaultValue
-	}
-	return value
-}
-
-func getInt(key string, defaultValue int) int {
-	value := viper.GetInt(key)
-	if value == 0 {
-		return defaultValue
-	}
-	return value
 }

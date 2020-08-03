@@ -26,12 +26,12 @@ func (listener *MinionListener) GetParser() string {
 type MinionConfig struct {
 	ID               string            `yaml:"id" json:"id"`
 	Location         string            `yaml:"location" json:"location"`
-	BrokerURL        string            `yaml:"broker_url" json:"broker_url"`
-	BrokerType       string            `yaml:"broker_type" json:"broker_type"`
-	BrokerProperties map[string]string `yaml:"broker_properties,omitempty" json:"broker_properties,omitempty"`
-	TrapPort         int               `yaml:"trap_port" json:"trap_port"`
-	SyslogPort       int               `yaml:"syslog_port" json:"syslog_port"`
-	NxosGrpcPort     int               `yaml:"nxos_grpc_port" json:"nxos_grpc_port"`
+	BrokerURL        string            `yaml:"brokerUrl" json:"brokerUrl"`
+	BrokerType       string            `yaml:"brokerType" json:"brokerType"`
+	BrokerProperties map[string]string `yaml:"brokerProperties,omitempty" json:"brokerProperties,omitempty"`
+	TrapPort         int               `yaml:"trapPort" json:"traPort"`
+	SyslogPort       int               `yaml:"syslogPort" json:"syslogPort"`
+	NxosGrpcPort     int               `yaml:"nxosGrpcPort" json:"nxosGrpcPort"`
 	Listeners        []MinionListener  `yaml:"listeners" json:"listeners"`
 }
 
