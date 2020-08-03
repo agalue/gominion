@@ -45,18 +45,20 @@ func TestSendResponse(t *testing.T) {
 }
 
 func TestWrapMessageToTelemetry(t *testing.T) {
-	config := &api.MinionConfig{ID: "minion1", Location: "Test", NxosGrpcPort: 50000}
+	port := uint32(50000)
+	ipaddr := "10.0.0.1"
+	config := &api.MinionConfig{ID: "minion1", Location: "Test"}
 	object := Person{FirstName: "Alejandro", LastName: "Galue"}
 	data, err := xml.Marshal(object)
 	assert.NilError(t, err)
 
-	bytes := wrapMessageToTelemetry(config, "10.0.0.1", 50000, data)
+	bytes := wrapMessageToTelemetry(config, ipaddr, port, data)
 
 	telemetry := &telemetry.TelemetryMessageLog{}
 	err = proto.Unmarshal(bytes, telemetry)
 	assert.NilError(t, err)
-	assert.Equal(t, uint32(config.NxosGrpcPort), telemetry.GetSourcePort())
-	assert.Equal(t, "10.0.0.1", telemetry.GetSourceAddress())
+	assert.Equal(t, port, telemetry.GetSourcePort())
+	assert.Equal(t, ipaddr, telemetry.GetSourceAddress())
 	assert.Equal(t, 1, len(telemetry.Message))
 
 	msg := telemetry.Message[0]

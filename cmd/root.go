@@ -26,6 +26,7 @@ const defaultTrapPort = 1162
 const defaultSyslogPort = 1514
 
 var cfgFile string
+var listeners = []string{}
 var minionConfig = &api.MinionConfig{BrokerType: "grpc"}
 var client = &broker.GrpcClient{}
 
@@ -60,7 +61,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&minionConfig.BrokerURL, "brokerUrl", "b", "", fmt.Sprintf("Broker URL (default is %s)", defaultBroker))
 	rootCmd.Flags().IntVarP(&minionConfig.TrapPort, "trapPort", "t", 0, fmt.Sprintf("SNMP Trap port (default is %d)", defaultTrapPort))
 	rootCmd.Flags().IntVarP(&minionConfig.SyslogPort, "syslogPort", "s", 0, fmt.Sprintf("Syslog port (default is %d)", defaultSyslogPort))
-	rootCmd.Flags().IntVarP(&minionConfig.NxosGrpcPort, "nxosGrpcPort", "n", 0, "Cisco NX-OS gRPC port")
+	rootCmd.Flags().StringArrayVarP(&listeners, "listener", "L", nil, "Flow/Telemetry listeners\ne.x. -L Graphite,2003,ForwardParser -L NXOS,5000,NxosGrpcParser")
 
 	// Initialize Flag Binding
 	viper.BindPFlags(rootCmd.Flags())
@@ -99,9 +100,11 @@ func initConfig() {
 }
 
 func rootHandler(cmd *cobra.Command, args []string) {
-	log.Printf("Starting OpenNMS Minion...\n%s", minionConfig.String())
 	// Validate Configuration
 	if err := minionConfig.IsValid(); err != nil {
+		log.Fatalf("Invalid configuration: %v", err)
+	}
+	if err := minionConfig.ParseListeners(listeners); err != nil {
 		log.Fatalf("Invalid configuration: %v", err)
 	}
 	// Display registered modules
@@ -121,6 +124,7 @@ func rootHandler(cmd *cobra.Command, args []string) {
 		log.Printf("Registered poller module %s", m.GetID())
 	}
 	// Start client
+	log.Printf("Starting OpenNMS Minion...\n%s", minionConfig.String())
 	if err := client.Start(minionConfig); err != nil {
 		log.Fatalf("Cannot connect to OpenNMS gRPC server: %v", err)
 	}

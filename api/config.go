@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -31,14 +32,41 @@ type MinionConfig struct {
 	BrokerProperties map[string]string `yaml:"brokerProperties,omitempty" json:"brokerProperties,omitempty"`
 	TrapPort         int               `yaml:"trapPort" json:"traPort"`
 	SyslogPort       int               `yaml:"syslogPort" json:"syslogPort"`
-	NxosGrpcPort     int               `yaml:"nxosGrpcPort" json:"nxosGrpcPort"`
-	Listeners        []MinionListener  `yaml:"listeners" json:"listeners"`
+	Listeners        []MinionListener  `yaml:"listeners,omitempty" json:"listeners,omitempty"`
+}
+
+// ParseListeners parses an array of listeners in CSV format
+func (cfg *MinionConfig) ParseListeners(csvs []string) error {
+	for _, csv := range csvs {
+		parts := strings.Split(csv, ",")
+		if len(parts) == 3 {
+			if port, err := strconv.Atoi(parts[1]); err == nil {
+				listener := MinionListener{Name: parts[0], Parser: parts[2], Port: port}
+				cfg.Listeners = append(cfg.Listeners, listener)
+			} else {
+				return fmt.Errorf("Invalid port on listener CSV %s: %s", csv, err)
+			}
+		} else {
+			return fmt.Errorf("Invalid listener CSV %s", csv)
+		}
+	}
+	return nil
 }
 
 // GetListener gets a given listener by name
 func (cfg *MinionConfig) GetListener(name string) *MinionListener {
 	for _, listener := range cfg.Listeners {
-		if listener.Name == name {
+		if strings.ToLower(listener.Name) == strings.ToLower(name) {
+			return &listener
+		}
+	}
+	return nil
+}
+
+// GetListenerByParser gets a given listener by parser name
+func (cfg *MinionConfig) GetListenerByParser(parser string) *MinionListener {
+	for _, listener := range cfg.Listeners {
+		if strings.ToLower(listener.GetParser()) == strings.ToLower(parser) {
 			return &listener
 		}
 	}
