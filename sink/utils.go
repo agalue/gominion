@@ -1,6 +1,7 @@
 package sink
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"log"
@@ -40,7 +41,7 @@ func sendBytes(moduleID string, config *api.MinionConfig, broker api.Broker, byt
 
 func wrapMessageToTelemetry(config *api.MinionConfig, sourceAddress string, sourcePort uint32, data []byte) []byte {
 	now := uint64(time.Now().UnixNano() / int64(time.Millisecond))
-	telemetryLogMsg := &telemetry.TelemetryMessageLog{
+	logMsg := &telemetry.TelemetryMessageLog{
 		SystemId:      &config.ID,
 		Location:      &config.Location,
 		SourceAddress: &sourceAddress,
@@ -52,12 +53,14 @@ func wrapMessageToTelemetry(config *api.MinionConfig, sourceAddress string, sour
 			},
 		},
 	}
-	msg, err := proto.Marshal(telemetryLogMsg)
+	jsonBytes, _ := json.MarshalIndent(logMsg, "", "  ")
+	log.Printf("Flow log message: %s", string(jsonBytes))
+	bytes, err := proto.Marshal(logMsg)
 	if err != nil {
 		log.Printf("Error cannot serialize telemetry message: %v\n", err)
 		return nil
 	}
-	return msg
+	return bytes
 }
 
 func startUDPServer(name string, port int) *net.UDPConn {

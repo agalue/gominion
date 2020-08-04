@@ -23,6 +23,11 @@ func (listener *MinionListener) GetParser() string {
 	return sections[len(sections)-1]
 }
 
+// Is returns true if the listener matches a given parser
+func (listener *MinionListener) Is(parser string) bool {
+	return strings.ToLower(listener.GetParser()) == strings.ToLower(parser)
+}
+
 // MinionConfig represents basic Minion Configuration
 type MinionConfig struct {
 	ID               string            `yaml:"id" json:"id"`
