@@ -22,6 +22,8 @@ The Java-based one has lots of features that is currently missing, but hopefully
 * SNMP Traps (SNMPv1 and SNMPv2)
 * Syslog (TCP and UDP)
 * NX-OS Streaming Telemetry via gRPC
+* Netflow5, Netflow9, IPFIX
+* Graphite
 
 ## Detectors
 

@@ -1,7 +1,6 @@
 package sink
 
 import (
-	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"log"
@@ -53,8 +52,6 @@ func wrapMessageToTelemetry(config *api.MinionConfig, sourceAddress string, sour
 			},
 		},
 	}
-	jsonBytes, _ := json.MarshalIndent(logMsg, "", "  ")
-	log.Printf("Flow log message: %s", string(jsonBytes))
 	bytes, err := proto.Marshal(logMsg)
 	if err != nil {
 		log.Printf("Error cannot serialize telemetry message: %v\n", err)
