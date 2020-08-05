@@ -7,12 +7,6 @@ import (
 	"time"
 )
 
-// DefaultTimeout default timeout duration
-const DefaultTimeout = 3 * time.Second
-
-// DefaultRetries default retries
-const DefaultRetries = 2
-
 // ServiceUnknown poll status name unknown
 const ServiceUnknown = "Unknown"
 

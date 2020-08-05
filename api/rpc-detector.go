@@ -36,10 +36,11 @@ func (req *DetectorRequestDTO) GetDetector() string {
 
 // GetTimeout extracts the duration of the timeout attribute if available; otherwise returns default value
 func (req *DetectorRequestDTO) GetTimeout() time.Duration {
-	if value := req.GetAttributeValue("timeout", ""); value != "" {
-		if t, err := strconv.Atoi(value); err != nil {
-			return time.Duration(t) * time.Microsecond
-		}
+	if value := req.GetAttributeValueAsInt("timeout"); value > 0 {
+		return time.Duration(value) * time.Millisecond
+	}
+	if value := req.GetRuntimeAttributeValueAsInt("timeout"); value > 0 {
+		return time.Duration(value) * time.Millisecond
 	}
 	return DefaultTimeout
 }
@@ -66,6 +67,16 @@ func (req *DetectorRequestDTO) GetAttributeValue(key string, defaultValue string
 	return defaultValue
 }
 
+// GetAttributeValueAsInt extract the value as an integer of a given detector attribute
+func (req *DetectorRequestDTO) GetAttributeValueAsInt(key string) int {
+	if value := req.GetAttributeValue(key, ""); value != "" {
+		if v, err := strconv.Atoi(value); err == nil {
+			return v
+		}
+	}
+	return 0
+}
+
 // GetRuntimeAttributeValue extract the value of a given runtime attribute
 func (req *DetectorRequestDTO) GetRuntimeAttributeValue(key string) string {
 	if req.RuntimeAttributes != nil && len(req.RuntimeAttributes) > 0 {
@@ -80,8 +91,7 @@ func (req *DetectorRequestDTO) GetRuntimeAttributeValue(key string) string {
 
 // GetRuntimeAttributeValueAsInt extract the value as an integer of a given runtime attribute
 func (req *DetectorRequestDTO) GetRuntimeAttributeValueAsInt(key string) int {
-	value := req.GetRuntimeAttributeValue(key)
-	if value != "" {
+	if value := req.GetRuntimeAttributeValue(key); value != "" {
 		if v, err := strconv.Atoi(value); err == nil {
 			return v
 		}

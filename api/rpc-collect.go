@@ -3,7 +3,9 @@ package api
 import (
 	"encoding/xml"
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // CollectionStatusUnknown status unknown
@@ -160,6 +162,16 @@ func (req *CollectorRequestDTO) GetAttributeValue(key string, defaultValue strin
 		}
 	}
 	return defaultValue
+}
+
+// GetTimeout extracts the duration of the timeout attribute if available; otherwise returns default value
+func (req *CollectorRequestDTO) GetTimeout() time.Duration {
+	if value := req.GetAttributeValue("timeout", ""); value != "" {
+		if t, err := strconv.Atoi(value); err != nil {
+			return time.Duration(t) * time.Millisecond
+		}
+	}
+	return DefaultTimeout
 }
 
 // CollectorResponseDTO represents a collector response

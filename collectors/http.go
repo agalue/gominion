@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
-	"strconv"
 	"time"
 
 	"github.com/agalue/gominion/api"
@@ -60,13 +59,7 @@ func (collector *HTTPCollector) Collect(request *api.CollectorRequestDTO) *api.C
 		if uri.URL.UserAgent != "" {
 			httpreq.Header.Set("User-Agent", uri.URL.UserAgent)
 		}
-		var timeout time.Duration = 3 * time.Second
-		if t := request.GetAttributeValue("timeout", "3000"); t != "" {
-			if v, err := strconv.Atoi(t); err != nil {
-				timeout = time.Duration(v) * time.Millisecond
-			}
-		}
-		client := tools.GetHTTPClient(false, timeout)
+		client := tools.GetHTTPClient(false, request.GetTimeout())
 		httpres, err := client.Do(httpreq)
 		if err != nil {
 			response.Error = err.Error()
