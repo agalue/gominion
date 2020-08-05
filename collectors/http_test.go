@@ -19,13 +19,14 @@ var mockHTTPCollection = `
 		<rra>RRA:AVERAGE:0.5:1:2016</rra>
 	</rrd>
 	<uris>
-		<uri name="sample">
-			<url path="/stats" user-agent="Mozilla/5.0"
-				matches="(?s).*Temperature: ([0-9]+).*Humidity: ([0-9]+)" response-range="100-399" >
-			</url>
+		<uri name="sensors">
+			<url path="/stats"
+				user-agent="Mozilla/5.0 (Macintosh; U; PPC Mac OS X; en)"
+				matches="(?s).*Temperature: ([0-9]+).*Humidity: ([0-9]+).*"
+				response-range="100-399"/>
 			<attributes>
-				<attrib alias="temperature" match-group="1" type="gauge"/>
-				<attrib alias="humidity" match-group="2" type="gauge"/>
+				<attrib alias="temperature" match-group="1" type="gauge32"/>
+				<attrib alias="humidity"    match-group="2" type="gauge32"/>
 			</attributes>
 		</uri>
 	</uris>
@@ -47,9 +48,9 @@ func TestAddResourceAttributes(t *testing.T) {
 	resource := &api.CollectionResourceDTO{Name: "node"}
 	err = httpCollector.AddResourceAttributes(resource, uri, mockHTML)
 	assert.NilError(t, err)
-	assert.Equal(t, 2, len(resource.Attributes))
-	assert.Equal(t, "29", resource.Attributes[0].Value.Content)
-	assert.Equal(t, "66", resource.Attributes[1].Value.Content)
+	assert.Equal(t, 2, len(resource.NumericAttributes))
+	assert.Equal(t, "29", resource.NumericAttributes[0].Value)
+	assert.Equal(t, "66", resource.NumericAttributes[1].Value)
 }
 
 func TestHttpCollector(t *testing.T) {
@@ -79,5 +80,5 @@ func TestHttpCollector(t *testing.T) {
 	fmt.Println(string(bytes))
 	assert.Equal(t, api.CollectionStatusSucceded, response.CollectionSet.Status)
 	assert.Equal(t, 1, len(response.CollectionSet.Resources))
-	assert.Equal(t, 2, len(response.CollectionSet.Resources[0].Attributes))
+	assert.Equal(t, 2, len(response.CollectionSet.Resources[0].NumericAttributes))
 }

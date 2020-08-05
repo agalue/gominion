@@ -40,8 +40,11 @@ func (collector *HTTPCollector) Collect(request *api.CollectorRequestDTO) *api.C
 		response.Error = fmt.Sprintf("Error cannot parse httpCollection: %s", err.Error())
 		return response
 	}
-
-	nodeResource := api.CollectionResourceDTO{Name: "node"}
+	nodeResource := api.CollectionResourceDTO{
+		ResourceType: &api.NodeLevelResourceDTO{
+			NodeID: request.CollectionAgent.NodeID,
+		},
+	}
 	for _, uri := range httpCollection.URIs.URIList {
 		u := url.URL{
 			Scheme: "http",
@@ -97,7 +100,7 @@ func (collector *HTTPCollector) AddResourceAttributes(resource *api.CollectionRe
 	if len(groups) == 1 {
 		for i := 1; i < len(groups[0]); i++ {
 			if attr := uri.FindAttributeByMatchGroup(i); attr != nil {
-				resource.AddAttribute(attr.Type, attr.Alias, groups[0][i])
+				resource.AddNumericAttribute(attr.Alias, uri.Name, "", attr.Type, groups[0][i])
 			}
 		}
 	}

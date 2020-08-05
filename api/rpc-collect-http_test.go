@@ -22,10 +22,13 @@ func TestHTTPRequest(t *testing.T) {
 			</rrd>
 			<uris>
 				<uri name="sensors">
-					<url user-agent="Mozilla/5.0 (Macintosh; U; PPC Mac OS X; en)" path="/stats" matches="(?s).*Temperature: ([0-9]+).*Humidity: ([0-9]+)" response-range="100-399"/>
+					<url path="/stats"
+						user-agent="Mozilla/5.0 (Macintosh; U; PPC Mac OS X; en)"
+						matches="(?s).*Temperature: ([0-9]+).*Humidity: ([0-9]+).*"
+						response-range="100-399"/>
 					<attributes>
-						<attrib alias="temperature" match-group="1" type="gauge"/>
-						<attrib alias="humidity" match-group="2" type="gauge"/>
+						<attrib alias="temperature" match-group="1" type="gauge32"/>
+						<attrib alias="humidity"    match-group="2" type="gauge32"/>
 					</attributes>
 				</uri>
 			</uris>
