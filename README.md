@@ -27,21 +27,21 @@ The Java-based one has lots of features that is currently missing, but hopefully
 
 ## Detectors
 
-* ICMP (IcmpDetector)
-* SNMP (SnmpDetector)
-* TCP (TcpDetector)
-* HTTP (HttpDetector, HttpsDetector, WebDetector)
+* ICMP (`IcmpDetector`)
+* SNMP (`SnmpDetector`)
+* TCP (`TcpDetector`)
+* HTTP (`HttpDetector`, `HttpsDetector`, `WebDetector`)
 
 ## Monitors
 
-* ICMP (IcmpMonitor)
-* SNMP (SnmpMonitor, basic functionality only)
-* TCP (TcpMonitor, basic functionality only)
-* HTTP (HttpMonitor, HttpsMonitor, WebMonitor)
+* ICMP (`IcmpMonitor`)
+* SNMP (`SnmpMonitor`)
+* TCP (`TcpMonitor`, basic functionality only)
+* HTTP (`HttpMonitor`, `HttpsMonitor`, `WebMonitor`)
 
 ## Collectors
 
-* HTTP (HttpCollector)
+* HTTP (`HttpCollector`)
 
 It is important to notice that the SNMP Collector work is handled via the SNMP RPC Module, not by a collector implementation like the rest of them.
 
