@@ -6,7 +6,7 @@ import (
 )
 
 // TimeFormat the format to be used to marshal/unmarshal date from strings
-var TimeFormat = "2006-01-02T15:04:05.000-07:00"
+const TimeFormat = "2006-01-02T15:04:05.000-07:00"
 
 // Timestamp an object to seamlessly manage times in multiple formats
 // Expected text format: 2006-01-02T15:04:05.000-07:00

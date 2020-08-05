@@ -43,7 +43,20 @@ func (uri *HTTPUri) AddAttribute(attrib HTTPAttribute) {
 	uri.Attributes.AttributeList = append(uri.Attributes.AttributeList, attrib)
 }
 
-// FindAttributeByMatchGroup finds an attribute by metch group
+// FindAttributeByAlias finds an attribute by alias
+func (uri *HTTPUri) FindAttributeByAlias(alias string) *HTTPAttribute {
+	if uri.Attributes == nil {
+		uri.Attributes = &HTTPAttributeList{}
+	}
+	for _, attr := range uri.Attributes.AttributeList {
+		if attr.Alias == alias {
+			return &attr
+		}
+	}
+	return nil
+}
+
+// FindAttributeByMatchGroup finds an attribute by match group
 func (uri *HTTPUri) FindAttributeByMatchGroup(matchGroup int) *HTTPAttribute {
 	if uri.Attributes == nil {
 		uri.Attributes = &HTTPAttributeList{}
@@ -76,4 +89,17 @@ func (collection *HTTPCollection) AddURI(uri HTTPUri) {
 		collection.URIs = &HTTPUriList{}
 	}
 	collection.URIs.URIList = append(collection.URIs.URIList, uri)
+}
+
+// FindURI finds a URI by its name
+func (collection *HTTPCollection) FindURI(name string) *HTTPUri {
+	if collection.URIs == nil {
+		collection.URIs = &HTTPUriList{}
+	}
+	for _, uri := range collection.URIs.URIList {
+		if uri.Name == name {
+			return &uri
+		}
+	}
+	return nil
 }

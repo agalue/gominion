@@ -37,12 +37,6 @@ const ServiceUnresponsive = "Unresponsive"
 // ServiceUnresponsiveCode poll status cod for ServiceUnresponsive
 const ServiceUnresponsiveCode = 3
 
-// PollStatusProperties represents a poll status property list
-type PollStatusProperties struct {
-	XMLName    xml.Name `xml:"properties"`
-	Properties []PollStatusProperty
-}
-
 // PollStatusProperty represents a poll status property
 type PollStatusProperty struct {
 	XMLName xml.Name `xml:"property"`
@@ -50,15 +44,21 @@ type PollStatusProperty struct {
 	Value   float64  `xml:",chardata"`
 }
 
+// PollStatusPropertyList represents a poll status property list
+type PollStatusPropertyList struct {
+	XMLName      xml.Name             `xml:"properties"`
+	PropertyList []PollStatusProperty `xml:"property"`
+}
+
 // PollStatus represents a poll status
 type PollStatus struct {
-	XMLName      xml.Name              `xml:"poll-status"`
-	Timestamp    *Timestamp            `xml:"time,attr,omitempty"`
-	Reason       string                `xml:"reason,attr,omitempty"`
-	ResponseTime float64               `xml:"response-time,attr"`
-	StatusCode   int                   `xml:"code,attr"`
-	StatusName   string                `xml:"name,attr"`
-	Properties   *PollStatusProperties `xml:"properties,omitempty"`
+	XMLName      xml.Name                `xml:"poll-status"`
+	Timestamp    *Timestamp              `xml:"time,attr,omitempty"`
+	Reason       string                  `xml:"reason,attr,omitempty"`
+	ResponseTime float64                 `xml:"response-time,attr"`
+	StatusCode   int                     `xml:"code,attr"`
+	StatusName   string                  `xml:"name,attr"`
+	Properties   *PollStatusPropertyList `xml:"properties,omitempty"`
 }
 
 // Up update the poll status for an available service
@@ -90,10 +90,10 @@ func (status *PollStatus) Unknown(reason string) {
 // SetProperty adds or updates an existing property
 func (status *PollStatus) SetProperty(key string, value float64) {
 	if status.Properties == nil {
-		status.Properties = &PollStatusProperties{}
+		status.Properties = &PollStatusPropertyList{}
 	}
 	found := false
-	for _, p := range status.Properties.Properties {
+	for _, p := range status.Properties.PropertyList {
 		if p.Key == key {
 			p.Value = value
 			found = true
@@ -101,8 +101,21 @@ func (status *PollStatus) SetProperty(key string, value float64) {
 	}
 	if !found {
 		p := PollStatusProperty{Key: key, Value: value}
-		status.Properties.Properties = append(status.Properties.Properties, p)
+		status.Properties.PropertyList = append(status.Properties.PropertyList, p)
 	}
+}
+
+// GetPropertyValue adds or updates an existing property
+func (status *PollStatus) GetPropertyValue(key string) float64 {
+	if status.Properties == nil {
+		return 0
+	}
+	for _, p := range status.Properties.PropertyList {
+		if p.Key == key {
+			return p.Value
+		}
+	}
+	return 0
 }
 
 // PollerAttributeDTO represents a poller atrribute
@@ -192,5 +205,5 @@ func (req *PollerRequestDTO) GetAttributeContent(key string) string {
 type PollerResponseDTO struct {
 	XMLName xml.Name    `xml:"poller-response"`
 	Error   string      `xml:"error,attr,omitempty"`
-	Status  *PollStatus `xml:"poll-status"`
+	Status  *PollStatus `xml:"poll-status,omitempty"`
 }

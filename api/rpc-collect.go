@@ -67,12 +67,14 @@ func (set *CollectionSetDTO) AddResource(resource CollectionResourceDTO) {
 
 // CollectionAttributeDTO represents a collection attribute
 type CollectionAttributeDTO struct {
-	Key     string `xml:"key,attr"`
-	Content string `xml:",innerxml"`
+	XMLName xml.Name `xml:"attribute"`
+	Key     string   `xml:"key,attr"`
+	Content string   `xml:",innerxml"`
 }
 
 // CollectionAgentDTO represents a collection agent
 type CollectionAgentDTO struct {
+	XMLName             xml.Name                 `xml:"agent"`
 	IPAddress           string                   `xml:"address,attr"`
 	StoreByFS           bool                     `xml:"store-by-fs,attr"`
 	NodeID              int                      `xml:"node-id,attr"`
