@@ -7,6 +7,51 @@ import (
 	"github.com/soniah/gosnmp"
 )
 
+// SNMPHandler represents an SNMP handler based on GoSNMP
+type SNMPHandler interface {
+	Connect() error
+	Disconnect() error
+	Version() string
+	Target() string
+	BulkWalk(rootOid string, walkFn gosnmp.WalkFunc) error
+	Get(oid string) (result *gosnmp.SnmpPacket, err error)
+}
+
+// SNMPClient represents an SNMP handler implementation
+type SNMPClient struct {
+	snmp *gosnmp.GoSNMP
+}
+
+// Connect initiates a connection against the target device
+func (cli *SNMPClient) Connect() error {
+	return cli.snmp.Connect()
+}
+
+// Disconnect terminates the connection against the target device
+func (cli *SNMPClient) Disconnect() error {
+	return cli.snmp.Conn.Close()
+}
+
+// Version returns the SNMP version
+func (cli *SNMPClient) Version() string {
+	return cli.snmp.Version.String()
+}
+
+// Target returns the target device IP/Hostname
+func (cli *SNMPClient) Target() string {
+	return cli.snmp.Target
+}
+
+// BulkWalk executes an SNMP bulk walk calling WalkFunc after receiving data
+func (cli *SNMPClient) BulkWalk(rootOid string, walkFn gosnmp.WalkFunc) error {
+	return cli.snmp.BulkWalk(rootOid, walkFn)
+}
+
+// Get execute an SNMP GET request
+func (cli *SNMPClient) Get(oid string) (result *gosnmp.SnmpPacket, err error) {
+	return cli.snmp.Get([]string{oid})
+}
+
 // SNMPAgentDTO represents an SNMP agent
 type SNMPAgentDTO struct {
 	Address         string `xml:"address"`
@@ -33,7 +78,7 @@ type SNMPAgentDTO struct {
 }
 
 // GetSNMPClient gets an SNMP Client instance
-func (agent *SNMPAgentDTO) GetSNMPClient() *gosnmp.GoSNMP {
+func (agent *SNMPAgentDTO) GetSNMPClient() SNMPHandler {
 	session := &gosnmp.GoSNMP{
 		Target:             agent.Address,
 		Port:               uint16(agent.Port),
@@ -51,7 +96,7 @@ func (agent *SNMPAgentDTO) GetSNMPClient() *gosnmp.GoSNMP {
 		session.MsgFlags = agent.getV3Flags()
 		session.SecurityParameters = agent.getSecurityParameters()
 	}
-	return session
+	return &SNMPClient{snmp: session}
 }
 
 func (agent *SNMPAgentDTO) getVersion() gosnmp.SnmpVersion {

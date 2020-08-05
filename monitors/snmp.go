@@ -2,11 +2,17 @@ package monitors
 
 import (
 	"encoding/xml"
-	"log"
+	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/agalue/gominion/api"
+	"github.com/soniah/gosnmp"
 )
+
+const defaultOID = ".1.3.6.1.2.1.1.2.0"
 
 // SNMPMonitor represents a Monitor implementation
 type SNMPMonitor struct {
@@ -18,23 +24,21 @@ func (monitor *SNMPMonitor) GetID() string {
 }
 
 // Poll execute the monitor request and return the service status
-// TODO Implement all pending features
 func (monitor *SNMPMonitor) Poll(request *api.PollerRequestDTO) *api.PollerResponseDTO {
-	oid := request.GetAttributeValue("oid", ".1.3.6.1.2.1.1.2.0")
 	agent := &api.SNMPAgentDTO{}
 	response := &api.PollerResponseDTO{Status: &api.PollStatus{}}
 	if err := xml.Unmarshal([]byte(request.GetAttributeContent("agent")), agent); err == nil {
-		log.Printf("Requesting OID %s from %s", oid, agent.Address)
-		start := time.Now()
+		oid := request.GetAttributeValue("oid", defaultOID)
+		operator := request.GetAttributeValue("operator", "")
+		operand := request.GetAttributeValue("operand", "")
+		walkstr := strings.ToLower(request.GetAttributeValue("walk", "false"))
+		matchstr := strings.ToLower(request.GetAttributeValue("match-all", "false"))
+		minimum := request.GetAttributeValueAsInt("minimum", 0)
+		maximum := request.GetAttributeValueAsInt("maximum", 0)
 		client := agent.GetSNMPClient()
 		if err := client.Connect(); err == nil {
-			defer client.Conn.Close()
-			if _, err := client.Get([]string{oid}); err == nil {
-				duration := time.Since(start)
-				response.Status.Up(duration.Seconds())
-			} else {
-				response.Status.Down(err.Error())
-			}
+			defer client.Disconnect()
+			response = monitor.poll(client, oid, matchstr, walkstr, operator, operand, minimum, maximum)
 		} else {
 			response.Status.Down(err.Error())
 		}
@@ -42,6 +46,102 @@ func (monitor *SNMPMonitor) Poll(request *api.PollerRequestDTO) *api.PollerRespo
 		response.Status.Unknown(err.Error())
 	}
 	return response
+}
+
+func (monitor *SNMPMonitor) poll(client api.SNMPHandler, oid string, matchstr string, walkstr string, operator string, operand string, minimum int, maximum int) *api.PollerResponseDTO {
+	start := time.Now()
+	response := &api.PollerResponseDTO{Status: &api.PollStatus{}}
+	if matchstr == "count" {
+		if values, err := monitor.walk(client, oid); err == nil {
+			count := 0
+			for _, value := range values {
+				if monitor.meetsCriteria(value, operator, operand) {
+					count++
+				}
+			}
+			if count >= minimum && count <= maximum {
+				response.Status.Up(time.Since(start).Seconds())
+			} else {
+				response.Status.Down(fmt.Sprintf("count error: %d not between %d and %d", count, minimum, maximum)) // FIXME
+			}
+		} else {
+			response.Status.Down(err.Error())
+		}
+	} else if walkstr == "true" {
+		if values, err := monitor.walk(client, oid); err == nil {
+			for _, value := range values {
+				if monitor.meetsCriteria(value, operator, operand) {
+					response.Status.Up(time.Since(start).Seconds())
+					if matchstr == "false" {
+						break
+					}
+				} else if matchstr == "true" {
+					response.Status.Down("something went wrong") // FIXME
+					break
+				}
+			}
+		} else {
+			response.Status.Down(err.Error())
+		}
+	} else {
+		if result, err := client.Get(oid); err == nil {
+			if len(result.Variables) == 1 {
+				value := fmt.Sprintf("%v", result.Variables[0].Value)
+				if monitor.meetsCriteria(value, operator, operand) {
+					response.Status.Up(time.Since(start).Seconds())
+				} else {
+					response.Status.Down("something went wrong") // FIXME
+				}
+			} else {
+				response.Status.Down("no response")
+			}
+		} else {
+			response.Status.Down(err.Error())
+		}
+	}
+	return response
+}
+
+func (monitor *SNMPMonitor) walk(client api.SNMPHandler, oid string) ([]string, error) {
+	var returnedValues []string
+	err := client.BulkWalk(oid, func(pdu gosnmp.SnmpPDU) error {
+		returnedValues = append(returnedValues, fmt.Sprintf("%v", pdu.Value))
+		return nil
+	})
+	return returnedValues, err
+}
+
+func (monitor *SNMPMonitor) meetsCriteria(result string, operator string, operand string) bool {
+	if result != "" && operator != "" && operand != "" {
+		if operator == "~" {
+			if exp, err := regexp.Compile(operand); err == nil {
+				return exp.MatchString(result)
+			}
+			return false
+		}
+		intResult, _ := strconv.Atoi(result)
+		intOperand, _ := strconv.Atoi(operand)
+		switch operator {
+		case ">":
+			return intResult > intOperand
+		case "<":
+			return intResult < intOperand
+		case ">=":
+			return intResult >= intOperand
+		case "<=":
+			return intResult <= intOperand
+		}
+		if strings.HasPrefix(operand, ".") {
+			result = string([]rune(operand)[1:])
+		}
+		switch operator {
+		case "=":
+			return result == operand
+		case "!=":
+			return result != operand
+		}
+	}
+	return false
 }
 
 var snmpMonitor = &SNMPMonitor{}

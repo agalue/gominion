@@ -21,6 +21,6 @@ type SyslogMessageLogDTO struct {
 }
 
 // AddMessage adds a new message to the log
-func (log *SyslogMessageLogDTO) AddMessage(message SyslogMessageDTO) {
-	log.Messages = append(log.Messages, message)
+func (msgLog *SyslogMessageLogDTO) AddMessage(message SyslogMessageDTO) {
+	msgLog.Messages = append(msgLog.Messages, message)
 }

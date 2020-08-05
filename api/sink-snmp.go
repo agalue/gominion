@@ -45,6 +45,6 @@ type TrapLogDTO struct {
 }
 
 // AddTrap adds a new trap to the log
-func (log *TrapLogDTO) AddTrap(trap TrapDTO) {
-	log.Messages = append(log.Messages, trap)
+func (trapLog *TrapLogDTO) AddTrap(trap TrapDTO) {
+	trapLog.Messages = append(trapLog.Messages, trap)
 }

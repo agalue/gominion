@@ -31,17 +31,21 @@ func (module *SNMPProxyRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.Rpc
 		response := &api.SNMPMultiResponseDTO{Error: getError(request, err)}
 		return transformResponse(request, response)
 	}
-	defer client.Conn.Close()
+	defer client.Disconnect()
+	return transformResponse(request, module.getResponse(client, req))
+}
+
+func (module *SNMPProxyRPCModule) getResponse(client api.SNMPHandler, req *api.SNMPRequestDTO) *api.SNMPMultiResponseDTO {
 	response := &api.SNMPMultiResponseDTO{}
 	for _, walk := range req.Walks {
 		response.AddResponse(module.snmpWalk(client, walk))
 	}
-	return transformResponse(request, response)
+	return response
 }
 
-func (module *SNMPProxyRPCModule) snmpWalk(client *gosnmp.GoSNMP, walk api.SNMPWalkRequestDTO) *api.SNMPResponseDTO {
+func (module *SNMPProxyRPCModule) snmpWalk(client api.SNMPHandler, walk api.SNMPWalkRequestDTO) *api.SNMPResponseDTO {
 	response := &api.SNMPResponseDTO{CorrelationID: walk.CorrelationID}
-	log.Printf("Executing %d snmpwalk %s against %s", len(walk.OIDs), client.Version.String(), client.Target)
+	log.Printf("Executing %d snmpwalk %s against %s", len(walk.OIDs), client.Version(), client.Target())
 	for _, oid := range walk.OIDs {
 		effectiveOid := tools.GetOidToWalk(oid, walk.Instance)
 		err := client.BulkWalk(effectiveOid, func(pdu gosnmp.SnmpPDU) error {
@@ -53,7 +57,7 @@ func (module *SNMPProxyRPCModule) snmpWalk(client *gosnmp.GoSNMP, walk api.SNMPW
 			return response
 		}
 	}
-	log.Printf("Sending %d snmpwalk responses from %s", len(response.Results), client.Target)
+	log.Printf("Sending %d snmpwalk responses from %s", len(response.Results), client.Target())
 	return response
 }
 

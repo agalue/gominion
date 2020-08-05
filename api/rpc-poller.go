@@ -167,6 +167,15 @@ func (req *PollerRequestDTO) GetAttributeValue(key string, defaultValue string) 
 	return defaultValue
 }
 
+// GetAttributeValueAsInt gets the value of a given attribute as integer
+func (req *PollerRequestDTO) GetAttributeValueAsInt(key string, defaultValue int) int {
+	value := req.GetAttributeValue(key, strconv.Itoa(defaultValue))
+	if v, err := strconv.Atoi(value); err != nil {
+		return v
+	}
+	return defaultValue
+}
+
 // GetAttributeContent gets the value of a given attribute
 func (req *PollerRequestDTO) GetAttributeContent(key string) string {
 	if req.Attributes != nil && len(req.Attributes) > 0 {

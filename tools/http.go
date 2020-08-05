@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// GetHTTPClient returns an HTTP Client with a given timeout, and transport
 func GetHTTPClient(useSSLFilter bool, timeout time.Duration) *http.Client {
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: useSSLFilter},
@@ -18,6 +19,7 @@ func GetHTTPClient(useSSLFilter bool, timeout time.Duration) *http.Client {
 	}
 }
 
+// ParseHTTPResponseRange parses a given response range
 func ParseHTTPResponseRange(responseRange string) (min int, max int) {
 	var err error
 	rangeArray := strings.Split(responseRange, "-")
