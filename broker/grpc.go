@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"time"
 
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/protobuf/ipc"
@@ -35,28 +34,20 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 
 	cli.onms = ipc.NewOpenNMSIpcClient(cli.conn)
 
-	for {
-		cli.sinkStream, err = cli.onms.SinkStreaming(context.Background())
-		if err == nil {
-			break
-		}
-		log.Printf("Cannot reach gRPC server, retrying in 5 seconds...")
-		time.Sleep(5 * time.Second)
+	cli.sinkStream, err = cli.onms.SinkStreaming(context.Background())
+	if err != nil {
+		return fmt.Errorf("Cannot start Sink Streaming: %v", err)
 	}
 
-	for _, sinkModule := range api.GetAllSinkModules() {
-		go func(module api.SinkModule) {
-			module.Start(cli.config, cli.sinkStream)
-		}(sinkModule)
+	for _, module := range api.GetAllSinkModules() {
+		if err := module.Start(cli.config, cli.sinkStream); err != nil {
+			return fmt.Errorf("Cannot start Sink module %s: %v", module.GetID(), err)
+		}
 	}
 
-	for {
-		cli.rpcStream, err = cli.onms.RpcStreaming(context.Background())
-		if err == nil {
-			break
-		}
-		log.Printf("Cannot reach gRPC server, retrying in 5 seconds...")
-		time.Sleep(5 * time.Second)
+	cli.rpcStream, err = cli.onms.RpcStreaming(context.Background())
+	if err != nil {
+		return fmt.Errorf("Cannot start RPC Streaming: %v", err)
 	}
 
 	go func() {

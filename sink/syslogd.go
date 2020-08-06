@@ -14,9 +14,10 @@ import (
 
 // SyslogModule represents the heartbeat module
 type SyslogModule struct {
-	broker api.Broker
-	config *api.MinionConfig
-	server *syslog.Server
+	broker  api.Broker
+	config  *api.MinionConfig
+	server  *syslog.Server
+	channel syslog.LogPartsChannel
 }
 
 // GetID gets the ID of the sink module
@@ -24,44 +25,46 @@ func (module *SyslogModule) GetID() string {
 	return "Syslog"
 }
 
-// Start initiates a blocking loop with the Syslog Listener
-func (module *SyslogModule) Start(config *api.MinionConfig, broker api.Broker) {
+// Start initiates a Syslog UDP and TCP receiver
+func (module *SyslogModule) Start(config *api.MinionConfig, broker api.Broker) error {
 	if config.SyslogPort == 0 {
 		log.Printf("Syslog Module disabled")
-		return
+		return nil
 	}
 
 	log.Printf("Starting Syslog receiver on port UDP/TCP %d", config.SyslogPort)
 
 	module.config = config
 	module.broker = broker
-	channel := make(syslog.LogPartsChannel)
-	handler := syslog.NewChannelHandler(channel)
 
 	listenAddr := fmt.Sprintf("0.0.0.0:%d", config.SyslogPort)
+	module.channel = make(syslog.LogPartsChannel)
 	module.server = syslog.NewServer()
 	module.server.SetFormat(syslog.Automatic)
-	module.server.SetHandler(handler)
+	module.server.SetHandler(syslog.NewChannelHandler(module.channel))
 	if err := module.server.ListenUDP(listenAddr); err != nil {
-		log.Fatalf("Cannot start Syslog UDP listener: %s", err)
+		return fmt.Errorf("Cannot start Syslog UDP listener: %s", err)
 	}
 	if err := module.server.ListenTCP(listenAddr); err != nil {
-		log.Fatalf("Cannot start Syslog TCP listener: %s", err)
+		return fmt.Errorf("Cannot start Syslog TCP listener: %s", err)
 	}
-	module.server.Boot()
-
+	if err := module.server.Boot(); err != nil {
+		return fmt.Errorf("Cannot boot Syslog server: %s", err)
+	}
 	go func(channel syslog.LogPartsChannel) {
 		for logParts := range channel {
 			if messageLog := module.buildMessageLog(logParts); messageLog != nil {
 				sendResponse(module.GetID(), module.config, module.broker, messageLog)
 			}
 		}
-	}(channel)
+	}(module.channel)
+	return nil
 }
 
 // Stop shutdowns the sink module
 func (module *SyslogModule) Stop() {
 	if module.server != nil {
+		close(module.channel)
 		module.server.Kill()
 	}
 }

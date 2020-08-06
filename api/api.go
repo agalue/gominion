@@ -18,8 +18,7 @@ type SinkModule interface {
 	GetID() string
 
 	// Starts the Sink Module
-	// Expected to be a blocking operation (run it within a GoRoutine)
-	Start(config *MinionConfig, broker Broker)
+	Start(config *MinionConfig, broker Broker) error
 
 	// Shutdown the Sink Module
 	Stop()

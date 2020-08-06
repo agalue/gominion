@@ -25,33 +25,42 @@ func (module *UDPForwardModule) GetID() string {
 	return module.Name
 }
 
-// Start initiates a blocking loop that forwards data received via UDP to OpenNMS
-func (module *UDPForwardModule) Start(config *api.MinionConfig, broker api.Broker) {
-	module.stopping = false
-	module.broker = broker
-	module.config = config
+// Start initiates a generic UDP receiver
+func (module *UDPForwardModule) Start(config *api.MinionConfig, broker api.Broker) error {
 	listener := config.GetListener(module.Name)
 	if listener == nil || !listener.Is(UDPForwardParser) {
 		log.Printf("UDP Module %s disabled", module.Name)
-		return
+		return nil
 	}
-	module.conn = startUDPServer(module.Name, listener.Port)
-	payload := make([]byte, 1024)
-	for {
-		size, pktAddr, err := module.conn.ReadFromUDP(payload)
-		if err != nil {
-			if !module.stopping {
-				log.Printf("Error while reading from %s: %s", module.Name, err)
+
+	var err error
+	module.stopping = false
+	module.broker = broker
+	module.config = config
+
+	module.conn, err = startUDPServer(module.Name, listener.Port)
+	if err != nil {
+		return err
+	}
+	go func() {
+		payload := make([]byte, 1024)
+		for {
+			size, pktAddr, err := module.conn.ReadFromUDP(payload)
+			if err != nil {
+				if !module.stopping {
+					log.Printf("Error while reading from %s: %s", module.Name, err)
+				}
+				continue
 			}
-			continue
+			payloadCut := make([]byte, size)
+			copy(payloadCut, payload[0:size])
+			log.Printf("Received %d bytes from %s", size, pktAddr)
+			if bytes := wrapMessageToTelemetry(config, pktAddr.IP.String(), uint32(pktAddr.Port), payloadCut); bytes != nil {
+				sendBytes(module.GetID(), module.config, module.broker, bytes)
+			}
 		}
-		payloadCut := make([]byte, size)
-		copy(payloadCut, payload[0:size])
-		log.Printf("Received %d bytes from %s", size, pktAddr)
-		if bytes := wrapMessageToTelemetry(config, pktAddr.IP.String(), uint32(pktAddr.Port), payloadCut); bytes != nil {
-			sendBytes(module.GetID(), module.config, module.broker, bytes)
-		}
-	}
+	}()
+	return nil
 }
 
 // Stop shutdowns the sink module

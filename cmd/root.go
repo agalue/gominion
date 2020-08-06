@@ -49,6 +49,8 @@ func Execute() {
 }
 
 func init() {
+	log.SetOutput(os.Stdout)
+
 	// Initialize Configuration
 	cobra.OnInitialize(initConfig)
 

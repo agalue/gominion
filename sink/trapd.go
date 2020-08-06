@@ -25,11 +25,11 @@ func (module *SnmpTrapModule) GetID() string {
 	return "Trap"
 }
 
-// Start initiates a blocking loop with the SNMP trap listener
-func (module *SnmpTrapModule) Start(config *api.MinionConfig, broker api.Broker) {
+// Start initiates a Syslog UDP and TCP receiver
+func (module *SnmpTrapModule) Start(config *api.MinionConfig, broker api.Broker) error {
 	if config.TrapPort == 0 {
 		log.Printf("Trap Module disabled")
-		return
+		return nil
 	}
 
 	log.Printf("Starting SNMP Trap receiver on port UDP %d", config.TrapPort)
@@ -39,10 +39,23 @@ func (module *SnmpTrapModule) Start(config *api.MinionConfig, broker api.Broker)
 	module.listener = gosnmp.NewTrapListener()
 	module.listener.OnNewTrap = module.trapHandler
 	module.listener.Params = gosnmp.Default
-	err := module.listener.Listen(fmt.Sprintf("0.0.0.0:%d", config.TrapPort))
-	if err != nil {
-		log.Fatalf("Cannot start SNMP trap listener: %s", err)
+
+	// Test Listener
+	lis, err := startUDPServer(module.GetID(), config.TrapPort)
+	if err == nil {
+		lis.Close()
+	} else {
+		return err
 	}
+
+	// Start Trap Receiver
+	go func() {
+		err := module.listener.Listen(fmt.Sprintf("0.0.0.0:%d", config.TrapPort))
+		if err != nil {
+			log.Printf("Error problem detected with SNMP trap listener: %s", err)
+		}
+	}()
+	return nil
 }
 
 // Stop shutdowns the sink module

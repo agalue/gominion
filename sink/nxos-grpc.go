@@ -25,12 +25,12 @@ func (module *NxosGrpcModule) GetID() string {
 	return "NXOS"
 }
 
-// Start initiates a blocking loop that starts the gRPC Server for NX-OS telemetry
-func (module *NxosGrpcModule) Start(config *api.MinionConfig, broker api.Broker) {
+// Start initiates a gRPC Server for NX-OS telemetry
+func (module *NxosGrpcModule) Start(config *api.MinionConfig, broker api.Broker) error {
 	listener := config.GetListenerByParser("NxosGrpcParser")
 	if listener == nil || listener.Port == 0 {
 		log.Printf("NX-OS Telemetry Module disabled")
-		return
+		return nil
 	}
 
 	module.config = config
@@ -45,11 +45,14 @@ func (module *NxosGrpcModule) Start(config *api.MinionConfig, broker api.Broker)
 	log.Printf("Starting NX-OS gRPC server on port %d\n", listener.Port)
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", listener.Port))
 	if err != nil {
-		log.Fatalf("Error cannot start TCP listener: %s", err)
+		return fmt.Errorf("Error cannot start TCP listener: %s", err)
 	}
-	if err := module.server.Serve(lis); err != nil {
-		log.Fatalf("Error could not serve: %v", err)
-	}
+	go func() {
+		if err := module.server.Serve(lis); err != nil {
+			log.Printf("Error could not serve NX-OS gRPC: %v", err)
+		}
+	}()
+	return nil
 }
 
 // Stop shutdowns the sink module

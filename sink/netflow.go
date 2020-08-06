@@ -45,35 +45,40 @@ func (module *NetflowModule) GetID() string {
 	return module.Name
 }
 
-// Start initiates a blocking loop that forwards data received via UDP to OpenNMS
-func (module *NetflowModule) Start(config *api.MinionConfig, broker api.Broker) {
+// Start initiates a Netflow UDP receiver
+func (module *NetflowModule) Start(config *api.MinionConfig, broker api.Broker) error {
 	module.stopping = false
 	module.broker = broker
 	module.config = config
 	listener := config.GetListener(module.Name)
 	if listener == nil {
 		log.Printf("Flow Module %s disabled", module.Name)
-	} else {
-		module.listener = listener
-		var handler decoder.DecoderFunc
-		if listener.Is(UDPNetflow5Parser) {
-			netflow := goflow.StateNFLegacy{
-				Transport: module,
-				Logger:    logrus.StandardLogger(),
-			}
-			handler = netflow.DecodeFlow
-		} else if listener.Is(UDPNetflow9Parser) || listener.Is(UDPIpfixParser) {
-			netflow := goflow.StateNetFlow{
-				Transport: module,
-				Logger:    logrus.StandardLogger(),
-			}
-			netflow.InitTemplates()
-			handler = netflow.DecodeFlow
-		} else {
-			log.Printf("Flow Module %s disabled", module.Name)
-			return
+		return nil
+	}
+	module.listener = listener
+	var handler decoder.DecoderFunc
+	if listener.Is(UDPNetflow5Parser) {
+		netflow := goflow.StateNFLegacy{
+			Transport: module,
+			Logger:    logrus.StandardLogger(),
 		}
-		module.conn = startUDPServer(module.Name, listener.Port)
+		handler = netflow.DecodeFlow
+	} else if listener.Is(UDPNetflow9Parser) || listener.Is(UDPIpfixParser) {
+		netflow := goflow.StateNetFlow{
+			Transport: module,
+			Logger:    logrus.StandardLogger(),
+		}
+		netflow.InitTemplates()
+		handler = netflow.DecodeFlow
+	} else {
+		log.Printf("Flow Module %s disabled", module.Name)
+		return nil
+	}
+	var err error
+	if module.conn, err = startUDPServer(module.Name, listener.Port); err != nil {
+		return err
+	}
+	go func() {
 		module.startProcessor(handler)
 		payload := make([]byte, 9000)
 		for {
@@ -93,7 +98,8 @@ func (module *NetflowModule) Start(config *api.MinionConfig, broker api.Broker) 
 			}
 			module.processor.ProcessMessage(baseMessage)
 		}
-	}
+	}()
+	return nil
 }
 
 // Stop shutdowns the sink module
