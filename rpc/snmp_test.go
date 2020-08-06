@@ -209,6 +209,7 @@ func TestSNMpResponse(t *testing.T) {
 
 	response := snmpModule.getResponse(client, req)
 	bytes, err := xml.MarshalIndent(response, "", "  ")
+	assert.NilError(t, err)
 	fmt.Println(string(bytes))
 	assert.Equal(t, expectedResponseXML, string(bytes))
 	assert.Equal(t, len(req.Walks), len(response.Responses))
