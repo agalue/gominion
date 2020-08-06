@@ -25,6 +25,8 @@ The Java-based one has lots of features that is currently missing, but hopefully
 * Netflow5, Netflow9, IPFIX, SFlow
 * Graphite
 
+> SFlow receiver is enabled, but the parser for Sink API has not been implemented.
+
 ## Detectors
 
 * ICMP (`IcmpDetector`)

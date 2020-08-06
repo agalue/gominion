@@ -1,6 +1,7 @@
 package sink
 
 import (
+	"encoding/json"
 	"net"
 
 	"github.com/agalue/gominion/api"
@@ -136,10 +137,18 @@ func (module *NetflowModule) Stop() {
 func (module *NetflowModule) Publish(msgs []*goflowMsg.FlowMessage) {
 	log.Debugf("Received %d %s messages", len(msgs), module.Name)
 	for _, flowmsg := range msgs {
-		msg := module.convertToNetflow(flowmsg)
-		buffer, _ := proto.Marshal(msg)
-		if bytes := wrapMessageToTelemetry(module.config, net.IP(flowmsg.SamplerAddress).String(), uint32(module.listener.Port), buffer); bytes != nil {
-			sendBytes("Telemetry-"+module.listener.Name, module.config, module.broker, bytes)
+		if flowmsg.Type == goflowMsg.FlowMessage_SFLOW_5 {
+			// DEBUG: start
+			if bytes, err := json.MarshalIndent(flowmsg, "", "  "); err != nil {
+				log.Debugf("SFlow message received %s", string(bytes))
+			}
+			// DEBUG: end
+		} else {
+			msg := module.convertToNetflow(flowmsg)
+			buffer, _ := proto.Marshal(msg)
+			if bytes := wrapMessageToTelemetry(module.config, net.IP(flowmsg.SamplerAddress).String(), uint32(module.listener.Port), buffer); bytes != nil {
+				sendBytes("Telemetry-"+module.listener.Name, module.config, module.broker, bytes)
+			}
 		}
 	}
 }
