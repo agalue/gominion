@@ -21,8 +21,8 @@ The Java-based one has lots of features that is currently missing, but hopefully
 * Heartbeat
 * SNMP Traps (SNMPv1 and SNMPv2)
 * Syslog (TCP and UDP)
-* NX-OS Streaming Telemetry via gRPC
-* Netflow5, Netflow9, IPFIX
+* Cisco NX-OS Streaming Telemetry via gRPC
+* Netflow5, Netflow9, IPFIX, SFlow
 * Graphite
 
 ## Detectors
@@ -36,7 +36,7 @@ The Java-based one has lots of features that is currently missing, but hopefully
 
 * ICMP (`IcmpMonitor`)
 * SNMP (`SnmpMonitor`)
-* TCP (`TcpMonitor`, basic functionality only)
+* TCP (`TcpMonitor`)
 * HTTP (`HttpMonitor`, `HttpsMonitor`, `WebMonitor`)
 
 ## Collectors
