@@ -20,15 +20,16 @@ import (
 	"github.com/spf13/viper"
 )
 
-const defaultLocation = "Local"
-const defaultBroker = "localhost:8990"
-const defaultTrapPort = 1162
-const defaultSyslogPort = 1514
-
 var cfgFile string
 var listeners = []string{}
-var minionConfig = &api.MinionConfig{BrokerType: "grpc"}
 var client = &broker.GrpcClient{}
+var minionConfig = &api.MinionConfig{
+	BrokerType: "grpc",
+	Location:   "Local",
+	BrokerURL:  "localhost:8990",
+	TrapPort:   1162,
+	SyslogPort: 1514,
+}
 
 // rootCmd represents the base command that starts the Minion's gRPC client
 var rootCmd = &cobra.Command{
@@ -58,22 +59,15 @@ func init() {
 	hostname, _ := os.Hostname()
 	rootCmd.Flags().SortFlags = false
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is ~/.gominion.yaml)")
-	rootCmd.Flags().StringVarP(&minionConfig.ID, "id", "i", "", fmt.Sprintf("Minion ID (default is %s)", hostname))
-	rootCmd.Flags().StringVarP(&minionConfig.Location, "location", "l", "", fmt.Sprintf("Minion Location (default is %s)", defaultLocation))
-	rootCmd.Flags().StringVarP(&minionConfig.BrokerURL, "brokerUrl", "b", "", fmt.Sprintf("Broker URL (default is %s)", defaultBroker))
-	rootCmd.Flags().IntVarP(&minionConfig.TrapPort, "trapPort", "t", 0, fmt.Sprintf("SNMP Trap port (default is %d)", defaultTrapPort))
-	rootCmd.Flags().IntVarP(&minionConfig.SyslogPort, "syslogPort", "s", 0, fmt.Sprintf("Syslog port (default is %d)", defaultSyslogPort))
+	rootCmd.Flags().StringVarP(&minionConfig.ID, "id", "i", hostname, "Minion ID")
+	rootCmd.Flags().StringVarP(&minionConfig.Location, "location", "l", minionConfig.Location, "Minion Location")
+	rootCmd.Flags().StringVarP(&minionConfig.BrokerURL, "brokerUrl", "b", minionConfig.BrokerURL, "Broker URL")
+	rootCmd.Flags().IntVarP(&minionConfig.TrapPort, "trapPort", "t", minionConfig.TrapPort, "SNMP Trap port")
+	rootCmd.Flags().IntVarP(&minionConfig.SyslogPort, "syslogPort", "s", minionConfig.SyslogPort, "Syslog port")
 	rootCmd.Flags().StringArrayVarP(&listeners, "listener", "L", nil, "Flow/Telemetry listeners\ne.x. -L Graphite,2003,ForwardParser -L NXOS,5000,NxosGrpcParser")
 
 	// Initialize Flag Binding
 	viper.BindPFlags(rootCmd.Flags())
-
-	// Initialize Defaults
-	viper.SetDefault("id", hostname)
-	viper.SetDefault("brokerUrl", defaultBroker)
-	viper.SetDefault("location", defaultLocation)
-	viper.SetDefault("trapPort", defaultTrapPort)
-	viper.SetDefault("syslogPort", defaultSyslogPort)
 }
 
 // initConfig reads in config file and ENV variables if set.
