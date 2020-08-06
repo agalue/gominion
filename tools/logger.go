@@ -4,6 +4,9 @@ import (
 	"log"
 )
 
+// Log holds default implementation
+var Log = Logger{}
+
 // Logger implements basic interface for logging
 type Logger struct{}
 

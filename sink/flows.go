@@ -126,20 +126,20 @@ func (module *NetflowModule) getDecoderHandler() decoder.DecoderFunc {
 	if module.listener.Is(UDPNetflow5Parser) {
 		netflow := goflow.StateNFLegacy{
 			Transport: module,
-			Logger:    tools.Logger{},
+			Logger:    tools.Log,
 		}
 		return netflow.DecodeFlow
 	} else if module.listener.Is(UDPNetflow9Parser) || module.listener.Is(UDPIpfixParser) {
 		netflow := goflow.StateNetFlow{
 			Transport: module,
-			Logger:    tools.Logger{},
+			Logger:    tools.Log,
 		}
 		netflow.InitTemplates()
 		return netflow.DecodeFlow
 	} else if module.listener.Is(UDPSFlowParser) {
 		sflow := goflow.StateSFlow{
 			Transport: module,
-			Logger:    tools.Logger{},
+			Logger:    tools.Log,
 		}
 		return sflow.DecodeFlow
 	}
@@ -151,7 +151,7 @@ func (module *NetflowModule) startProcessor(handler decoder.DecoderFunc) {
 		return
 	}
 	ecb := goflow.DefaultErrorCallback{
-		Logger: tools.Logger{},
+		Logger: tools.Log,
 	}
 	decoderParams := decoder.DecoderParams{
 		DecoderFunc:   handler,
