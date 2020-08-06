@@ -29,6 +29,7 @@ var minionConfig = &api.MinionConfig{
 	BrokerURL:  "localhost:8990",
 	TrapPort:   1162,
 	SyslogPort: 1514,
+	LogLevel:   "debug",
 }
 
 // rootCmd represents the base command that starts the Minion's gRPC client
@@ -54,7 +55,6 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// Initialize Flags
-	var logLevel string = "debug"
 	hostname, _ := os.Hostname()
 	rootCmd.Flags().SortFlags = false
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is ~/.gominion.yaml)")
@@ -64,12 +64,10 @@ func init() {
 	rootCmd.Flags().IntVarP(&minionConfig.TrapPort, "trapPort", "t", minionConfig.TrapPort, "SNMP Trap port")
 	rootCmd.Flags().IntVarP(&minionConfig.SyslogPort, "syslogPort", "s", minionConfig.SyslogPort, "Syslog port")
 	rootCmd.Flags().StringArrayVarP(&listeners, "listener", "L", nil, "Flow/Telemetry listeners\ne.x. -L Graphite,2003,ForwardParser -L NXOS,5000,NxosGrpcParser")
-	rootCmd.Flags().StringVarP(&logLevel, "logLevel", "x", "debug", "Logging level")
+	rootCmd.Flags().StringVarP(&minionConfig.LogLevel, "logLevel", "x", minionConfig.LogLevel, "Logging level")
 
 	// Initialize Flag Binding
 	viper.BindPFlags(rootCmd.Flags())
-
-	log.InitLogger(logLevel)
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -116,6 +114,7 @@ func displayRegisteredModules() {
 }
 
 func rootHandler(cmd *cobra.Command, args []string) {
+	log.InitLogger(minionConfig.LogLevel)
 	// Validate Configuration
 	if err := minionConfig.IsValid(); err != nil {
 		log.Fatalf("Invalid configuration: %v", err)

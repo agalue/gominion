@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	"strings"
 
 	"go.uber.org/zap"
@@ -53,20 +54,21 @@ func InitLogger(logLevel string) {
 	case "info":
 		level.SetLevel(zap.InfoLevel)
 	case "warn":
-		level.SetLevel(zap.InfoLevel)
+		level.SetLevel(zap.WarnLevel)
 	case "error":
 		level.SetLevel(zap.ErrorLevel)
 	}
+	fmt.Printf("Logging level: %s\n", level.String())
 	config := zap.Config{
 		Level:             level,
 		Development:       false,
 		DisableStacktrace: true,
+		DisableCaller:     true,
 		Encoding:          "console",
 		EncoderConfig: zapcore.EncoderConfig{
 			TimeKey:        "ts",
 			LevelKey:       "level",
 			NameKey:        "logger",
-			CallerKey:      "caller",
 			MessageKey:     "msg",
 			LineEnding:     zapcore.DefaultLineEnding,
 			EncodeLevel:    zapcore.CapitalColorLevelEncoder,
@@ -82,10 +84,4 @@ func InitLogger(logLevel string) {
 		panic(err)
 	}
 	log = logger.Sugar()
-}
-
-func init() {
-	if log == nil {
-		InitLogger("debug")
-	}
 }
