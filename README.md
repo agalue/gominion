@@ -1,4 +1,4 @@
-# gominion
+# gominion [![Go Report Card](https://goreportcard.com/badge/github.com/agalue/gominion)](https://goreportcard.com/report/github.com/agalue/gominion)
 
 An implementation of the OpenNMS Minion in Go using gRPC
 
