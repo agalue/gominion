@@ -49,55 +49,75 @@ func (monitor *SNMPMonitor) Poll(request *api.PollerRequestDTO) *api.PollerRespo
 }
 
 func (monitor *SNMPMonitor) poll(client api.SNMPHandler, oid string, matchstr string, walkstr string, operator string, operand string, minimum int, maximum int) *api.PollerResponseDTO {
+	var response *api.PollerResponseDTO
+	if matchstr == "count" {
+		response = monitor.processCount(client, oid, operator, operand, minimum, maximum)
+	} else if walkstr == "true" {
+		response = monitor.processWalk(client, oid, matchstr, operator, operand, minimum, maximum)
+	} else {
+		response = monitor.processSingle(client, oid, operator, operand, minimum, maximum)
+	}
+	return response
+}
+
+func (monitor *SNMPMonitor) processCount(client api.SNMPHandler, oid string, operator string, operand string, minimum int, maximum int) *api.PollerResponseDTO {
 	start := time.Now()
 	response := &api.PollerResponseDTO{Status: &api.PollStatus{}}
-	if matchstr == "count" {
-		if values, err := monitor.walk(client, oid); err == nil {
-			count := 0
-			for _, value := range values {
-				if monitor.meetsCriteria(value, operator, operand) {
-					count++
-				}
+	if values, err := monitor.walk(client, oid); err == nil {
+		count := 0
+		for _, value := range values {
+			if monitor.meetsCriteria(value, operator, operand) {
+				count++
 			}
-			if count >= minimum && count <= maximum {
-				response.Status.Up(time.Since(start).Seconds())
-			} else {
-				response.Status.Down(fmt.Sprintf("count error: %d not between %d and %d", count, minimum, maximum)) // FIXME
-			}
-		} else {
-			response.Status.Down(err.Error())
 		}
-	} else if walkstr == "true" {
-		if values, err := monitor.walk(client, oid); err == nil {
-			for _, value := range values {
-				if monitor.meetsCriteria(value, operator, operand) {
-					response.Status.Up(time.Since(start).Seconds())
-					if matchstr == "false" {
-						break
-					}
-				} else if matchstr == "true" {
-					response.Status.Down("something went wrong") // FIXME
-					break
-				}
-			}
+		if count >= minimum && count <= maximum {
+			response.Status.Up(time.Since(start).Seconds())
 		} else {
-			response.Status.Down(err.Error())
+			response.Status.Down(fmt.Sprintf("count error: %d not between %d and %d", count, minimum, maximum)) // FIXME
 		}
 	} else {
-		if result, err := client.Get(oid); err == nil {
-			if len(result.Variables) == 1 {
-				value := fmt.Sprintf("%v", result.Variables[0].Value)
-				if monitor.meetsCriteria(value, operator, operand) {
-					response.Status.Up(time.Since(start).Seconds())
-				} else {
-					response.Status.Down("something went wrong") // FIXME
+		response.Status.Down(err.Error())
+	}
+	return response
+}
+
+func (monitor *SNMPMonitor) processWalk(client api.SNMPHandler, oid string, matchstr string, operator string, operand string, minimum int, maximum int) *api.PollerResponseDTO {
+	start := time.Now()
+	response := &api.PollerResponseDTO{Status: &api.PollStatus{}}
+	if values, err := monitor.walk(client, oid); err == nil {
+		for _, value := range values {
+			if monitor.meetsCriteria(value, operator, operand) {
+				response.Status.Up(time.Since(start).Seconds())
+				if matchstr == "false" {
+					break
 				}
+			} else if matchstr == "true" {
+				response.Status.Down("something went wrong") // FIXME
+				break
+			}
+		}
+	} else {
+		response.Status.Down(err.Error())
+	}
+	return response
+}
+
+func (monitor *SNMPMonitor) processSingle(client api.SNMPHandler, oid string, operator string, operand string, minimum int, maximum int) *api.PollerResponseDTO {
+	start := time.Now()
+	response := &api.PollerResponseDTO{Status: &api.PollStatus{}}
+	if result, err := client.Get(oid); err == nil {
+		if len(result.Variables) == 1 {
+			value := fmt.Sprintf("%v", result.Variables[0].Value)
+			if monitor.meetsCriteria(value, operator, operand) {
+				response.Status.Up(time.Since(start).Seconds())
 			} else {
-				response.Status.Down("no response")
+				response.Status.Down("something went wrong") // FIXME
 			}
 		} else {
-			response.Status.Down(err.Error())
+			response.Status.Down("no response")
 		}
+	} else {
+		response.Status.Down(err.Error())
 	}
 	return response
 }
