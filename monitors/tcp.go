@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/agalue/gominion/api"
+	"github.com/agalue/gominion/tools"
 )
 
 // TCPMonitor represents a Monitor implementation
@@ -27,15 +28,21 @@ func (monitor *TCPMonitor) Poll(request *api.PollerRequestDTO) *api.PollerRespon
 		response.Status.Down(err.Error())
 		return response
 	}
-	dialer := net.Dialer{Timeout: request.GetTimeout()}
+	timeout := request.GetTimeout()
+	dialer := net.Dialer{Timeout: timeout}
 	conn, err := dialer.Dial("tcp", tcpAddr.String())
 	if err != nil {
 		response.Status.Down(err.Error())
 		return response
 	}
-	conn.Close()
-	duration := time.Since(start)
-	response.Status.Up(duration.Seconds())
+	defer conn.Close()
+
+	banner := request.GetAttributeValue("banner", "")
+	if ok, err := tools.NetMessageContains(conn, timeout, banner); ok {
+		response.Status.Up(time.Since(start).Seconds())
+	} else {
+		response.Status.Down(err.Error())
+	}
 	return response
 }
 

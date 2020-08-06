@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/agalue/gominion/api"
+	"github.com/agalue/gominion/tools"
 )
 
 // TCPDetector represents a detector implementation
@@ -23,16 +24,25 @@ func (detector *TCPDetector) Detect(request *api.DetectorRequestDTO) *api.Detect
 	servAddr := fmt.Sprintf("%s:%s", request.IPAddress, request.GetAttributeValue("port", "23"))
 	tcpAddr, err := net.ResolveTCPAddr("tcp", servAddr)
 	if err != nil {
+		results.Error = err.Error()
 		return results
 	}
 
-	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	timeout := request.GetTimeout()
+	dialer := net.Dialer{Timeout: timeout}
+	conn, err := dialer.Dial("tcp", tcpAddr.String())
 	if err != nil {
+		results.Error = err.Error()
 		return results
 	}
-	conn.Close()
+	defer conn.Close()
 
-	results.Detected = true
+	banner := request.GetAttributeValue("banner", "")
+	if ok, err := tools.NetMessageContains(conn, timeout, banner); ok {
+		results.Detected = true
+	} else {
+		results.Error = err.Error()
+	}
 	return results
 }
 
