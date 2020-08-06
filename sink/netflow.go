@@ -25,6 +25,9 @@ const UDPNetflow9Parser = "Netflow9UdpParser"
 // UDPIpfixParser represents the UDP IPFIX parser name
 const UDPIpfixParser = "IpfixUdpParser"
 
+// UDPSFlowParser represents the UDP SFlow parser name
+const UDPSFlowParser = "SFlowUdpParser"
+
 // TCPIpfixParser represents the TCP IPFIX parser name
 const TCPIpfixParser = "IpfixUdpParser"
 
@@ -50,34 +53,21 @@ func (module *NetflowModule) Start(config *api.MinionConfig, broker api.Broker) 
 	module.stopping = false
 	module.broker = broker
 	module.config = config
-	listener := config.GetListener(module.Name)
-	if listener == nil {
-		log.Printf("Flow Module %s disabled", module.Name)
-		return nil
-	}
-	module.listener = listener
-	var handler decoder.DecoderFunc
-	if listener.Is(UDPNetflow5Parser) {
-		netflow := goflow.StateNFLegacy{
-			Transport: module,
-			Logger:    logrus.StandardLogger(),
-		}
-		handler = netflow.DecodeFlow
-	} else if listener.Is(UDPNetflow9Parser) || listener.Is(UDPIpfixParser) {
-		netflow := goflow.StateNetFlow{
-			Transport: module,
-			Logger:    logrus.StandardLogger(),
-		}
-		netflow.InitTemplates()
-		handler = netflow.DecodeFlow
-	} else {
+	module.listener = config.GetListener(module.Name)
+	if module.listener == nil {
 		log.Printf("Flow Module %s disabled", module.Name)
 		return nil
 	}
 	var err error
-	if module.conn, err = startUDPServer(module.Name, listener.Port); err != nil {
+	if module.conn, err = startUDPServer(module.Name, module.listener.Port); err != nil {
 		return err
 	}
+	var handler = module.getDecoderHandler()
+	if handler == nil {
+		log.Printf("Flow Module %s disabled", module.Name)
+		return nil
+	}
+
 	go func() {
 		module.startProcessor(handler)
 		payload := make([]byte, 9000)
@@ -127,6 +117,33 @@ func (module *NetflowModule) Publish(msgs []*goflowMsg.FlowMessage) {
 			sendBytes("Telemetry-"+module.listener.Name, module.config, module.broker, bytes)
 		}
 	}
+}
+
+func (module *NetflowModule) getDecoderHandler() decoder.DecoderFunc {
+	if module.listener == nil {
+		return nil
+	}
+	if module.listener.Is(UDPNetflow5Parser) {
+		netflow := goflow.StateNFLegacy{
+			Transport: module,
+			Logger:    logrus.StandardLogger(),
+		}
+		return netflow.DecodeFlow
+	} else if module.listener.Is(UDPNetflow9Parser) || module.listener.Is(UDPIpfixParser) {
+		netflow := goflow.StateNetFlow{
+			Transport: module,
+			Logger:    logrus.StandardLogger(),
+		}
+		netflow.InitTemplates()
+		return netflow.DecodeFlow
+	} else if module.listener.Is(UDPSFlowParser) {
+		sflow := goflow.StateSFlow{
+			Transport: module,
+			Logger:    logrus.StandardLogger(),
+		}
+		return sflow.DecodeFlow
+	}
+	return nil
 }
 
 func (module *NetflowModule) startProcessor(handler decoder.DecoderFunc) {
@@ -203,9 +220,11 @@ func (module *NetflowModule) convertToNetflow(flowmsg *goflowMsg.FlowMessage) *n
 var netflow5Module = &NetflowModule{Name: "Netflow-5"}
 var netflow9Module = &NetflowModule{Name: "Netflow-9"}
 var ipfixModule = &NetflowModule{Name: "IPFIX"}
+var sflowModule = &NetflowModule{Name: "SFlow"}
 
 func init() {
 	api.RegisterSinkModule(netflow5Module)
 	api.RegisterSinkModule(netflow9Module)
 	api.RegisterSinkModule(ipfixModule)
+	api.RegisterSinkModule(sflowModule)
 }
