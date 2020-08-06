@@ -7,8 +7,8 @@ import (
 
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/protobuf/netflow"
+	"github.com/agalue/gominion/tools"
 	"github.com/golang/protobuf/proto"
-	"github.com/sirupsen/logrus"
 
 	decoder "github.com/cloudflare/goflow/v3/decoders"
 	goflowMsg "github.com/cloudflare/goflow/v3/pb"
@@ -126,20 +126,20 @@ func (module *NetflowModule) getDecoderHandler() decoder.DecoderFunc {
 	if module.listener.Is(UDPNetflow5Parser) {
 		netflow := goflow.StateNFLegacy{
 			Transport: module,
-			Logger:    logrus.StandardLogger(),
+			Logger:    tools.Logger{},
 		}
 		return netflow.DecodeFlow
 	} else if module.listener.Is(UDPNetflow9Parser) || module.listener.Is(UDPIpfixParser) {
 		netflow := goflow.StateNetFlow{
 			Transport: module,
-			Logger:    logrus.StandardLogger(),
+			Logger:    tools.Logger{},
 		}
 		netflow.InitTemplates()
 		return netflow.DecodeFlow
 	} else if module.listener.Is(UDPSFlowParser) {
 		sflow := goflow.StateSFlow{
 			Transport: module,
-			Logger:    logrus.StandardLogger(),
+			Logger:    tools.Logger{},
 		}
 		return sflow.DecodeFlow
 	}
@@ -151,7 +151,7 @@ func (module *NetflowModule) startProcessor(handler decoder.DecoderFunc) {
 		return
 	}
 	ecb := goflow.DefaultErrorCallback{
-		Logger: logrus.StandardLogger(),
+		Logger: tools.Logger{},
 	}
 	decoderParams := decoder.DecoderParams{
 		DecoderFunc:   handler,
