@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 
 	"github.com/agalue/gominion/api"
+	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/ipc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
@@ -61,7 +61,7 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 				}
 				errStatus, _ := status.FromError(err)
 				if errStatus.Code().String() != "Unavailable" {
-					log.Printf("Error while receiving an RPC Request: code=%s, message=%s", errStatus.Code(), errStatus.Message())
+					log.Errorf("Cannor receive RPC Request: code=%s, message=%s", errStatus.Code(), errStatus.Message())
 				}
 			}
 		}
@@ -72,14 +72,14 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 
 // Stop finilizes the gRPC client
 func (cli *GrpcClient) Stop() {
-	log.Printf("Stopping gRPC client")
+	log.Warnf("Stopping gRPC client")
 	for _, module := range api.GetAllSinkModules() {
 		module.Stop()
 	}
 	if cli.conn != nil {
 		cli.conn.Close()
 	}
-	log.Printf("Good bye")
+	log.Infof("Good bye")
 }
 
 func (cli *GrpcClient) sendHeaders() {
@@ -89,25 +89,25 @@ func (cli *GrpcClient) sendHeaders() {
 		SystemId: cli.config.ID,
 		RpcId:    cli.config.ID,
 	}
-	log.Printf("Sending Minion Headers from SystemId %s to gRPC server", cli.config.ID)
+	log.Infof("Sending Minion Headers from SystemId %s to gRPC server", cli.config.ID)
 	if err := cli.rpcStream.Send(headers); err != nil {
-		log.Printf("Error while sending RPC headers: %v", err)
+		log.Errorf("Cannor send RPC headers: %v", err)
 	}
 }
 
 func (cli *GrpcClient) processRequest(request *ipc.RpcRequestProto) {
-	log.Printf("Received RPC request with ID %s for module %s at location %s", request.RpcId, request.ModuleId, request.Location)
+	log.Infof("Received RPC request with ID %s for module %s at location %s", request.RpcId, request.ModuleId, request.Location)
 	if module, ok := api.GetRPCModule(request.ModuleId); ok {
 		go func() {
 			if response := module.Execute(request); response != nil {
 				if err := cli.rpcStream.Send(response); err != nil {
-					log.Printf("Error while sending RPC response for module %s with ID %s: %v", request.ModuleId, request.RpcId, err)
+					log.Errorf("Cannor send RPC response for module %s with ID %s: %v", request.ModuleId, request.RpcId, err)
 				}
 			} else {
-				log.Printf("Error module %s returned an empty response for request %s, ignoring", request.ModuleId, request.RpcId)
+				log.Errorf("Module %s returned an empty response for request %s, ignoring", request.ModuleId, request.RpcId)
 			}
 		}()
 	} else {
-		log.Printf("Error cannot find implementation for module %s, ignoring request with ID %s", request.ModuleId, request.RpcId)
+		log.Errorf("Cannot find implementation for module %s, ignoring request with ID %s", request.ModuleId, request.RpcId)
 	}
 }

@@ -1,8 +1,6 @@
 package detectors
 
 import (
-	"log"
-
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/tools"
 )
@@ -22,7 +20,7 @@ func (detector *ICMPDetector) Detect(request *api.DetectorRequestDTO) *api.Detec
 	if _, err := tools.Ping(request.IPAddress, request.GetTimeout()); err == nil {
 		results.Detected = true
 	} else {
-		log.Printf("Error during detection: %v", err)
+		results.Error = err.Error()
 		results.Detected = false
 	}
 	return results

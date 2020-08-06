@@ -3,12 +3,12 @@ package sink
 import (
 	"encoding/base64"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/agalue/gominion/api"
+	"github.com/agalue/gominion/log"
 	"gopkg.in/mcuadros/go-syslog.v2"
 )
 
@@ -28,11 +28,11 @@ func (module *SyslogModule) GetID() string {
 // Start initiates a Syslog UDP and TCP receiver
 func (module *SyslogModule) Start(config *api.MinionConfig, broker api.Broker) error {
 	if config.SyslogPort == 0 {
-		log.Printf("Syslog Module disabled")
+		log.Warnf("Syslog Module disabled")
 		return nil
 	}
 
-	log.Printf("Starting Syslog receiver on port UDP/TCP %d", config.SyslogPort)
+	log.Infof("Starting Syslog receiver on port UDP/TCP %d", config.SyslogPort)
 
 	module.config = config
 	module.broker = broker
@@ -82,7 +82,7 @@ func (module *SyslogModule) buildMessageLog(logParts map[string]interface{}) *ap
 		SourcePort:    clientPort,
 	}
 	timestamp := logParts["timestamp"].(time.Time)
-	log.Printf("Received Syslog message from %s\n", messageLog.SourceAddress)
+	log.Debugf("Received Syslog message from %s\n", messageLog.SourceAddress)
 	content := fmt.Sprintf("<%d>%s", logParts["priority"].(int), logParts["content"].(string))
 	message := api.SyslogMessageDTO{
 		Timestamp: timestamp.Format(api.TimeFormat),

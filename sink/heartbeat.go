@@ -1,10 +1,10 @@
 package sink
 
 import (
-	"log"
 	"time"
 
 	"github.com/agalue/gominion/api"
+	"github.com/agalue/gominion/log"
 )
 
 // HeartbeatModule represents the heartbeat module
@@ -17,10 +17,10 @@ func (module *HeartbeatModule) GetID() string {
 
 // Start initiates a blocking loop that sends heartbeats to OpenNMS
 func (module *HeartbeatModule) Start(config *api.MinionConfig, broker api.Broker) error {
-	log.Printf("Starting Sink Heartbeat Module")
+	log.Infof("Starting Sink Heartbeat Module")
 	go func() {
 		for {
-			log.Printf("Sending heartbeat for Minion with id %s at location %s", config.ID, config.Location)
+			log.Infof("Sending heartbeat for Minion with id %s at location %s", config.ID, config.Location)
 			sendResponse(module.GetID(), config, broker, module.getIdentity(config))
 			time.Sleep(30 * time.Second)
 		}

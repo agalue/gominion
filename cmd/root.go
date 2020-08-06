@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/agalue/gominion/broker"
 	"github.com/agalue/gominion/collectors"
 	"github.com/agalue/gominion/detectors"
+	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/monitors"
 	_ "github.com/agalue/gominion/rpc"  // Load all RPC modules
 	_ "github.com/agalue/gominion/sink" // Load all Sink modules
@@ -50,12 +50,11 @@ func Execute() {
 }
 
 func init() {
-	log.SetOutput(os.Stdout)
-
 	// Initialize Configuration
 	cobra.OnInitialize(initConfig)
 
 	// Initialize Flags
+	var logLevel string = "debug"
 	hostname, _ := os.Hostname()
 	rootCmd.Flags().SortFlags = false
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is ~/.gominion.yaml)")
@@ -65,9 +64,12 @@ func init() {
 	rootCmd.Flags().IntVarP(&minionConfig.TrapPort, "trapPort", "t", minionConfig.TrapPort, "SNMP Trap port")
 	rootCmd.Flags().IntVarP(&minionConfig.SyslogPort, "syslogPort", "s", minionConfig.SyslogPort, "Syslog port")
 	rootCmd.Flags().StringArrayVarP(&listeners, "listener", "L", nil, "Flow/Telemetry listeners\ne.x. -L Graphite,2003,ForwardParser -L NXOS,5000,NxosGrpcParser")
+	rootCmd.Flags().StringVarP(&logLevel, "logLevel", "x", "debug", "Logging level")
 
 	// Initialize Flag Binding
 	viper.BindPFlags(rootCmd.Flags())
+
+	log.InitLogger(logLevel)
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -95,32 +97,36 @@ func initConfig() {
 	viper.Unmarshal(minionConfig)
 }
 
+func displayRegisteredModules() {
+	for _, m := range api.GetAllRPCModules() {
+		log.Debugf("Registered RPC module %s", m.GetID())
+	}
+	for _, m := range api.GetAllSinkModules() {
+		log.Debugf("Registered Sink module %s", m.GetID())
+	}
+	for _, m := range collectors.GetAllCollectors() {
+		log.Debugf("Registered collector module %s", m.GetID())
+	}
+	for _, m := range detectors.GetAllDetectors() {
+		log.Debugf("Registered detector module %s", m.GetID())
+	}
+	for _, m := range monitors.GetAllMonitors() {
+		log.Debugf("Registered poller module %s", m.GetID())
+	}
+}
+
 func rootHandler(cmd *cobra.Command, args []string) {
 	// Validate Configuration
 	if err := minionConfig.IsValid(); err != nil {
 		log.Fatalf("Invalid configuration: %v", err)
 	}
 	if err := minionConfig.ParseListeners(listeners); err != nil {
-		log.Fatalf("Invalid configuration: %v", err)
+		log.Fatalf("Invalid listener configuration: %v", err)
 	}
-	// Display registered modules
-	for _, m := range api.GetAllRPCModules() {
-		log.Printf("Registered RPC module %s", m.GetID())
-	}
-	for _, m := range api.GetAllSinkModules() {
-		log.Printf("Registered Sink module %s", m.GetID())
-	}
-	for _, m := range collectors.GetAllCollectors() {
-		log.Printf("Registered collector module %s", m.GetID())
-	}
-	for _, m := range detectors.GetAllDetectors() {
-		log.Printf("Registered detector module %s", m.GetID())
-	}
-	for _, m := range monitors.GetAllMonitors() {
-		log.Printf("Registered poller module %s", m.GetID())
-	}
+	// Display loaded modules
+	displayRegisteredModules()
 	// Start client
-	log.Printf("Starting OpenNMS Minion...\n%s", minionConfig.String())
+	log.Infof("Starting OpenNMS Minion...\n%s", minionConfig.String())
 	if err := client.Start(minionConfig); err != nil {
 		log.Fatalf("Cannot connect to OpenNMS gRPC server: %v", err)
 	}

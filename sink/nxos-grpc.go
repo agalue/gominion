@@ -3,10 +3,10 @@ package sink
 import (
 	"fmt"
 	"io"
-	"log"
 	"net"
 
 	"github.com/agalue/gominion/api"
+	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/mdt_dialout"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/peer"
@@ -29,7 +29,7 @@ func (module *NxosGrpcModule) GetID() string {
 func (module *NxosGrpcModule) Start(config *api.MinionConfig, broker api.Broker) error {
 	listener := config.GetListenerByParser("NxosGrpcParser")
 	if listener == nil || listener.Port == 0 {
-		log.Printf("NX-OS Telemetry Module disabled")
+		log.Warnf("NX-OS Telemetry Module disabled")
 		return nil
 	}
 
@@ -37,19 +37,19 @@ func (module *NxosGrpcModule) Start(config *api.MinionConfig, broker api.Broker)
 	module.broker = broker
 	module.port = listener.Port
 
-	log.Printf("Starting NX-OS Telemetry Module")
+	log.Infof("Starting NX-OS Telemetry Module")
 
 	module.server = grpc.NewServer()
 	mdt_dialout.RegisterGRPCMdtDialoutServer(module.server, module)
 
-	log.Printf("Starting NX-OS gRPC server on port %d\n", listener.Port)
+	log.Infof("Starting NX-OS gRPC server on port %d\n", listener.Port)
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", listener.Port))
 	if err != nil {
 		return fmt.Errorf("Error cannot start TCP listener: %s", err)
 	}
 	go func() {
 		if err := module.server.Serve(lis); err != nil {
-			log.Printf("Error could not serve NX-OS gRPC: %v", err)
+			log.Errorf("Cannot serve NX-OS gRPC: %v", err)
 		}
 	}()
 	return nil
@@ -66,23 +66,23 @@ func (module *NxosGrpcModule) Stop() {
 func (module *NxosGrpcModule) MdtDialout(stream mdt_dialout.GRPCMdtDialout_MdtDialoutServer) error {
 	peer, peerOK := peer.FromContext(stream.Context())
 	if peerOK {
-		log.Printf("Accepted Cisco MDT GRPC dialout connection from %s\n", peer.Addr)
+		log.Debugf("Accepted Cisco MDT GRPC dialout connection from %s\n", peer.Addr)
 	}
 	for {
 		dialoutArgs, err := stream.Recv()
 		if err != nil {
 			if err == io.EOF {
-				log.Println("Error NX-OS session closed")
+				log.Errorf("NX-OS session closed")
 			} else {
-				log.Println("Error NX-OS session error")
+				log.Errorf("NX-OS session error")
 			}
 			continue
 		}
 		if len(dialoutArgs.Data) == 0 && len(dialoutArgs.Errors) != 0 {
-			log.Printf("Error from client %s, %s\n", peer.Addr, dialoutArgs.Errors)
+			log.Errorf("Received from client %s: %s\n", peer.Addr, dialoutArgs.Errors)
 			continue
 		}
-		log.Printf("Received request with ID %d of %d bytes from %s\n", dialoutArgs.ReqId, len(dialoutArgs.Data), peer.Addr)
+		log.Debugf("Received request with ID %d of %d bytes from %s\n", dialoutArgs.ReqId, len(dialoutArgs.Data), peer.Addr)
 		if bytes := wrapMessageToTelemetry(module.config, peer.Addr.String(), uint32(module.port), dialoutArgs.Data); bytes != nil {
 			sendBytes(module.GetID(), module.config, module.broker, bytes)
 		}

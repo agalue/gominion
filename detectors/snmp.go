@@ -2,7 +2,6 @@ package detectors
 
 import (
 	"fmt"
-	"log"
 	"regexp"
 	"strings"
 
@@ -31,7 +30,6 @@ func (detector *SNMPDetector) Detect(request *api.DetectorRequestDTO) *api.Detec
 	agent := detector.getAgent(request)
 	client := agent.GetSNMPClient()
 	if err := client.Connect(); err != nil {
-		log.Printf("Connect Error: %v\n", err)
 		return &api.DetectorResponseDTO{Error: err.Error()}
 	}
 	defer client.Disconnect()

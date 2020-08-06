@@ -2,13 +2,13 @@ package sink
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/agalue/gominion/api"
+	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/tools"
 	"github.com/soniah/gosnmp"
 )
@@ -28,11 +28,11 @@ func (module *SnmpTrapModule) GetID() string {
 // Start initiates a Syslog UDP and TCP receiver
 func (module *SnmpTrapModule) Start(config *api.MinionConfig, broker api.Broker) error {
 	if config.TrapPort == 0 {
-		log.Printf("Trap Module disabled")
+		log.Warnf("Trap Module disabled")
 		return nil
 	}
 
-	log.Printf("Starting SNMP Trap receiver on port UDP %d", config.TrapPort)
+	log.Infof("Starting SNMP Trap receiver on port UDP %d", config.TrapPort)
 
 	module.config = config
 	module.broker = broker
@@ -41,7 +41,7 @@ func (module *SnmpTrapModule) Start(config *api.MinionConfig, broker api.Broker)
 	module.listener.Params = gosnmp.Default
 
 	// Test Listener
-	lis, err := startUDPServer(module.GetID(), config.TrapPort)
+	lis, err := createUDPListener(config.TrapPort)
 	if err == nil {
 		lis.Close()
 	} else {
@@ -52,7 +52,7 @@ func (module *SnmpTrapModule) Start(config *api.MinionConfig, broker api.Broker)
 	go func() {
 		err := module.listener.Listen(fmt.Sprintf("0.0.0.0:%d", config.TrapPort))
 		if err != nil {
-			log.Printf("Error problem detected with SNMP trap listener: %s", err)
+			log.Errorf("Cannot start SNMP trap listener: %s", err)
 		}
 	}()
 	return nil
@@ -67,7 +67,7 @@ func (module *SnmpTrapModule) Stop() {
 
 func (module *SnmpTrapModule) trapHandler(packet *gosnmp.SnmpPacket, addr *net.UDPAddr) {
 	version := fmt.Sprintf("v%s", packet.Version)
-	log.Printf("Received SNMP%s trap (type: 0x%X) from %s\n", version, packet.PDUType, addr.IP)
+	log.Debugf("Received SNMP%s trap (type: 0x%X) from %s\n", version, packet.PDUType, addr.IP)
 
 	trap := api.TrapDTO{
 		AgentAddress: addr.IP.String(),

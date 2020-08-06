@@ -63,6 +63,7 @@ Example YAML configuration:
 
 ```yaml
 id: go-minion1
+location: Apex
 brokerUrl: grpc-server:8990
 trapPort: 1162
 syslogPort: 1514

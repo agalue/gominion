@@ -3,15 +3,15 @@ package rpc
 import (
 	"encoding/xml"
 	"fmt"
-	"log"
 
+	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/ipc"
 )
 
 func transformResponse(request *ipc.RpcRequestProto, object interface{}) *ipc.RpcResponseProto {
 	bytes, err := xml.MarshalIndent(object, "", "   ")
 	if err != nil {
-		log.Printf("Error cannot parse RPC content: %v", err)
+		log.Errorf("Cannot parse RPC content: %v", err)
 		return nil
 	}
 	response := &ipc.RpcResponseProto{
@@ -25,7 +25,8 @@ func transformResponse(request *ipc.RpcRequestProto, object interface{}) *ipc.Rp
 }
 
 func getError(request *ipc.RpcRequestProto, err error) string {
-	msg := fmt.Sprintf("Error while processing %s RPC Request with ID %s: %v", request.ModuleId, request.RpcId, err)
-	log.Printf("%s\n%s", msg, string(request.RpcContent))
+	msg := fmt.Sprintf("Cannot process %s RPC Request with ID %s: %v", request.ModuleId, request.RpcId, err)
+	log.Debugf(msg)
+	log.Debugf(string(request.RpcContent))
 	return msg
 }

@@ -3,9 +3,9 @@ package rpc
 import (
 	"encoding/xml"
 	"fmt"
-	"log"
 
 	"github.com/agalue/gominion/api"
+	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/ipc"
 	"github.com/agalue/gominion/tools"
 )
@@ -32,7 +32,7 @@ func (module *PingProxyRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.Rpc
 	} else {
 		response.Error = getError(request, fmt.Errorf("Cannot ping address %s: %v", req.Address, err))
 	}
-	log.Printf("Sending Ping response for %s", req.Address)
+	log.Debugf("Sending Ping response for %s", req.Address)
 	return transformResponse(request, response)
 }
 

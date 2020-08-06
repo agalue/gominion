@@ -1,10 +1,10 @@
 package sink
 
 import (
-	"log"
 	"net"
 
 	"github.com/agalue/gominion/api"
+	"github.com/agalue/gominion/log"
 )
 
 // UDPForwardParser represents org.opennms.netmgt.telemetry.protocols.common.parser.ForwardParser
@@ -29,7 +29,7 @@ func (module *UDPForwardModule) GetID() string {
 func (module *UDPForwardModule) Start(config *api.MinionConfig, broker api.Broker) error {
 	listener := config.GetListener(module.Name)
 	if listener == nil || !listener.Is(UDPForwardParser) {
-		log.Printf("UDP Module %s disabled", module.Name)
+		log.Warnf("UDP Module %s disabled", module.Name)
 		return nil
 	}
 
@@ -38,7 +38,7 @@ func (module *UDPForwardModule) Start(config *api.MinionConfig, broker api.Broke
 	module.broker = broker
 	module.config = config
 
-	module.conn, err = startUDPServer(module.Name, listener.Port)
+	module.conn, err = createUDPListener(listener.Port)
 	if err != nil {
 		return err
 	}
@@ -48,13 +48,13 @@ func (module *UDPForwardModule) Start(config *api.MinionConfig, broker api.Broke
 			size, pktAddr, err := module.conn.ReadFromUDP(payload)
 			if err != nil {
 				if !module.stopping {
-					log.Printf("Error while reading from %s: %s", module.Name, err)
+					log.Errorf("%s cannot read from UDP: %s", module.Name, err)
 				}
 				continue
 			}
 			payloadCut := make([]byte, size)
 			copy(payloadCut, payload[0:size])
-			log.Printf("Received %d bytes from %s", size, pktAddr)
+			log.Debugf("Received %d bytes from %s", size, pktAddr)
 			if bytes := wrapMessageToTelemetry(config, pktAddr.IP.String(), uint32(pktAddr.Port), payloadCut); bytes != nil {
 				sendBytes(module.GetID(), module.config, module.broker, bytes)
 			}

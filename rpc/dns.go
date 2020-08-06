@@ -3,10 +3,10 @@ package rpc
 import (
 	"encoding/xml"
 	"fmt"
-	"log"
 	"net"
 
 	"github.com/agalue/gominion/api"
+	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/ipc"
 )
 
@@ -44,7 +44,7 @@ func (module *DNSLookupClientRPCModule) Execute(request *ipc.RpcRequestProto) *i
 	} else {
 		response.Error = getError(request, fmt.Errorf("Invalid query type: %s", req.QueryType))
 	}
-	log.Printf("Sending DNS %s response for %s as %s", req.QueryType, req.HostRequest, response.HostResponse)
+	log.Debugf("Sending DNS %s response for %s as %s", req.QueryType, req.HostRequest, response.HostResponse)
 	return transformResponse(request, response)
 }
 

@@ -3,10 +3,10 @@ package rpc
 import (
 	"encoding/xml"
 	"fmt"
-	"log"
 
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/collectors"
+	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/ipc"
 )
 
@@ -28,13 +28,13 @@ func (module *CollectorClientRPCModule) Execute(request *ipc.RpcRequestProto) *i
 	}
 	collectorID := req.GetCollector()
 	response := &api.CollectorResponseDTO{}
-	log.Printf("Executing %s collector against %s", collectorID, req.CollectionAgent.IPAddress)
+	log.Infof("Executing %s collector against %s", collectorID, req.CollectionAgent.IPAddress)
 	if collector, ok := collectors.GetCollector(collectorID); ok {
 		response = collector.Collect(req)
 	} else {
 		response.Error = getError(request, fmt.Errorf("Cannot find implementation for collector %s", collectorID))
 	}
-	log.Printf("Sending collection of %s from %s", response.GetStatus(), req.CollectionAgent.IPAddress)
+	log.Infof("Sending collection of %s from %s", response.GetStatus(), req.CollectionAgent.IPAddress)
 	return transformResponse(request, response)
 }
 

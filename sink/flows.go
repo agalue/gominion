@@ -1,13 +1,11 @@
 package sink
 
 import (
-	"encoding/json"
-	"log"
 	"net"
 
 	"github.com/agalue/gominion/api"
+	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/netflow"
-	"github.com/agalue/gominion/tools"
 	"github.com/golang/protobuf/proto"
 
 	decoder "github.com/cloudflare/goflow/v3/decoders"
@@ -30,6 +28,37 @@ const UDPSFlowParser = "SFlowUdpParser"
 
 // TCPIpfixParser represents the TCP IPFIX parser name
 const TCPIpfixParser = "IpfixUdpParser"
+
+// Custom Logger implementation for goflow
+type flowLogger struct{}
+
+func (logger flowLogger) Printf(format string, params ...interface{}) {
+	log.Infof(format, params...)
+}
+
+func (logger flowLogger) Errorf(format string, params ...interface{}) {
+	log.Errorf(format, params...)
+}
+
+func (logger flowLogger) Warnf(format string, params ...interface{}) {
+	log.Warnf(format, params...)
+}
+
+func (logger flowLogger) Infof(format string, params ...interface{}) {
+	log.Infof(format, params...)
+}
+
+func (logger flowLogger) Debugf(format string, params ...interface{}) {
+	log.Debugf(format, params...)
+}
+
+func (logger flowLogger) Fatalf(format string, params ...interface{}) {
+	log.Fatalf(format, params...)
+}
+
+func (logger flowLogger) Warn(params ...interface{})  {}
+func (logger flowLogger) Error(params ...interface{}) {}
+func (logger flowLogger) Debug(params ...interface{}) {}
 
 // NetflowModule represents a generic UDP forward module
 // It starts a UDP Listener, and forwards the received data to OpenNMS without alteration
@@ -55,16 +84,16 @@ func (module *NetflowModule) Start(config *api.MinionConfig, broker api.Broker) 
 	module.config = config
 	module.listener = config.GetListener(module.Name)
 	if module.listener == nil {
-		log.Printf("Flow Module %s disabled", module.Name)
+		log.Warnf("Flow Module %s disabled", module.Name)
 		return nil
 	}
 	var err error
-	if module.conn, err = startUDPServer(module.Name, module.listener.Port); err != nil {
+	if module.conn, err = createUDPListener(module.listener.Port); err != nil {
 		return err
 	}
 	var handler = module.getDecoderHandler()
 	if handler == nil {
-		log.Printf("Flow Module %s disabled", module.Name)
+		log.Warnf("Flow Module %s disabled", module.Name)
 		return nil
 	}
 
@@ -75,7 +104,7 @@ func (module *NetflowModule) Start(config *api.MinionConfig, broker api.Broker) 
 			size, pktAddr, err := module.conn.ReadFromUDP(payload)
 			if err != nil {
 				if !module.stopping {
-					log.Printf("Error while reading from %s: %s", module.Name, err)
+					log.Errorf("%s Cannot read from UDP: %s", module.Name, err)
 				}
 				continue
 			}
@@ -105,12 +134,8 @@ func (module *NetflowModule) Stop() {
 
 // Publish represents the Transport interface implementation used by goflow
 func (module *NetflowModule) Publish(msgs []*goflowMsg.FlowMessage) {
-	log.Printf("Received %d %s messages", len(msgs), module.Name)
+	log.Debugf("Received %d %s messages", len(msgs), module.Name)
 	for _, flowmsg := range msgs {
-		// DEBUG: Start
-		jsonBytes, _ := json.Marshal(flowmsg)
-		log.Printf("Received flow: %s", string(jsonBytes))
-		// DEBUG: End
 		msg := module.convertToNetflow(flowmsg)
 		buffer, _ := proto.Marshal(msg)
 		if bytes := wrapMessageToTelemetry(module.config, net.IP(flowmsg.SamplerAddress).String(), uint32(module.listener.Port), buffer); bytes != nil {
@@ -126,20 +151,20 @@ func (module *NetflowModule) getDecoderHandler() decoder.DecoderFunc {
 	if module.listener.Is(UDPNetflow5Parser) {
 		netflow := goflow.StateNFLegacy{
 			Transport: module,
-			Logger:    tools.Log,
+			Logger:    flowLogger{},
 		}
 		return netflow.DecodeFlow
 	} else if module.listener.Is(UDPNetflow9Parser) || module.listener.Is(UDPIpfixParser) {
 		netflow := goflow.StateNetFlow{
 			Transport: module,
-			Logger:    tools.Log,
+			Logger:    flowLogger{},
 		}
 		netflow.InitTemplates()
 		return netflow.DecodeFlow
 	} else if module.listener.Is(UDPSFlowParser) {
 		sflow := goflow.StateSFlow{
 			Transport: module,
-			Logger:    tools.Log,
+			Logger:    flowLogger{},
 		}
 		return sflow.DecodeFlow
 	}
@@ -151,7 +176,7 @@ func (module *NetflowModule) startProcessor(handler decoder.DecoderFunc) {
 		return
 	}
 	ecb := goflow.DefaultErrorCallback{
-		Logger: tools.Log,
+		Logger: flowLogger{},
 	}
 	decoderParams := decoder.DecoderParams{
 		DecoderFunc:   handler,

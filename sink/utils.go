@@ -3,11 +3,11 @@ package sink
 import (
 	"encoding/xml"
 	"fmt"
-	"log"
 	"net"
 	"time"
 
 	"github.com/agalue/gominion/api"
+	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/ipc"
 	"github.com/agalue/gominion/protobuf/telemetry"
 	"github.com/golang/protobuf/proto"
@@ -17,7 +17,7 @@ import (
 func sendResponse(moduleID string, config *api.MinionConfig, broker api.Broker, object interface{}) {
 	bytes, err := xml.MarshalIndent(object, "", "   ")
 	if err != nil {
-		log.Printf("Error cannot parse Sink API response: %v", err)
+		log.Errorf("Cannot parse Sink API response: %v", err)
 	}
 	sendBytes(moduleID, config, broker, bytes)
 }
@@ -34,7 +34,7 @@ func sendBytes(moduleID string, config *api.MinionConfig, broker api.Broker, byt
 		return
 	}
 	if err := broker.Send(msg); err != nil {
-		log.Printf("Error while sending %s message via Sink API: %v", moduleID, err)
+		log.Errorf("%s cannot send message via Sink API: %v", moduleID, err)
 	}
 }
 
@@ -54,21 +54,20 @@ func wrapMessageToTelemetry(config *api.MinionConfig, sourceAddress string, sour
 	}
 	bytes, err := proto.Marshal(logMsg)
 	if err != nil {
-		log.Printf("Error cannot serialize telemetry message: %v\n", err)
+		log.Errorf("Cannot serialize telemetry message: %v\n", err)
 		return nil
 	}
 	return bytes
 }
 
-func startUDPServer(name string, port int) (*net.UDPConn, error) {
-	log.Printf("Starting %s UDP Forwarder Module", name)
+func createUDPListener(port int) (*net.UDPConn, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp4", fmt.Sprintf(":%d", port))
 	if err != nil {
-		return nil, fmt.Errorf("Error cannot resolve address for %s: %s", name, err)
+		return nil, fmt.Errorf("Cannot resolve address: %s", err)
 	}
 	conn, err := net.ListenUDP("udp4", udpAddr)
 	if err != nil {
-		return nil, fmt.Errorf("Error cannot start %s UDP Forwarder: %s", name, err)
+		return nil, fmt.Errorf("Cannot listen on UDP port %d: %s", port, err)
 	}
 	return conn, nil
 }

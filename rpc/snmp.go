@@ -2,9 +2,9 @@ package rpc
 
 import (
 	"encoding/xml"
-	"log"
 
 	"github.com/agalue/gominion/api"
+	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/ipc"
 	"github.com/agalue/gominion/tools"
 	"github.com/soniah/gosnmp"
@@ -45,7 +45,7 @@ func (module *SNMPProxyRPCModule) getResponse(client api.SNMPHandler, req *api.S
 
 func (module *SNMPProxyRPCModule) snmpWalk(client api.SNMPHandler, walk api.SNMPWalkRequestDTO) *api.SNMPResponseDTO {
 	response := &api.SNMPResponseDTO{CorrelationID: walk.CorrelationID}
-	log.Printf("Executing %d snmpwalk %s against %s", len(walk.OIDs), client.Version(), client.Target())
+	log.Debugf("Executing %d snmpwalk %s against %s", len(walk.OIDs), client.Version(), client.Target())
 	for _, oid := range walk.OIDs {
 		effectiveOid := tools.GetOidToWalk(oid, walk.Instance)
 		err := client.BulkWalk(effectiveOid, func(pdu gosnmp.SnmpPDU) error {
@@ -53,11 +53,11 @@ func (module *SNMPProxyRPCModule) snmpWalk(client api.SNMPHandler, walk api.SNMP
 			return nil
 		})
 		if err != nil {
-			log.Printf("Error while walking %s: %v\n", effectiveOid, err)
+			log.Errorf("Cannot execute snmpwalk for %s: %v\n", effectiveOid, err)
 			return response
 		}
 	}
-	log.Printf("Sending %d snmpwalk responses from %s", len(response.Results), client.Target())
+	log.Debugf("Sending %d snmpwalk responses from %s", len(response.Results), client.Target())
 	return response
 }
 

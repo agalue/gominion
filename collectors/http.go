@@ -4,13 +4,13 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"regexp"
 	"time"
 
 	"github.com/agalue/gominion/api"
+	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/tools"
 )
 
@@ -50,7 +50,7 @@ func (collector *HTTPCollector) Collect(request *api.CollectorRequestDTO) *api.C
 			Host:   request.CollectionAgent.IPAddress + ":" + request.GetAttributeValue("port", "80"),
 			Path:   uri.URL.Path,
 		}
-		log.Printf("Executing an HTTP GET against %s", u.String())
+		log.Debugf("Executing an HTTP GET against %s", u.String())
 		httpreq, err := http.NewRequest("GET", u.String(), nil)
 		if err != nil {
 			response.Error = err.Error()

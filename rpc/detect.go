@@ -3,10 +3,10 @@ package rpc
 import (
 	"encoding/xml"
 	"fmt"
-	"log"
 
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/detectors"
+	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/ipc"
 )
 
@@ -28,13 +28,13 @@ func (module *DetectorClientRPCModule) Execute(request *ipc.RpcRequestProto) *ip
 	}
 	detectorID := req.GetDetector()
 	response := &api.DetectorResponseDTO{}
-	log.Printf("Executing detector %s against %s", detectorID, req.IPAddress)
+	log.Infof("Executing detector %s against %s", detectorID, req.IPAddress)
 	if monitor, ok := detectors.GetDetector(detectorID); ok {
 		response = monitor.Detect(req)
 	} else {
 		response.Error = getError(request, fmt.Errorf("Cannot find implementation for detector %s", detectorID))
 	}
-	log.Printf("Sending detection status %s on %s as %s", detectorID, req.IPAddress, response.GetStatus())
+	log.Infof("Sending detection status %s on %s as %s", detectorID, req.IPAddress, response.GetStatus())
 	return transformResponse(request, response)
 }
 

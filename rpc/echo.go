@@ -2,10 +2,10 @@ package rpc
 
 import (
 	"encoding/xml"
-	"log"
 	"time"
 
 	"github.com/agalue/gominion/api"
+	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/ipc"
 )
 
@@ -33,7 +33,7 @@ func (module *EchoRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.RpcRespo
 		Message: req.Message,
 		Body:    req.Body,
 	}
-	log.Printf("Sending echo response for ID %v", response.ID)
+	log.Debugf("Sending echo response for ID %v", response.ID)
 	return transformResponse(request, response)
 }
 
