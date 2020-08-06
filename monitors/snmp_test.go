@@ -10,6 +10,8 @@ import (
 )
 
 func TestMeetCriteria(t *testing.T) {
+	assert.Assert(t, !snmpMonitor.meetsCriteria("", "=", "ok"))
+	assert.Assert(t, snmpMonitor.meetsCriteria("ok", "", ""))
 	assert.Assert(t, snmpMonitor.meetsCriteria("ok", "=", "ok"))
 	assert.Assert(t, snmpMonitor.meetsCriteria("ok", "!=", "nok"))
 	assert.Assert(t, snmpMonitor.meetsCriteria("3", ">", "2"))

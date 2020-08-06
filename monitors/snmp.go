@@ -92,7 +92,7 @@ func (monitor *SNMPMonitor) processWalk(client api.SNMPHandler, oid string, matc
 					break
 				}
 			} else if matchstr == "true" {
-				response.Status.Down("something went wrong") // FIXME
+				response.Status.Down("something went wrong when processing walk") // FIXME
 				break
 			}
 		}
@@ -111,7 +111,7 @@ func (monitor *SNMPMonitor) processSingle(client api.SNMPHandler, oid string, op
 			if monitor.meetsCriteria(value, operator, operand) {
 				response.Status.Up(time.Since(start).Seconds())
 			} else {
-				response.Status.Down("something went wrong") // FIXME
+				response.Status.Down("something went wrong when processing single OID") // FIXME
 			}
 		} else {
 			response.Status.Down("no response")
@@ -132,34 +132,38 @@ func (monitor *SNMPMonitor) walk(client api.SNMPHandler, oid string) ([]string, 
 }
 
 func (monitor *SNMPMonitor) meetsCriteria(result string, operator string, operand string) bool {
-	if result != "" && operator != "" && operand != "" {
-		if operator == "~" {
-			if exp, err := regexp.Compile(operand); err == nil {
-				return exp.MatchString(result)
-			}
-			return false
+	if result == "" {
+		return false
+	}
+	if operator == "" && operand == "" {
+		return true
+	}
+	if operator == "~" {
+		if exp, err := regexp.Compile(operand); err == nil {
+			return exp.MatchString(result)
 		}
-		intResult, _ := strconv.Atoi(result)
-		intOperand, _ := strconv.Atoi(operand)
-		switch operator {
-		case ">":
-			return intResult > intOperand
-		case "<":
-			return intResult < intOperand
-		case ">=":
-			return intResult >= intOperand
-		case "<=":
-			return intResult <= intOperand
-		}
-		if strings.HasPrefix(operand, ".") {
-			result = string([]rune(operand)[1:])
-		}
-		switch operator {
-		case "=":
-			return result == operand
-		case "!=":
-			return result != operand
-		}
+		return false
+	}
+	intResult, _ := strconv.Atoi(result)
+	intOperand, _ := strconv.Atoi(operand)
+	switch operator {
+	case ">":
+		return intResult > intOperand
+	case "<":
+		return intResult < intOperand
+	case ">=":
+		return intResult >= intOperand
+	case "<=":
+		return intResult <= intOperand
+	}
+	if strings.HasPrefix(operand, ".") {
+		result = string([]rune(operand)[1:])
+	}
+	switch operator {
+	case "=":
+		return result == operand
+	case "!=":
+		return result != operand
 	}
 	return false
 }
