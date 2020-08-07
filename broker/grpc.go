@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/log"
@@ -27,16 +28,17 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 
 	cli.config = config
 
-	cli.conn, err = grpc.Dial(config.BrokerURL, grpc.WithInsecure())
+	cli.conn, err = grpc.Dial(config.BrokerURL,
+		grpc.WithInsecure(),
+		grpc.WithBlock(),
+	)
 	if err != nil {
 		return fmt.Errorf("Cannot dial gRPC server: %v", err)
 	}
-
 	cli.onms = ipc.NewOpenNMSIpcClient(cli.conn)
 
-	cli.sinkStream, err = cli.onms.SinkStreaming(context.Background())
-	if err != nil {
-		return fmt.Errorf("Cannot start Sink Streaming: %v", err)
+	if err := cli.startSinkStream(); err != nil {
+		return err
 	}
 
 	for _, module := range api.GetAllSinkModules() {
@@ -45,36 +47,24 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 		}
 	}
 
-	cli.rpcStream, err = cli.onms.RpcStreaming(context.Background())
-	if err != nil {
-		return fmt.Errorf("Cannot start RPC Streaming: %v", err)
+	if err := cli.startRPCStream(); err != nil {
+		return err
 	}
-
-	go func() {
-		cli.sendHeaders()
-		for {
-			if request, err := cli.rpcStream.Recv(); err == nil {
-				cli.processRequest(request)
-			} else {
-				if err == io.EOF {
-					return
-				}
-				errStatus, _ := status.FromError(err)
-				if errStatus.Code().String() != "Unavailable" {
-					log.Errorf("Cannor receive RPC Request: code=%s, message=%s", errStatus.Code(), errStatus.Message())
-				}
-			}
-		}
-	}()
 
 	return nil
 }
 
 // Stop finilizes the gRPC client
 func (cli *GrpcClient) Stop() {
-	log.Warnf("Stopping gRPC client")
 	for _, module := range api.GetAllSinkModules() {
 		module.Stop()
+	}
+	log.Warnf("Stopping gRPC client")
+	if cli.rpcStream != nil {
+		cli.rpcStream.CloseSend()
+	}
+	if cli.rpcStream != nil {
+		cli.rpcStream.CloseSend()
 	}
 	if cli.conn != nil {
 		cli.conn.Close()
@@ -84,10 +74,78 @@ func (cli *GrpcClient) Stop() {
 
 // Send sends a Sink API message
 func (cli *GrpcClient) Send(msg *ipc.SinkMessage) error {
-	if cli.sinkStream != nil {
-		return cli.sinkStream.Send(msg)
+	if cli.sinkStream == nil {
+		if err := cli.startSinkStream(); err != nil {
+			return err
+		}
 	}
-	return fmt.Errorf("Sink stream is not initialized")
+	err := cli.sinkStream.Send(msg)
+	if err == io.EOF {
+		cli.startSinkStream()
+		return fmt.Errorf("Sink stream has restarted")
+	}
+	return nil
+}
+
+func (cli *GrpcClient) startSinkStream() error {
+	var err error
+	if cli.sinkStream != nil {
+		cli.sinkStream.CloseSend()
+	}
+	log.Infof("Starting Sink API Stream")
+	cli.sinkStream, err = cli.onms.SinkStreaming(context.Background())
+	if err != nil {
+		return fmt.Errorf("Cannot start Sink Streaming: %v", err)
+	}
+	return nil
+}
+
+func (cli *GrpcClient) startRPCStream() error {
+	var err error
+
+	if cli.rpcStream != nil {
+		cli.rpcStream.CloseSend()
+	}
+
+	log.Infof("Starting RPC API Stream")
+	cli.rpcStream, err = cli.onms.RpcStreaming(context.Background())
+	if err != nil {
+		return fmt.Errorf("Cannot start RPC Streaming: %v", err)
+	}
+
+	go func() {
+		cli.sendHeaders()
+		for {
+			if cli.rpcStream == nil {
+				break
+			}
+			if request, err := cli.rpcStream.Recv(); err == nil {
+				cli.processRequest(request)
+			} else {
+				if err == io.EOF {
+					break
+				}
+				errStatus, _ := status.FromError(err)
+				if errStatus.Code().String() != "Unavailable" {
+					log.Errorf("Cannor receive RPC Request: code=%s, message=%s", errStatus.Code(), errStatus.Message())
+				}
+			}
+		}
+		log.Warnf("Terminating RPC handler")
+	}()
+
+	go func() {
+		<-cli.rpcStream.Context().Done()
+		for {
+			err := cli.startRPCStream()
+			if err == nil {
+				return
+			}
+			time.Sleep(5 * time.Second)
+		}
+	}()
+
+	return nil
 }
 
 func (cli *GrpcClient) sendHeaders() {
