@@ -60,7 +60,7 @@ func (module *SnmpTrapModule) Start(config *api.MinionConfig, broker api.Broker)
 
 // Stop shutdowns the sink module
 func (module *SnmpTrapModule) Stop() {
-	log.Infof("Stopping SNMP Trap receiver")
+	log.Warnf("Stopping SNMP Trap receiver")
 	if module.listener != nil {
 		module.listener.Close()
 	}

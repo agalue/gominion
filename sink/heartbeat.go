@@ -29,7 +29,9 @@ func (module *HeartbeatModule) Start(config *api.MinionConfig, broker api.Broker
 }
 
 // Stop shutdowns the sink module
-func (module *HeartbeatModule) Stop() {}
+func (module *HeartbeatModule) Stop() {
+	log.Warnf("Stopping Sink Heartbeat Module")
+}
 
 func (module *HeartbeatModule) getIdentity(config *api.MinionConfig) *api.MinionIdentityDTO {
 	return &api.MinionIdentityDTO{

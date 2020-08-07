@@ -63,7 +63,7 @@ func (module *SyslogModule) Start(config *api.MinionConfig, broker api.Broker) e
 
 // Stop shutdowns the sink module
 func (module *SyslogModule) Stop() {
-	log.Infof("Stopping Syslog receiver")
+	log.Warnf("Stopping Syslog receiver")
 	if module.server != nil {
 		close(module.channel)
 		module.server.Kill()

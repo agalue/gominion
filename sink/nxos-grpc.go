@@ -57,7 +57,7 @@ func (module *NxosGrpcModule) Start(config *api.MinionConfig, broker api.Broker)
 
 // Stop shutdowns the sink module
 func (module *NxosGrpcModule) Stop() {
-	log.Infof("Stopping NX-OS Telemetry Module")
+	log.Warnf("Stopping NX-OS Telemetry Module")
 	if module.server != nil {
 		module.server.Stop()
 	}
@@ -75,7 +75,7 @@ func (module *NxosGrpcModule) MdtDialout(stream mdt_dialout.GRPCMdtDialout_MdtDi
 			if err == io.EOF {
 				log.Errorf("NX-OS session closed")
 			} else {
-				log.Errorf("NX-OS session error")
+				log.Errorf("NX-OS session error: %v", err)
 			}
 			continue
 		}

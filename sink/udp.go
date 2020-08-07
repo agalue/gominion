@@ -66,7 +66,7 @@ func (module *UDPForwardModule) Start(config *api.MinionConfig, broker api.Broke
 
 // Stop shutdowns the sink module
 func (module *UDPForwardModule) Stop() {
-	log.Infof("Stopping %s receiver", module.Name)
+	log.Warnf("Stopping %s receiver", module.Name)
 	module.stopping = true
 	if module.conn != nil {
 		module.conn.Close()
