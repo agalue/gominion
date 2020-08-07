@@ -101,6 +101,11 @@ func (module *SnmpTrapModule) trapHandler(packet *gosnmp.SnmpPacket, addr *net.U
 			trap.Timestamp = gosnmp.ToBigInt(pdu.Value).Int64()
 		case ".1.3.6.1.6.3.1.1.4.1.0":
 			trap.TrapIdentity = module.extractTrapIdentity(pdu)
+		case ".1.3.6.1.6.3.18.1.3.0":
+			if pdu.Type == gosnmp.IPAddress {
+				ip := net.ParseIP(pdu.Value.(string))
+				trapLog.TrapAddress = ip.String()
+			}
 		default:
 			result := tools.GetResultForPDU(pdu, pdu.Name)
 			trap.AddResult(result)
