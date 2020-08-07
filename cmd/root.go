@@ -22,7 +22,6 @@ import (
 
 var cfgFile string
 var listeners = []string{}
-var client = &broker.GrpcClient{}
 var minionConfig = &api.MinionConfig{
 	BrokerType: "grpc",
 	Location:   "Local",
@@ -125,6 +124,10 @@ func rootHandler(cmd *cobra.Command, args []string) {
 	// Display loaded modules
 	displayRegisteredModules()
 	// Start client
+	client := broker.GetBroker(minionConfig)
+	if client == nil {
+		log.Fatalf("Cannot find broker implementation")
+	}
 	log.Infof("Starting OpenNMS Minion...\n%s", minionConfig.String())
 	if err := client.Start(minionConfig); err != nil {
 		log.Fatalf("Cannot connect to OpenNMS gRPC server: %v", err)

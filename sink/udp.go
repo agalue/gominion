@@ -42,6 +42,7 @@ func (module *UDPForwardModule) Start(config *api.MinionConfig, broker api.Broke
 	if err != nil {
 		return err
 	}
+	log.Infof("Starting %s receiver on port UDP %d", module.Name, config.TrapPort)
 	go func() {
 		payload := make([]byte, 1024)
 		for {
@@ -65,6 +66,7 @@ func (module *UDPForwardModule) Start(config *api.MinionConfig, broker api.Broke
 
 // Stop shutdowns the sink module
 func (module *UDPForwardModule) Stop() {
+	log.Infof("Stopping %s receiver", module.Name)
 	module.stopping = true
 	if module.conn != nil {
 		module.conn.Close()

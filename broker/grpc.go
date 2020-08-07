@@ -40,7 +40,7 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 	}
 
 	for _, module := range api.GetAllSinkModules() {
-		if err := module.Start(cli.config, cli.sinkStream); err != nil {
+		if err := module.Start(cli.config, cli); err != nil {
 			return fmt.Errorf("Cannot start Sink module %s: %v", module.GetID(), err)
 		}
 	}
@@ -80,6 +80,14 @@ func (cli *GrpcClient) Stop() {
 		cli.conn.Close()
 	}
 	log.Infof("Good bye")
+}
+
+// Send sends a Sink API message
+func (cli *GrpcClient) Send(msg *ipc.SinkMessage) error {
+	if cli.sinkStream != nil {
+		return cli.sinkStream.Send(msg)
+	}
+	return fmt.Errorf("Sink stream is not initialized")
 }
 
 func (cli *GrpcClient) sendHeaders() {

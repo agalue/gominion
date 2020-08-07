@@ -7,6 +7,12 @@ import (
 // Broker represents a broker implementation
 type Broker interface {
 
+	// Starts the broker
+	Start(config *MinionConfig) error
+
+	// Shutdown the broker
+	Stop()
+
 	// Sends a Sink Message to OpenNMS
 	Send(msg *ipc.SinkMessage) error
 }

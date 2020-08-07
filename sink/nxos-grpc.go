@@ -57,6 +57,7 @@ func (module *NxosGrpcModule) Start(config *api.MinionConfig, broker api.Broker)
 
 // Stop shutdowns the sink module
 func (module *NxosGrpcModule) Stop() {
+	log.Infof("Stopping NX-OS Telemetry Module")
 	if module.server != nil {
 		module.server.Stop()
 	}

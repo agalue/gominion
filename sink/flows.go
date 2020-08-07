@@ -97,6 +97,7 @@ func (module *NetflowModule) Start(config *api.MinionConfig, broker api.Broker) 
 		log.Warnf("Flow Module %s disabled", module.Name)
 		return nil
 	}
+	log.Infof("Starting %s Flow Module", module.Name)
 
 	go func() {
 		module.startProcessor(handler)
@@ -124,6 +125,7 @@ func (module *NetflowModule) Start(config *api.MinionConfig, broker api.Broker) 
 
 // Stop shutdowns the sink module
 func (module *NetflowModule) Stop() {
+	log.Infof("Stopping %s Flow Module", module.Name)
 	module.stopping = true
 	if module.processor != nil {
 		module.processor.Stop()

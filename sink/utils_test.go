@@ -16,6 +16,13 @@ type MockBroker struct {
 	messages []*ipc.SinkMessage
 }
 
+func (broker *MockBroker) Start(cfg *api.MinionConfig) error {
+	return nil
+}
+
+func (broker *MockBroker) Stop() {
+}
+
 func (broker *MockBroker) Send(msg *ipc.SinkMessage) error {
 	broker.messages = append(broker.messages, msg)
 	return nil
