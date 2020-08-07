@@ -37,12 +37,10 @@ func (module *NxosGrpcModule) Start(config *api.MinionConfig, broker api.Broker)
 	module.broker = broker
 	module.port = listener.Port
 
-	log.Infof("Starting NX-OS Telemetry Module")
-
 	module.server = grpc.NewServer()
 	mdt_dialout.RegisterGRPCMdtDialoutServer(module.server, module)
 
-	log.Infof("Starting NX-OS gRPC server on port %d\n", listener.Port)
+	log.Infof("Starting NX-OS telemetry gRPC server on port %d\n", listener.Port)
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", listener.Port))
 	if err != nil {
 		return fmt.Errorf("Error cannot start TCP listener: %s", err)
@@ -57,7 +55,7 @@ func (module *NxosGrpcModule) Start(config *api.MinionConfig, broker api.Broker)
 
 // Stop shutdowns the sink module
 func (module *NxosGrpcModule) Stop() {
-	log.Warnf("Stopping NX-OS Telemetry Module")
+	log.Warnf("Stopping NX-OS telemetry gRPC server")
 	if module.server != nil {
 		module.server.Stop()
 	}

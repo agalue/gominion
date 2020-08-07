@@ -43,7 +43,7 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 
 	for _, module := range api.GetAllSinkModules() {
 		if err := module.Start(cli.config, cli); err != nil {
-			return fmt.Errorf("Cannot start Sink module %s: %v", module.GetID(), err)
+			return fmt.Errorf("Cannot start Sink API module %s: %v", module.GetID(), err)
 		}
 	}
 
@@ -82,7 +82,7 @@ func (cli *GrpcClient) Send(msg *ipc.SinkMessage) error {
 	err := cli.sinkStream.Send(msg)
 	if err == io.EOF {
 		cli.startSinkStream()
-		return fmt.Errorf("Sink stream has restarted")
+		return fmt.Errorf("Sink API Stream has restarted")
 	}
 	return nil
 }
@@ -95,7 +95,7 @@ func (cli *GrpcClient) startSinkStream() error {
 	log.Infof("Starting Sink API Stream")
 	cli.sinkStream, err = cli.onms.SinkStreaming(context.Background())
 	if err != nil {
-		return fmt.Errorf("Cannot start Sink Streaming: %v", err)
+		return fmt.Errorf("Cannot start Sink API Stream: %v", err)
 	}
 	return nil
 }
@@ -110,7 +110,7 @@ func (cli *GrpcClient) startRPCStream() error {
 	log.Infof("Starting RPC API Stream")
 	cli.rpcStream, err = cli.onms.RpcStreaming(context.Background())
 	if err != nil {
-		return fmt.Errorf("Cannot start RPC Streaming: %v", err)
+		return fmt.Errorf("Cannot start RPC API Stream: %v", err)
 	}
 
 	go func() {
@@ -127,11 +127,11 @@ func (cli *GrpcClient) startRPCStream() error {
 				}
 				errStatus, _ := status.FromError(err)
 				if errStatus.Code().String() != "Unavailable" {
-					log.Errorf("Cannor receive RPC Request: code=%s, message=%s", errStatus.Code(), errStatus.Message())
+					log.Errorf("Cannot receive RPC Request: code=%s, message=%s", errStatus.Code(), errStatus.Message())
 				}
 			}
 		}
-		log.Warnf("Terminating RPC handler")
+		log.Warnf("Terminating RPC API handler")
 	}()
 
 	go func() {
@@ -157,17 +157,17 @@ func (cli *GrpcClient) sendHeaders() {
 	}
 	log.Infof("Sending Minion Headers from SystemId %s to gRPC server", cli.config.ID)
 	if err := cli.rpcStream.Send(headers); err != nil {
-		log.Errorf("Cannor send RPC headers: %v", err)
+		log.Errorf("Cannot send RPC headers: %v", err)
 	}
 }
 
 func (cli *GrpcClient) processRequest(request *ipc.RpcRequestProto) {
-	log.Infof("Received RPC request with ID %s for module %s at location %s", request.RpcId, request.ModuleId, request.Location)
+	log.Debugf("Received RPC request with ID %s for module %s at location %s", request.RpcId, request.ModuleId, request.Location)
 	if module, ok := api.GetRPCModule(request.ModuleId); ok {
 		go func() {
 			if response := module.Execute(request); response != nil {
 				if err := cli.rpcStream.Send(response); err != nil {
-					log.Errorf("Cannor send RPC response for module %s with ID %s: %v", request.ModuleId, request.RpcId, err)
+					log.Errorf("Cannot send RPC response for module %s with ID %s: %v", request.ModuleId, request.RpcId, err)
 				}
 			} else {
 				log.Errorf("Module %s returned an empty response for request %s, ignoring", request.ModuleId, request.RpcId)
