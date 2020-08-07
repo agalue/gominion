@@ -20,25 +20,32 @@ import (
 	"github.com/spf13/viper"
 )
 
-var cfgFile string
-var listeners = []string{}
-var minionConfig = &api.MinionConfig{
-	BrokerType: "grpc",
-	Location:   "Local",
-	BrokerURL:  "localhost:8990",
-	TrapPort:   1162,
-	SyslogPort: 1514,
-	LogLevel:   "debug",
-}
+var (
+	// cfgFile is the path to the Minion configuration file
+	cfgFile string
 
-// rootCmd represents the base command that starts the Minion's gRPC client
-var rootCmd = &cobra.Command{
-	Use:     "gominion",
-	Short:   "An implementation of OpenNMS Minion in Go",
-	Version: "0.1.0-alpha1",
-	Run:     rootHandler,
-	Args:    cobra.NoArgs,
-}
+	// listeners a list of Sink API listeners
+	listeners = []string{}
+
+	// minionConfig is the Minion configuration with defaults
+	minionConfig = &api.MinionConfig{
+		BrokerType: "grpc",
+		Location:   "Local",
+		BrokerURL:  "localhost:8990",
+		TrapPort:   1162,
+		SyslogPort: 1514,
+		LogLevel:   "debug",
+	}
+
+	// rootCmd represents the base command that starts the Minion's gRPC client
+	rootCmd = &cobra.Command{
+		Use:     "gominion",
+		Short:   "An implementation of OpenNMS Minion in Go",
+		Version: "0.1.0-alpha1",
+		Run:     rootHandler,
+		Args:    cobra.NoArgs,
+	}
+)
 
 // Execute prepares the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
