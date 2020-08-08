@@ -3,6 +3,7 @@ module github.com/agalue/gominion
 go 1.14
 
 require (
+	github.com/antchfx/xmlquery v1.2.4
 	github.com/cloudflare/goflow/v3 v3.4.2
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/golang/protobuf v1.4.2
