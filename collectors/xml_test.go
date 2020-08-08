@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/agalue/gominion/api"
-	"github.com/antchfx/xmlquery"
 	"gotest.tools/assert"
 )
 
@@ -55,25 +54,28 @@ var mockXML = `
 </html>
 `
 
-func TestXMLQuery(t *testing.T) {
-	doc, err := xmlquery.Parse(strings.NewReader(mockXML))
+func TestXMLQuerier(t *testing.T) {
+	querier, err := NewQuerier(XMLHandlerClass, nil)
 	assert.NilError(t, err)
-	node, err := xmlquery.Query(doc, "/html/body")
+	doc, err := querier.Parse(strings.NewReader(mockXML))
 	assert.NilError(t, err)
-	temp, err := xmlquery.Query(node, "p[@id='temp']")
+	node, err := querier.Query(doc, "/html/body")
+	assert.NilError(t, err)
+	temp, err := querier.Query(node, "p[@id='temp']")
 	assert.NilError(t, err)
 	re, err := regexp.Compile("[.\\d]+")
 	assert.NilError(t, err)
-	data := re.FindAllString(temp.InnerText(), -1)
+	data := re.FindAllString(temp.GetContent(), -1)
 	assert.Equal(t, 1, len(data))
 	assert.Equal(t, "92.5", data[0])
-	resources, err := xmlquery.QueryAll(doc, "/html/body/table/tr")
+	resources, err := querier.QueryAll(doc, "/html/body/table/tr")
 	assert.NilError(t, err)
+	assert.Equal(t, 3, len(resources))
 	for _, resource := range resources {
-		name, err := xmlquery.Query(resource, "td[@id='rack']")
+		name, err := querier.Query(resource, "td[@id='rack']")
 		assert.NilError(t, err)
-		value, err := xmlquery.Query(resource, "td[@id='fan']")
-		fmt.Printf("%s = %s\n", name.InnerText(), value.InnerText())
+		value, err := querier.Query(resource, "td[@id='fan']")
+		fmt.Printf("%s = %s\n", name.GetContent(), value.GetContent())
 	}
 }
 

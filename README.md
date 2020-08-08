@@ -44,6 +44,7 @@ The Java-based one has lots of features that is currently missing, but hopefully
 ## Collectors
 
 * HTTP (`HttpCollector`)
+* XML (`XmlCollector`)
 
 > It is important to notice that the SNMP Collector work is handled via the SNMP RPC Module, not by a collector implementation like the rest of them.
 

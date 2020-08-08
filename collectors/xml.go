@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/antchfx/xmlquery"
-
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/tools"
@@ -36,12 +34,19 @@ func (collector *XMLCollector) Collect(request *api.CollectorRequestDTO) *api.Co
 		return response
 	}
 	builder := api.NewCollectionSetBuilder(request.CollectionAgent)
+	handlerClass := request.GetAttributeValue("handler-class", "org.opennms.protocols.xml.collector.DefaultXmlCollectionHandler")
+
 	for _, src := range xmlCollection.Sources {
-		log.Debugf("Executing an HTTP GET against %s", src.URL)
-		if doc, err := collector.getDocument(&src, request.GetTimeout()); err != nil {
+		querier, err := NewQuerier(handlerClass, src.GetRequest())
+		if err != nil {
 			response.MarkAsFailed(request.CollectionAgent, err)
 			return response
-		} else if err := collector.fillCollectionSet(builder, src, doc); err != nil {
+		}
+		log.Debugf("Executing an HTTP GET against %s", src.URL)
+		if doc, err := collector.getDocument(querier, &src, request.GetTimeout()); err != nil {
+			response.MarkAsFailed(request.CollectionAgent, err)
+			return response
+		} else if err := collector.fillCollectionSet(querier, builder, src, doc); err != nil {
 			response.MarkAsFailed(request.CollectionAgent, err)
 			return response
 		}
@@ -50,28 +55,28 @@ func (collector *XMLCollector) Collect(request *api.CollectorRequestDTO) *api.Co
 	return response
 }
 
-func (collector *XMLCollector) fillCollectionSet(builder *api.CollectionSetBuilder, src api.XMLSource, doc *xmlquery.Node) error {
+func (collector *XMLCollector) fillCollectionSet(querier XPathQuerier, builder *api.CollectionSetBuilder, src api.XMLSource, doc *XPathNode) error {
 	re, _ := regexp.Compile("[.\\d]+")
 	for _, group := range src.Groups {
-		resources, err := xmlquery.QueryAll(doc, group.ResourceXPath)
+		resources, err := querier.QueryAll(doc, group.ResourceXPath)
 		if err != nil {
 			return err
 		}
 		timestamp := collector.getTimestamp(group, doc)
 		for _, resource := range resources {
-			name, err := collector.getResourceName(group, resource)
+			name, err := collector.getResourceName(querier, group, resource)
 			if err != nil {
 				return err
 			}
 			cres := collector.getCollectionResource(builder.Agent, name, group.ResourceType, timestamp)
 			for _, obj := range group.Objects {
-				value, err := xmlquery.Query(resource, obj.XPath)
+				value, err := querier.Query(resource, obj.XPath)
 				if err != nil {
 					return err
 				}
-				v := value.InnerText()
+				v := value.GetContent()
 				if obj.Type != "string" {
-					data := re.FindAllString(value.InnerText(), -1)
+					data := re.FindAllString(value.GetContent(), -1)
 					if len(data) > 0 {
 						v = data[0]
 					}
@@ -83,13 +88,13 @@ func (collector *XMLCollector) fillCollectionSet(builder *api.CollectionSetBuild
 	return nil
 }
 
-func (collector *XMLCollector) getResourceName(group api.XMLGroup, node *xmlquery.Node) (string, error) {
+func (collector *XMLCollector) getResourceName(querier XPathQuerier, group api.XMLGroup, node *XPathNode) (string, error) {
 	if group.HasMultipleResourceKeys() {
 		keys := make([]string, 0)
 		for _, key := range group.ResourceKey.KeyXPaths {
-			keyNode, err := xmlquery.Query(node, key)
+			keyNode, err := querier.Query(node, key)
 			if err != nil {
-				keys = append(keys, keyNode.InnerText())
+				keys = append(keys, keyNode.GetContent())
 			}
 			return "", err
 		}
@@ -99,15 +104,15 @@ func (collector *XMLCollector) getResourceName(group api.XMLGroup, node *xmlquer
 		log.Debugf("Assuming node level resource")
 		return "node", nil
 	}
-	keyNode, err := xmlquery.Query(node, group.KeyXPath)
+	keyNode, err := querier.Query(node, group.KeyXPath)
 	if err == nil {
-		return keyNode.InnerText(), nil
+		return keyNode.GetContent(), nil
 	}
 	return "", fmt.Errorf("Cannot find resource name")
 }
 
 // TODO pending parse for group.TimestampXPath and group.TimestampFormat
-func (collector *XMLCollector) getTimestamp(group api.XMLGroup, node *xmlquery.Node) *api.Timestamp {
+func (collector *XMLCollector) getTimestamp(group api.XMLGroup, node *XPathNode) *api.Timestamp {
 	return &api.Timestamp{Time: time.Now()}
 }
 
@@ -128,17 +133,20 @@ func (collector *XMLCollector) getCollectionResource(agent *api.CollectionAgentD
 	}
 }
 
-func (collector *XMLCollector) getDocument(src *api.XMLSource, timeout time.Duration) (*xmlquery.Node, error) {
+func (collector *XMLCollector) getDocument(querier XPathQuerier, src *api.XMLSource, timeout time.Duration) (*XPathNode, error) {
 	httpreq, err := src.GetHTTPRequest()
 	if err != nil {
 		return nil, err
 	}
-	client := tools.GetHTTPClient(false, timeout)
+	if t := src.GetRequest().GetParameterAsInt("timeout"); t > 0 {
+		timeout = time.Duration(t) * time.Microsecond
+	}
+	client := tools.GetHTTPClient(src.SkipSSL(), timeout)
 	httpres, err := client.Do(httpreq)
 	if err != nil {
 		return nil, err
 	}
-	doc, err := xmlquery.Parse(httpres.Body)
+	doc, err := querier.Parse(httpres.Body)
 	if err != nil {
 		return nil, err
 	}

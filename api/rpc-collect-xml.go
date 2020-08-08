@@ -5,6 +5,8 @@ import (
 	"encoding/xml"
 	"io"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 // XMLObject represents an XML object
@@ -85,6 +87,26 @@ func (r *XMLRequest) GetBody() io.Reader {
 	return nil
 }
 
+// GetParameterAsInt gets the value of a request parameter as an integer
+func (r *XMLRequest) GetParameterAsInt(key string) int {
+	val := r.GetParameterAsString(key)
+	v, err := strconv.Atoi(val)
+	if err == nil {
+		return v
+	}
+	return 0
+}
+
+// GetParameterAsString gets the value of a request parameter as a string
+func (r *XMLRequest) GetParameterAsString(key string) string {
+	for _, p := range r.Parameters {
+		if p.Name == key {
+			return p.Value
+		}
+	}
+	return ""
+}
+
 // XMLSource represents an XML source
 type XMLSource struct {
 	XMLName xml.Name    `xml:"xml-source"`
@@ -95,21 +117,29 @@ type XMLSource struct {
 
 // GetHTTPRequest gets an HTTP request
 func (src *XMLSource) GetHTTPRequest() (*http.Request, error) {
-	req, err := http.NewRequest(src.getRequest().GetMethod(), src.URL, src.getRequest().GetBody())
+	req := src.GetRequest()
+	httpreq, err := http.NewRequest(req.GetMethod(), src.URL, req.GetBody())
 	if err != nil {
 		return nil, err
 	}
-	for _, header := range src.getRequest().Headers {
-		req.Header.Add(header.Name, header.Value)
+	for _, header := range req.Headers {
+		httpreq.Header.Add(header.Name, header.Value)
 	}
-	return req, err
+	return httpreq, err
 }
 
-func (src *XMLSource) getRequest() *XMLRequest {
+// GetRequest gets the HTTP request
+func (src *XMLSource) GetRequest() *XMLRequest {
 	if src.Request == nil {
 		return &XMLRequest{}
 	}
 	return src.Request
+}
+
+// SkipSSL checks whether or not to skip certificate validation for HTTPS
+func (src *XMLSource) SkipSSL() bool {
+	v := src.GetRequest().GetParameterAsString("disable-ssl-verification")
+	return strings.ToLower(v) == "true"
 }
 
 // XMLCollection represents an XML collection object
