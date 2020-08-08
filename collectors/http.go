@@ -7,12 +7,13 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
-	"time"
 
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/tools"
 )
+
+const httpCollectionAttr = "httpCollection"
 
 // HTTPCollector represents a collector implementation
 type HTTPCollector struct {
@@ -25,21 +26,15 @@ func (collector *HTTPCollector) GetID() string {
 
 // Collect execute the collector request and return the collection set
 func (collector *HTTPCollector) Collect(request *api.CollectorRequestDTO) *api.CollectorResponseDTO {
-	response := &api.CollectorResponseDTO{
-		CollectionSet: &api.CollectionSetDTO{
-			Timestamp: &api.Timestamp{Time: time.Now()},
-			Status:    api.CollectionStatusFailed,
-			Agent:     request.CollectionAgent,
-		},
-	}
-
+	response := &api.CollectorResponseDTO{}
 	httpCollection := &api.HTTPCollection{}
-	err := xml.Unmarshal([]byte(request.GetAttributeValue("httpCollection", "")), httpCollection)
+	err := xml.Unmarshal([]byte(request.GetAttributeValue(httpCollectionAttr, "")), httpCollection)
 	if err != nil {
-		response.Error = fmt.Sprintf("Error cannot parse httpCollection: %s", err.Error())
+		response.MarkAsFailed(request.CollectionAgent, fmt.Errorf("Cannot parse %s: %v", httpCollectionAttr, err))
 		return response
 	}
-	nodeResource := api.CollectionResourceDTO{
+	builder := api.NewCollectionSetBuilder(request.CollectionAgent)
+	nodeResource := &api.CollectionResourceDTO{
 		ResourceType: &api.NodeLevelResourceDTO{
 			NodeID: request.CollectionAgent.NodeID,
 		},
@@ -53,7 +48,7 @@ func (collector *HTTPCollector) Collect(request *api.CollectorRequestDTO) *api.C
 		log.Debugf("Executing an HTTP GET against %s", u.String())
 		httpreq, err := http.NewRequest("GET", u.String(), nil)
 		if err != nil {
-			response.Error = err.Error()
+			response.MarkAsFailed(request.CollectionAgent, err)
 			return response
 		}
 		if uri.URL.UserAgent != "" {
@@ -62,29 +57,28 @@ func (collector *HTTPCollector) Collect(request *api.CollectorRequestDTO) *api.C
 		client := tools.GetHTTPClient(false, request.GetTimeout())
 		httpres, err := client.Do(httpreq)
 		if err != nil {
-			response.Error = err.Error()
+			response.MarkAsFailed(request.CollectionAgent, err)
 			return response
 		}
 		min, max := tools.ParseHTTPResponseRange(uri.URL.ResponseRange)
 		if httpres.StatusCode < min || httpres.StatusCode > max {
-			response.Error = fmt.Sprintf("Response code %d out of expected range: %d-%d", httpres.StatusCode, min, max)
+			exerr := fmt.Errorf("Response code %d out of expected range: %d-%d", httpres.StatusCode, min, max)
+			response.MarkAsFailed(request.CollectionAgent, exerr)
 			return response
 		}
 		data, err := ioutil.ReadAll(httpres.Body)
 		if err != nil {
-			response.Error = err.Error()
+			response.MarkAsFailed(request.CollectionAgent, err)
 			return response
 		}
-		collector.AddResourceAttributes(&nodeResource, uri, string(data))
+		collector.AddResourceAttributes(builder, nodeResource, uri, string(data))
 	}
-
-	response.CollectionSet.Status = api.CollectionStatusSucceded
-	response.CollectionSet.AddResource(nodeResource)
+	response.CollectionSet = builder.Build()
 	return response
 }
 
 // AddResourceAttributes adds attributes to resource based on HTML and URI configuration
-func (collector *HTTPCollector) AddResourceAttributes(resource *api.CollectionResourceDTO, uri api.HTTPUri, html string) error {
+func (collector *HTTPCollector) AddResourceAttributes(builder *api.CollectionSetBuilder, cres *api.CollectionResourceDTO, uri api.HTTPUri, html string) error {
 	rp, err := regexp.Compile(uri.URL.Matches)
 	if err != nil {
 		return err
@@ -93,7 +87,7 @@ func (collector *HTTPCollector) AddResourceAttributes(resource *api.CollectionRe
 	if len(groups) == 1 {
 		for i := 1; i < len(groups[0]); i++ {
 			if attr := uri.FindAttributeByMatchGroup(i); attr != nil {
-				resource.AddNumericAttribute(attr.Alias, uri.Name, "", attr.Type, groups[0][i])
+				builder.WithAttribute(cres, uri.Name, attr.Alias, groups[0][i], attr.Type)
 			}
 		}
 	}
