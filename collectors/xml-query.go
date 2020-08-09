@@ -46,7 +46,10 @@ func (n *XPathNode) GetContent() string {
 		}
 		return o.InnerText()
 	case *html.Node:
-		return o.Data
+		if o == nil {
+			return ""
+		}
+		return htmlquery.InnerText(o)
 	default:
 		return ""
 	}
