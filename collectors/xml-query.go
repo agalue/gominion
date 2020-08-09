@@ -40,6 +40,11 @@ func (n *XPathNode) GetContent() string {
 	switch o := n.impl.(type) {
 	case *xmlquery.Node:
 		return o.InnerText()
+	case *jsonquery.Node:
+		if o == nil {
+			return ""
+		}
+		return o.InnerText()
 	case *html.Node:
 		return o.Data
 	default:
@@ -76,8 +81,8 @@ func (q *XPathQuery) Parse(reader io.Reader) (*XPathNode, error) {
 
 // Query queries the parent node and returns the first match
 func (q *XPathQuery) Query(parent *XPathNode, xpath string) (*XPathNode, error) {
-	var err error
-	var node interface{}
+	var err error = nil
+	var node interface{} = nil
 	switch q.kind {
 	case "css":
 		p := parent.impl.(*html.Node)
@@ -98,6 +103,9 @@ func (q *XPathQuery) Query(parent *XPathNode, xpath string) (*XPathNode, error) 
 		return nil, fmt.Errorf("Cannot find implementation")
 	}
 	if err == nil {
+		if node == nil {
+			return nil, fmt.Errorf("Cannot find element")
+		}
 		return &XPathNode{impl: node}, nil
 	}
 	return nil, err

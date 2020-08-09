@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -53,31 +52,6 @@ var mockXML = `
 	</body>
 </html>
 `
-
-func TestXMLQuerier(t *testing.T) {
-	querier, err := NewQuerier(XMLHandlerClass, nil)
-	assert.NilError(t, err)
-	doc, err := querier.Parse(strings.NewReader(mockXML))
-	assert.NilError(t, err)
-	node, err := querier.Query(doc, "/html/body")
-	assert.NilError(t, err)
-	temp, err := querier.Query(node, "p[@id='temp']")
-	assert.NilError(t, err)
-	re, err := regexp.Compile("[.\\d]+")
-	assert.NilError(t, err)
-	data := re.FindAllString(temp.GetContent(), -1)
-	assert.Equal(t, 1, len(data))
-	assert.Equal(t, "92.5", data[0])
-	resources, err := querier.QueryAll(doc, "/html/body/table/tr")
-	assert.NilError(t, err)
-	assert.Equal(t, 3, len(resources))
-	for _, resource := range resources {
-		name, err := querier.Query(resource, "td[@id='rack']")
-		assert.NilError(t, err)
-		value, err := querier.Query(resource, "td[@id='fan']")
-		fmt.Printf("%s = %s\n", name.GetContent(), value.GetContent())
-	}
-}
 
 func TestXmlCollector(t *testing.T) {
 	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {

@@ -34,8 +34,7 @@ func (collector *XMLCollector) Collect(request *api.CollectorRequestDTO) *api.Co
 		return response
 	}
 	builder := api.NewCollectionSetBuilder(request.CollectionAgent)
-	handlerClass := request.GetAttributeValue("handler-class", "org.opennms.protocols.xml.collector.DefaultXmlCollectionHandler")
-
+	handlerClass := request.GetAttributeValue("handler-class", XMLHandlerClass)
 	for _, src := range xmlCollection.Sources {
 		querier, err := NewQuerier(handlerClass, src.GetRequest())
 		if err != nil {
