@@ -68,7 +68,7 @@ func (module *SnmpTrapModule) Stop() {
 
 func (module *SnmpTrapModule) trapHandler(packet *gosnmp.SnmpPacket, addr *net.UDPAddr) {
 	version := fmt.Sprintf("v%s", packet.Version)
-	log.Debugf("Received SNMP%s trap (type: 0x%X) from %s\n", version, packet.PDUType, addr.IP)
+	log.Debugf("Received SNMP%s trap (type: 0x%X) from %s", version, packet.PDUType, addr.IP)
 
 	trap := api.TrapDTO{
 		AgentAddress: addr.IP.String(),

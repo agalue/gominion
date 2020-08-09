@@ -83,7 +83,7 @@ func (module *SyslogModule) buildMessageLog(logParts map[string]interface{}) *ap
 		SourcePort:    clientPort,
 	}
 	timestamp := logParts["timestamp"].(time.Time)
-	log.Debugf("Received Syslog message from %s\n", messageLog.SourceAddress)
+	log.Debugf("Received Syslog message from %s", messageLog.SourceAddress)
 	content := fmt.Sprintf("<%d>%s", logParts["priority"].(int), logParts["content"].(string))
 	message := api.SyslogMessageDTO{
 		Timestamp: timestamp.Format(api.TimeFormat),
