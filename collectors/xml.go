@@ -24,7 +24,6 @@ func (collector *XMLCollector) GetID() string {
 }
 
 // Collect execute the collector request and return the collection set
-// FIXME Assumes XML Handler. Needs code for managing JSON and HTML
 func (collector *XMLCollector) Collect(request *api.CollectorRequestDTO) *api.CollectorResponseDTO {
 	response := &api.CollectorResponseDTO{}
 	xmlCollection := &api.XMLCollection{}
@@ -42,10 +41,10 @@ func (collector *XMLCollector) Collect(request *api.CollectorRequestDTO) *api.Co
 			return response
 		}
 		log.Debugf("Executing an HTTP GET against %s", src.URL)
-		if doc, err := collector.getDocument(querier, &src, request.GetTimeout()); err != nil {
+		if doc, err := collector.getDocument(querier, src, request.GetTimeout()); err != nil {
 			response.MarkAsFailed(request.CollectionAgent, err)
 			return response
-		} else if err := collector.fillCollectionSet(querier, builder, src, doc); err != nil {
+		} else if err := collector.fillCollectionSet(querier, src, builder, doc); err != nil {
 			response.MarkAsFailed(request.CollectionAgent, err)
 			return response
 		}
@@ -54,7 +53,7 @@ func (collector *XMLCollector) Collect(request *api.CollectorRequestDTO) *api.Co
 	return response
 }
 
-func (collector *XMLCollector) fillCollectionSet(querier XPathQuerier, builder *api.CollectionSetBuilder, src api.XMLSource, doc *XPathNode) error {
+func (collector *XMLCollector) fillCollectionSet(querier XPathQuerier, src api.XMLSource, builder *api.CollectionSetBuilder, doc *XPathNode) error {
 	re, _ := regexp.Compile("[.\\d]+")
 	for _, group := range src.Groups {
 		resources, err := querier.QueryAll(doc, group.ResourceXPath)
@@ -132,7 +131,7 @@ func (collector *XMLCollector) getCollectionResource(agent *api.CollectionAgentD
 	}
 }
 
-func (collector *XMLCollector) getDocument(querier XPathQuerier, src *api.XMLSource, timeout time.Duration) (*XPathNode, error) {
+func (collector *XMLCollector) getDocument(querier XPathQuerier, src api.XMLSource, timeout time.Duration) (*XPathNode, error) {
 	httpreq, err := src.GetHTTPRequest()
 	if err != nil {
 		return nil, err
