@@ -46,11 +46,14 @@ func TestAddResourceAttributes(t *testing.T) {
 	assert.NilError(t, err)
 	uri := collection.URIs.URIList[0]
 	resource := &api.CollectionResourceDTO{Name: "node"}
-	err = httpCollector.AddResourceAttributes(resource, uri, mockHTML)
+	builder := api.NewCollectionSetBuilder(nil)
+	err = httpCollector.AddResourceAttributes(builder, resource, uri, mockHTML)
 	assert.NilError(t, err)
-	assert.Equal(t, 2, len(resource.NumericAttributes))
-	assert.Equal(t, "29", resource.NumericAttributes[0].Value)
-	assert.Equal(t, "66", resource.NumericAttributes[1].Value)
+	cs := builder.Build()
+	assert.Equal(t, 1, len(cs.Resources))
+	assert.Equal(t, 2, len(cs.Resources[0].NumericAttributes))
+	assert.Equal(t, "29", cs.Resources[0].NumericAttributes[0].Value)
+	assert.Equal(t, "66", cs.Resources[0].NumericAttributes[1].Value)
 }
 
 func TestHttpCollector(t *testing.T) {
@@ -70,7 +73,7 @@ func TestHttpCollector(t *testing.T) {
 			SysUpTime:           time.Now().Unix(),
 		},
 		Attributes: []api.CollectionAttributeDTO{
-			{Key: "httpCollection", Content: mockHTTPCollection},
+			{Key: httpCollectionAttr, Content: mockHTTPCollection},
 			{Key: "port", Content: u.Port()},
 		},
 	}

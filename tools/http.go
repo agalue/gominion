@@ -9,9 +9,9 @@ import (
 )
 
 // GetHTTPClient returns an HTTP Client with a given timeout, and transport
-func GetHTTPClient(useSSLFilter bool, timeout time.Duration) *http.Client {
+func GetHTTPClient(skipSSL bool, timeout time.Duration) *http.Client {
 	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: useSSLFilter},
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: skipSSL},
 	}
 	return &http.Client{
 		Transport: transport,

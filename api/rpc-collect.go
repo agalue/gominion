@@ -62,28 +62,13 @@ type CollectionResourceDTO struct {
 	StringAttributes  []ResourceAttributeDTO  `xml:"string-attribute"`
 }
 
-// AddNumericAttribute adds a new numeric attribute to the resource
-func (resource *CollectionResourceDTO) AddNumericAttribute(name string, group string, id string, ntype string, value string) {
-	attr := ResourceAttributeDTO{
-		Name:       name,
-		Group:      group,
-		Value:      value,
-		Type:       ntype,
-		Identifier: id,
+// AddAttribute adds an attribute
+func (resource *CollectionResourceDTO) AddAttribute(attr ResourceAttributeDTO) {
+	if attr.Type == "string" {
+		resource.StringAttributes = append(resource.StringAttributes, attr)
+	} else {
+		resource.NumericAttributes = append(resource.NumericAttributes, attr)
 	}
-	resource.NumericAttributes = append(resource.NumericAttributes, attr)
-}
-
-// AddStringAttribute adds a new string attribute to the resource
-func (resource *CollectionResourceDTO) AddStringAttribute(name string, group string, id string, value string) {
-	attr := ResourceAttributeDTO{
-		Name:       name,
-		Group:      group,
-		Value:      value,
-		Type:       "string",
-		Identifier: id,
-	}
-	resource.StringAttributes = append(resource.StringAttributes, attr)
 }
 
 // CollectionSetDTO represents a collection set
@@ -181,6 +166,13 @@ type CollectorResponseDTO struct {
 	CollectionSet *CollectionSetDTO `xml:"collection-set"`
 }
 
+// MarkAsFailed sets the response as failed
+func (set *CollectorResponseDTO) MarkAsFailed(agent *CollectionAgentDTO, err error) {
+	b := NewCollectionSetBuilder(agent)
+	set.CollectionSet = b.WithStatus(CollectionStatusFailed).Build()
+	set.Error = err.Error()
+}
+
 // GetStatus returns the collection status as a string
 func (set *CollectorResponseDTO) GetStatus() string {
 	if set.CollectionSet == nil {
@@ -205,4 +197,76 @@ type RRD struct {
 	XMLName xml.Name `xml:"rrd"`
 	Step    int      `xml:"step,attr"`
 	RRAs    []RRA    `xml:"rra"`
+}
+
+// CollectionSetBuilder represents a collection set builder
+type CollectionSetBuilder struct {
+	Agent                *CollectionAgentDTO
+	attributesByResource map[*CollectionResourceDTO][]ResourceAttributeDTO
+	status               string
+	timestamp            *Timestamp
+}
+
+// WithStatus sets the status
+func (builder *CollectionSetBuilder) WithStatus(status string) *CollectionSetBuilder {
+	builder.status = status
+	return builder
+}
+
+// WithTimestamp sets the timestamp
+func (builder *CollectionSetBuilder) WithTimestamp(ts time.Time) *CollectionSetBuilder {
+	builder.timestamp = &Timestamp{Time: ts}
+	return builder
+}
+
+// WithAttribute adds an attribute
+func (builder *CollectionSetBuilder) WithAttribute(resource *CollectionResourceDTO, groupName string, metricName string, metricValue string, metricType string) *CollectionSetBuilder {
+	attributes := builder.attributesByResource[resource]
+	attributes = append(attributes, ResourceAttributeDTO{
+		Name:  metricName,
+		Group: groupName,
+		Type:  metricType,
+		Value: metricValue,
+	})
+	builder.attributesByResource[resource] = attributes
+	return builder
+}
+
+// Build generates the collection set
+func (builder *CollectionSetBuilder) Build() *CollectionSetDTO {
+	cs := &CollectionSetDTO{
+		Agent:     builder.Agent,
+		Timestamp: builder.getTimestamp(),
+		Status:    builder.getStatus(),
+	}
+	for cres, attribs := range builder.attributesByResource {
+		for _, attr := range attribs {
+			cres.AddAttribute(attr)
+		}
+		cs.AddResource(*cres)
+	}
+	return cs
+}
+
+func (builder *CollectionSetBuilder) getStatus() string {
+	if builder.status == "" {
+		return CollectionStatusSucceded
+	}
+	return builder.status
+}
+
+func (builder *CollectionSetBuilder) getTimestamp() *Timestamp {
+	if builder.timestamp == nil {
+		return &Timestamp{Time: time.Now()}
+	}
+	return builder.timestamp
+}
+
+// NewCollectionSetBuilder returns a new CollectionSet builder
+func NewCollectionSetBuilder(agent *CollectionAgentDTO) *CollectionSetBuilder {
+	builder := &CollectionSetBuilder{
+		Agent:                agent,
+		attributesByResource: make(map[*CollectionResourceDTO][]ResourceAttributeDTO),
+	}
+	return builder
 }
