@@ -3,11 +3,13 @@ package sink
 import (
 	"encoding/json"
 	"net"
+	"strconv"
 
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/netflow"
 	"github.com/golang/protobuf/proto"
+	"github.com/prometheus/client_golang/prometheus"
 
 	decoder "github.com/cloudflare/goflow/v3/decoders"
 	goflowMsg "github.com/cloudflare/goflow/v3/pb"
@@ -64,7 +66,8 @@ func (logger flowLogger) Debug(params ...interface{}) {}
 // NetflowModule represents a generic UDP forward module
 // It starts a UDP Listener, and forwards the received data to OpenNMS without alteration
 type NetflowModule struct {
-	Name      string
+	name      string
+	goflowID  string
 	sink      api.Sink
 	config    *api.MinionConfig
 	listener  *api.MinionListener
@@ -75,7 +78,7 @@ type NetflowModule struct {
 
 // GetID gets the ID of the sink module
 func (module *NetflowModule) GetID() string {
-	return module.Name
+	return module.name
 }
 
 // Start initiates a Netflow UDP receiver
@@ -83,9 +86,9 @@ func (module *NetflowModule) Start(config *api.MinionConfig, sink api.Sink) erro
 	module.stopping = false
 	module.sink = sink
 	module.config = config
-	module.listener = config.GetListener(module.Name)
+	module.listener = config.GetListener(module.name)
 	if module.listener == nil {
-		log.Warnf("Flow Module %s disabled", module.Name)
+		log.Warnf("Flow Module %s disabled", module.name)
 		return nil
 	}
 	var err error
@@ -94,11 +97,13 @@ func (module *NetflowModule) Start(config *api.MinionConfig, sink api.Sink) erro
 	}
 	var handler = module.getDecoderHandler()
 	if handler == nil {
-		log.Warnf("Flow Module %s disabled", module.Name)
+		log.Warnf("Flow Module %s disabled", module.name)
 		return nil
 	}
-	log.Infof("Starting %s flow receiver on port UDP %d", module.Name, module.listener.Port)
+	log.Infof("Starting %s flow receiver on port UDP %d", module.name, module.listener.Port)
 	module.startProcessor(handler)
+
+	localIP := module.conn.LocalAddr().String()
 
 	go func() {
 		payload := make([]byte, 9000)
@@ -106,7 +111,7 @@ func (module *NetflowModule) Start(config *api.MinionConfig, sink api.Sink) erro
 			size, pktAddr, err := module.conn.ReadFromUDP(payload)
 			if err != nil {
 				if !module.stopping {
-					log.Errorf("%s Cannot read from UDP: %s", module.Name, err)
+					log.Errorf("%s Cannot read from UDP: %s", module.name, err)
 				}
 				continue
 			}
@@ -118,6 +123,35 @@ func (module *NetflowModule) Start(config *api.MinionConfig, sink api.Sink) erro
 				Payload: payloadCut,
 			}
 			module.processor.ProcessMessage(baseMessage)
+			if module.config.StatsPort > 0 {
+				goflow.MetricTrafficBytes.With(
+					prometheus.Labels{
+						"remote_ip":   pktAddr.IP.String(),
+						"remote_port": strconv.Itoa(pktAddr.Port),
+						"local_ip":    localIP,
+						"local_port":  strconv.Itoa(module.listener.Port),
+						"type":        module.goflowID,
+					}).
+					Add(float64(size))
+				goflow.MetricTrafficPackets.With(
+					prometheus.Labels{
+						"remote_ip":   pktAddr.IP.String(),
+						"remote_port": strconv.Itoa(pktAddr.Port),
+						"local_ip":    localIP,
+						"local_port":  strconv.Itoa(module.listener.Port),
+						"type":        module.goflowID,
+					}).
+					Inc()
+				goflow.MetricPacketSizeSum.With(
+					prometheus.Labels{
+						"remote_ip":   pktAddr.IP.String(),
+						"remote_port": strconv.Itoa(pktAddr.Port),
+						"local_ip":    localIP,
+						"local_port":  strconv.Itoa(module.listener.Port),
+						"type":        module.goflowID,
+					}).
+					Observe(float64(size))
+			}
 		}
 	}()
 	return nil
@@ -125,7 +159,7 @@ func (module *NetflowModule) Start(config *api.MinionConfig, sink api.Sink) erro
 
 // Stop shutdowns the sink module
 func (module *NetflowModule) Stop() {
-	log.Warnf("Stopping %s flow receiver", module.Name)
+	log.Warnf("Stopping %s flow receiver", module.name)
 	module.stopping = true
 	if module.processor != nil {
 		module.processor.Stop()
@@ -137,7 +171,7 @@ func (module *NetflowModule) Stop() {
 
 // Publish represents the Transport interface implementation used by goflow
 func (module *NetflowModule) Publish(msgs []*goflowMsg.FlowMessage) {
-	log.Debugf("Received %d %s messages", len(msgs), module.Name)
+	log.Debugf("Received %d %s messages", len(msgs), module.name)
 	for _, flowmsg := range msgs {
 		if flowmsg.Type == goflowMsg.FlowMessage_SFLOW_5 {
 			// DEBUG: start
@@ -194,7 +228,7 @@ func (module *NetflowModule) startProcessor(handler decoder.DecoderFunc) {
 		DoneCallback:  goflow.DefaultAccountCallback,
 		ErrorCallback: ecb.Callback,
 	}
-	processor := decoder.CreateProcessor(1, decoderParams, module.Name)
+	processor := decoder.CreateProcessor(1, decoderParams, module.goflowID)
 	module.processor = &processor
 	module.processor.Start()
 }
@@ -253,10 +287,10 @@ func (module *NetflowModule) convertToNetflow(flowmsg *goflowMsg.FlowMessage) *n
 	return msg
 }
 
-var netflow5Module = &NetflowModule{Name: "Netflow-5"}
-var netflow9Module = &NetflowModule{Name: "Netflow-9"}
-var ipfixModule = &NetflowModule{Name: "IPFIX"}
-var sflowModule = &NetflowModule{Name: "SFlow"}
+var netflow5Module = &NetflowModule{name: "Netflow-5", goflowID: "NetFlowV5"}
+var netflow9Module = &NetflowModule{name: "Netflow-9", goflowID: "NetFlow"}
+var ipfixModule = &NetflowModule{name: "IPFIX", goflowID: "NetFlow"}
+var sflowModule = &NetflowModule{name: "SFlow", goflowID: "sFlow"}
 
 func init() {
 	api.RegisterSinkModule(netflow5Module)
