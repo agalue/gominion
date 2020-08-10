@@ -9,9 +9,10 @@ import (
 
 // MinionListener represents a Minion Listener
 type MinionListener struct {
-	Name   string `yaml:"name" json:"name"`
-	Parser string `yaml:"parser" json:"parser"`
-	Port   int    `yaml:"port" json:"port"`
+	Name       string            `yaml:"name" json:"name"`
+	Parser     string            `yaml:"parser" json:"parser"`
+	Port       int               `yaml:"port" json:"port"`
+	Properties map[string]string `yaml:"properties,omitempty" json:"properties,omitempty"`
 }
 
 // GetParser returns the simple class name for the parser implementation
@@ -37,6 +38,7 @@ type MinionConfig struct {
 	BrokerProperties map[string]string `yaml:"brokerProperties,omitempty" json:"brokerProperties,omitempty"`
 	TrapPort         int               `yaml:"trapPort" json:"traPort"`
 	SyslogPort       int               `yaml:"syslogPort" json:"syslogPort"`
+	StatsPort        int               `yaml:"statsPort" json:"statsPort"`
 	LogLevel         string            `yaml:"logLevel" json:"logLevel"`
 	Listeners        []MinionListener  `yaml:"listeners,omitempty" json:"listeners,omitempty"`
 }
