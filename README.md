@@ -93,4 +93,23 @@ listeners:
 
 On the above example, `grpc-server` can be a standalone one, or the one embedded with OpenNMS.
 
-> *WARNING:* TLS for gRPC server is not supported.
+For Transport TLS:
+
+```yaml
+brokerUrl: grpc-server:8990
+brokerProperties:
+  tls-enabled: "true"
+  server-certificate-file: "/etc/server.crt"
+```
+
+Or,
+
+```yaml
+brokerUrl: grpc-server:8990
+brokerProperties:
+  tls-enabled: "true"
+  server-certificate: +|
+  -----BEGIN CERTIFICATE-----
+  ...
+  -----END CERTIFICATE-----
+```
