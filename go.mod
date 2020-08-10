@@ -11,10 +11,12 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/golang/protobuf v1.4.2
 	github.com/google/uuid v1.1.1
+	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/libp2p/go-reuseport v0.0.2 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/pelletier/go-toml v1.8.0 // indirect
+	github.com/prometheus/client_golang v1.7.1
 	github.com/prometheus/common v0.11.1 // indirect
 	github.com/soniah/gosnmp v1.27.0
 	github.com/spf13/afero v1.3.3 // indirect
@@ -32,5 +34,6 @@ require (
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/ini.v1 v1.57.0 // indirect
 	gopkg.in/mcuadros/go-syslog.v2 v2.3.0
+	gopkg.in/yaml.v2 v2.3.0
 	gotest.tools v2.2.0+incompatible
 )

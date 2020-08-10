@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 
@@ -11,11 +12,13 @@ import (
 	"github.com/agalue/gominion/detectors"
 	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/monitors"
+
 	_ "github.com/agalue/gominion/rpc"  // Load all RPC modules
 	_ "github.com/agalue/gominion/sink" // Load all Sink modules
 
 	homedir "github.com/mitchellh/go-homedir"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -69,6 +72,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&minionConfig.BrokerURL, "brokerUrl", "b", minionConfig.BrokerURL, "Broker URL")
 	rootCmd.Flags().IntVarP(&minionConfig.TrapPort, "trapPort", "t", minionConfig.TrapPort, "SNMP Trap port")
 	rootCmd.Flags().IntVarP(&minionConfig.SyslogPort, "syslogPort", "s", minionConfig.SyslogPort, "Syslog port")
+	rootCmd.Flags().IntVarP(&minionConfig.StatsPort, "statsPort", "S", minionConfig.StatsPort, "HTTP Prometheus exporter statistics port")
 	rootCmd.Flags().StringArrayVarP(&listeners, "listener", "L", nil, "Flow/Telemetry listeners\ne.x. -L Graphite,2003,ForwardParser -L NXOS,5000,NxosGrpcParser")
 	rootCmd.Flags().StringVarP(&minionConfig.LogLevel, "logLevel", "x", minionConfig.LogLevel, "Logging level")
 
@@ -130,6 +134,17 @@ func rootHandler(cmd *cobra.Command, args []string) {
 	}
 	// Display loaded modules
 	displayRegisteredModules()
+	// Start statistics server
+	if minionConfig.StatsPort > 0 {
+		go func() {
+			log.Infof("Starting Prometheus Metrics server on port %d", minionConfig.StatsPort)
+			http.Handle("/", promhttp.Handler())
+			err := http.ListenAndServe(fmt.Sprintf(":%d", minionConfig.StatsPort), nil)
+			if err != nil {
+				log.Fatalf("Cannot start prometheus HTTP server: %v", err)
+			}
+		}()
+	}
 	// Start client
 	client := broker.GetBroker(minionConfig)
 	if client == nil {
