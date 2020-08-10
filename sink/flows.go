@@ -98,9 +98,9 @@ func (module *NetflowModule) Start(config *api.MinionConfig, sink api.Sink) erro
 		return nil
 	}
 	log.Infof("Starting %s flow receiver on port UDP %d", module.Name, module.listener.Port)
+	module.startProcessor(handler)
 
 	go func() {
-		module.startProcessor(handler)
 		payload := make([]byte, 9000)
 		for {
 			size, pktAddr, err := module.conn.ReadFromUDP(payload)
@@ -242,12 +242,12 @@ func (module *NetflowModule) convertToNetflow(flowmsg *goflowMsg.FlowMessage) *n
 		LastSwitched:      &wrappers.UInt64Value{Value: flowmsg.TimeFlowEnd * 1000},
 		TcpFlags:          &wrappers.UInt32Value{Value: flowmsg.TCPFlags},
 		Protocol:          &wrappers.UInt32Value{Value: flowmsg.Proto},
+		IpProtocolVersion: &wrappers.UInt32Value{Value: flowmsg.Etype},
 		Tos:               &wrappers.UInt32Value{Value: flowmsg.IPTos},
 		FlowSeqNum:        &wrappers.UInt64Value{Value: uint64(flowmsg.SequenceNum)},
 		SamplingInterval:  &wrappers.DoubleValue{Value: float64(flowmsg.SamplingRate)},
 		NumBytes:          &wrappers.UInt64Value{Value: flowmsg.Bytes},
 		NumPackets:        &wrappers.UInt64Value{Value: flowmsg.Packets},
-		EngineType:        &wrappers.UInt32Value{Value: flowmsg.Etype},
 		Vlan:              &wrappers.UInt32Value{Value: flowmsg.VlanId},
 	}
 	return msg
