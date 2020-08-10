@@ -14,15 +14,15 @@ import (
 	"github.com/google/uuid"
 )
 
-func sendResponse(moduleID string, config *api.MinionConfig, broker api.Broker, object interface{}) {
+func sendResponse(moduleID string, config *api.MinionConfig, sink api.Sink, object interface{}) {
 	bytes, err := xml.MarshalIndent(object, "", "   ")
 	if err != nil {
 		log.Errorf("Cannot parse Sink API response: %v", err)
 	}
-	sendBytes(moduleID, config, broker, bytes)
+	sendBytes(moduleID, config, sink, bytes)
 }
 
-func sendBytes(moduleID string, config *api.MinionConfig, broker api.Broker, bytes []byte) {
+func sendBytes(moduleID string, config *api.MinionConfig, sink api.Sink, bytes []byte) {
 	msg := &ipc.SinkMessage{
 		MessageId: uuid.New().String(),
 		ModuleId:  moduleID,
@@ -30,10 +30,10 @@ func sendBytes(moduleID string, config *api.MinionConfig, broker api.Broker, byt
 		Location:  config.Location,
 		Content:   bytes,
 	}
-	if broker == nil {
+	if sink == nil {
 		return
 	}
-	if err := broker.Send(msg); err != nil {
+	if err := sink.Send(msg); err != nil {
 		log.Errorf("%s cannot send message via Sink API: %v", moduleID, err)
 	}
 }

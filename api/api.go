@@ -4,6 +4,13 @@ import (
 	"github.com/agalue/gominion/protobuf/ipc"
 )
 
+// Sink represents the broker functionality for sending messages to the Sink API
+type Sink interface {
+
+	// Sends a Sink Message to OpenNMS
+	Send(msg *ipc.SinkMessage) error
+}
+
 // Broker represents a broker implementation
 type Broker interface {
 
@@ -12,9 +19,6 @@ type Broker interface {
 
 	// Shutdown the broker
 	Stop()
-
-	// Sends a Sink Message to OpenNMS
-	Send(msg *ipc.SinkMessage) error
 }
 
 // SinkModule represents the Sink Module interface
@@ -24,7 +28,7 @@ type SinkModule interface {
 	GetID() string
 
 	// Starts the Sink Module
-	Start(config *MinionConfig, broker Broker) error
+	Start(config *MinionConfig, sink Sink) error
 
 	// Shutdown the Sink Module
 	Stop()

@@ -16,12 +16,12 @@ func (module *HeartbeatModule) GetID() string {
 }
 
 // Start initiates a blocking loop that sends heartbeats to OpenNMS
-func (module *HeartbeatModule) Start(config *api.MinionConfig, broker api.Broker) error {
+func (module *HeartbeatModule) Start(config *api.MinionConfig, sink api.Sink) error {
 	log.Infof("Starting Sink Heartbeat Module")
 	go func() {
 		for {
 			log.Infof("Sending heartbeat for Minion with id %s at location %s", config.ID, config.Location)
-			sendResponse(module.GetID(), config, broker, module.getIdentity(config))
+			sendResponse(module.GetID(), config, sink, module.getIdentity(config))
 			time.Sleep(30 * time.Second)
 		}
 	}()

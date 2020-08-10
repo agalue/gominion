@@ -14,7 +14,7 @@ import (
 
 // NxosGrpcModule represents the Cisco Nexus NX-OS Telemetry module via gRPC
 type NxosGrpcModule struct {
-	broker api.Broker
+	sink   api.Sink
 	config *api.MinionConfig
 	server *grpc.Server
 	port   int
@@ -26,7 +26,7 @@ func (module *NxosGrpcModule) GetID() string {
 }
 
 // Start initiates a gRPC Server for NX-OS telemetry
-func (module *NxosGrpcModule) Start(config *api.MinionConfig, broker api.Broker) error {
+func (module *NxosGrpcModule) Start(config *api.MinionConfig, sink api.Sink) error {
 	listener := config.GetListenerByParser("NxosGrpcParser")
 	if listener == nil || listener.Port == 0 {
 		log.Warnf("NX-OS Telemetry Module disabled")
@@ -34,7 +34,7 @@ func (module *NxosGrpcModule) Start(config *api.MinionConfig, broker api.Broker)
 	}
 
 	module.config = config
-	module.broker = broker
+	module.sink = sink
 	module.port = listener.Port
 
 	module.server = grpc.NewServer()
@@ -83,7 +83,7 @@ func (module *NxosGrpcModule) MdtDialout(stream mdt_dialout.GRPCMdtDialout_MdtDi
 		}
 		log.Debugf("Received request with ID %d of %d bytes from %s\n", dialoutArgs.ReqId, len(dialoutArgs.Data), peer.Addr)
 		if bytes := wrapMessageToTelemetry(module.config, peer.Addr.String(), uint32(module.port), dialoutArgs.Data); bytes != nil {
-			sendBytes(module.GetID(), module.config, module.broker, bytes)
+			sendBytes(module.GetID(), module.config, module.sink, bytes)
 		}
 	}
 }

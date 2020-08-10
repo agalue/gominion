@@ -12,19 +12,12 @@ import (
 	"gotest.tools/assert"
 )
 
-type MockBroker struct {
+type MockSink struct {
 	messages []*ipc.SinkMessage
 }
 
-func (broker *MockBroker) Start(cfg *api.MinionConfig) error {
-	return nil
-}
-
-func (broker *MockBroker) Stop() {
-}
-
-func (broker *MockBroker) Send(msg *ipc.SinkMessage) error {
-	broker.messages = append(broker.messages, msg)
+func (sink *MockSink) Send(msg *ipc.SinkMessage) error {
+	sink.messages = append(sink.messages, msg)
 	return nil
 }
 
@@ -35,14 +28,14 @@ type Person struct {
 }
 
 func TestSendResponse(t *testing.T) {
-	broker := new(MockBroker)
+	sink := new(MockSink)
 	config := &api.MinionConfig{ID: "minion1", Location: "Test"}
 	object := Person{FirstName: "Alejandro", LastName: "Galue"}
 
-	sendResponse("Test", config, broker, object)
+	sendResponse("Test", config, sink, object)
 
-	assert.Equal(t, 1, len(broker.messages))
-	msg := broker.messages[0]
+	assert.Equal(t, 1, len(sink.messages))
+	msg := sink.messages[0]
 	assert.Equal(t, config.ID, msg.SystemId)
 
 	received := &Person{}

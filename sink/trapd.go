@@ -15,7 +15,7 @@ import (
 
 // SnmpTrapModule represents the SNMP trap receiver module
 type SnmpTrapModule struct {
-	broker   api.Broker
+	sink     api.Sink
 	config   *api.MinionConfig
 	listener *gosnmp.TrapListener
 }
@@ -26,7 +26,7 @@ func (module *SnmpTrapModule) GetID() string {
 }
 
 // Start initiates a Syslog UDP and TCP receiver
-func (module *SnmpTrapModule) Start(config *api.MinionConfig, broker api.Broker) error {
+func (module *SnmpTrapModule) Start(config *api.MinionConfig, sink api.Sink) error {
 	if config.TrapPort == 0 {
 		log.Warnf("Trap Module disabled")
 		return nil
@@ -35,7 +35,7 @@ func (module *SnmpTrapModule) Start(config *api.MinionConfig, broker api.Broker)
 	log.Infof("Starting SNMP Trap receiver on port UDP %d", config.TrapPort)
 
 	module.config = config
-	module.broker = broker
+	module.sink = sink
 	module.listener = gosnmp.NewTrapListener()
 	module.listener.OnNewTrap = module.trapHandler
 	module.listener.Params = gosnmp.Default
@@ -113,7 +113,7 @@ func (module *SnmpTrapModule) trapHandler(packet *gosnmp.SnmpPacket, addr *net.U
 	}
 
 	trapLog.AddTrap(trap)
-	sendResponse(module.GetID(), module.config, module.broker, trapLog)
+	sendResponse(module.GetID(), module.config, module.sink, trapLog)
 }
 
 func (module *SnmpTrapModule) extractTrapIdentity(pdu gosnmp.SnmpPDU) *api.TrapIdentityDTO {

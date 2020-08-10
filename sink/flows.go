@@ -65,7 +65,7 @@ func (logger flowLogger) Debug(params ...interface{}) {}
 // It starts a UDP Listener, and forwards the received data to OpenNMS without alteration
 type NetflowModule struct {
 	Name      string
-	broker    api.Broker
+	sink      api.Sink
 	config    *api.MinionConfig
 	listener  *api.MinionListener
 	conn      *net.UDPConn
@@ -79,9 +79,9 @@ func (module *NetflowModule) GetID() string {
 }
 
 // Start initiates a Netflow UDP receiver
-func (module *NetflowModule) Start(config *api.MinionConfig, broker api.Broker) error {
+func (module *NetflowModule) Start(config *api.MinionConfig, sink api.Sink) error {
 	module.stopping = false
-	module.broker = broker
+	module.sink = sink
 	module.config = config
 	module.listener = config.GetListener(module.Name)
 	if module.listener == nil {
@@ -149,7 +149,7 @@ func (module *NetflowModule) Publish(msgs []*goflowMsg.FlowMessage) {
 			msg := module.convertToNetflow(flowmsg)
 			buffer, _ := proto.Marshal(msg)
 			if bytes := wrapMessageToTelemetry(module.config, net.IP(flowmsg.SamplerAddress).String(), uint32(module.listener.Port), buffer); bytes != nil {
-				sendBytes("Telemetry-"+module.listener.Name, module.config, module.broker, bytes)
+				sendBytes("Telemetry-"+module.listener.Name, module.config, module.sink, bytes)
 			}
 		}
 	}

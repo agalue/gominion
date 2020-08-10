@@ -14,7 +14,7 @@ import (
 
 // SyslogModule represents the heartbeat module
 type SyslogModule struct {
-	broker  api.Broker
+	sink    api.Sink
 	config  *api.MinionConfig
 	server  *syslog.Server
 	channel syslog.LogPartsChannel
@@ -26,7 +26,7 @@ func (module *SyslogModule) GetID() string {
 }
 
 // Start initiates a Syslog UDP and TCP receiver
-func (module *SyslogModule) Start(config *api.MinionConfig, broker api.Broker) error {
+func (module *SyslogModule) Start(config *api.MinionConfig, sink api.Sink) error {
 	if config.SyslogPort == 0 {
 		log.Warnf("Syslog Module disabled")
 		return nil
@@ -35,7 +35,7 @@ func (module *SyslogModule) Start(config *api.MinionConfig, broker api.Broker) e
 	log.Infof("Starting Syslog receiver on port UDP/TCP %d", config.SyslogPort)
 
 	module.config = config
-	module.broker = broker
+	module.sink = sink
 
 	listenAddr := fmt.Sprintf("0.0.0.0:%d", config.SyslogPort)
 	module.channel = make(syslog.LogPartsChannel)
@@ -54,7 +54,7 @@ func (module *SyslogModule) Start(config *api.MinionConfig, broker api.Broker) e
 	go func(channel syslog.LogPartsChannel) {
 		for logParts := range channel {
 			if messageLog := module.buildMessageLog(logParts); messageLog != nil {
-				sendResponse(module.GetID(), module.config, module.broker, messageLog)
+				sendResponse(module.GetID(), module.config, module.sink, messageLog)
 			}
 		}
 	}(module.channel)

@@ -14,7 +14,7 @@ const UDPForwardParser = "ForwardParser"
 // It starts a UDP Listener, and forwards the received data to OpenNMS without alteration
 type UDPForwardModule struct {
 	Name     string
-	broker   api.Broker
+	sink     api.Sink
 	config   *api.MinionConfig
 	conn     *net.UDPConn
 	stopping bool
@@ -26,7 +26,7 @@ func (module *UDPForwardModule) GetID() string {
 }
 
 // Start initiates a generic UDP receiver
-func (module *UDPForwardModule) Start(config *api.MinionConfig, broker api.Broker) error {
+func (module *UDPForwardModule) Start(config *api.MinionConfig, sink api.Sink) error {
 	listener := config.GetListener(module.Name)
 	if listener == nil || !listener.Is(UDPForwardParser) {
 		log.Warnf("UDP Module %s disabled", module.Name)
@@ -35,7 +35,7 @@ func (module *UDPForwardModule) Start(config *api.MinionConfig, broker api.Broke
 
 	var err error
 	module.stopping = false
-	module.broker = broker
+	module.sink = sink
 	module.config = config
 
 	module.conn, err = createUDPListener(listener.Port)
@@ -57,7 +57,7 @@ func (module *UDPForwardModule) Start(config *api.MinionConfig, broker api.Broke
 			copy(payloadCut, payload[0:size])
 			log.Debugf("Received %d bytes from %s", size, pktAddr)
 			if bytes := wrapMessageToTelemetry(config, pktAddr.IP.String(), uint32(pktAddr.Port), payloadCut); bytes != nil {
-				sendBytes(module.GetID(), module.config, module.broker, bytes)
+				sendBytes(module.GetID(), module.config, module.sink, bytes)
 			}
 		}
 	}()
