@@ -13,7 +13,7 @@ const UDPForwardParser = "ForwardParser"
 // UDPForwardModule represents a generic UDP forward module
 // It starts a UDP Listener, and forwards the received data to OpenNMS without alteration
 type UDPForwardModule struct {
-	Name     string
+	name     string
 	sink     api.Sink
 	config   *api.MinionConfig
 	conn     *net.UDPConn
@@ -22,14 +22,14 @@ type UDPForwardModule struct {
 
 // GetID gets the ID of the sink module
 func (module *UDPForwardModule) GetID() string {
-	return module.Name
+	return module.name
 }
 
 // Start initiates a generic UDP receiver
 func (module *UDPForwardModule) Start(config *api.MinionConfig, sink api.Sink) error {
-	listener := config.GetListener(module.Name)
+	listener := config.GetListener(module.name)
 	if listener == nil || !listener.Is(UDPForwardParser) {
-		log.Warnf("UDP Module %s disabled", module.Name)
+		log.Warnf("UDP Module %s disabled", module.name)
 		return nil
 	}
 
@@ -42,14 +42,14 @@ func (module *UDPForwardModule) Start(config *api.MinionConfig, sink api.Sink) e
 	if err != nil {
 		return err
 	}
-	log.Infof("Starting %s receiver on port UDP %d", module.Name, config.TrapPort)
+	log.Infof("Starting %s receiver on port UDP %d", module.name, config.TrapPort)
 	go func() {
 		payload := make([]byte, 1024)
 		for {
 			size, pktAddr, err := module.conn.ReadFromUDP(payload)
 			if err != nil {
 				if !module.stopping {
-					log.Errorf("%s cannot read from UDP: %s", module.Name, err)
+					log.Errorf("%s cannot read from UDP: %s", module.name, err)
 				}
 				continue
 			}
@@ -66,14 +66,14 @@ func (module *UDPForwardModule) Start(config *api.MinionConfig, sink api.Sink) e
 
 // Stop shutdowns the sink module
 func (module *UDPForwardModule) Stop() {
-	log.Warnf("Stopping %s receiver", module.Name)
+	log.Warnf("Stopping %s receiver", module.name)
 	module.stopping = true
 	if module.conn != nil {
 		module.conn.Close()
 	}
 }
 
-var graphiteModule = &UDPForwardModule{Name: "Graphite"}
+var graphiteModule = &UDPForwardModule{name: "Graphite"}
 
 func init() {
 	api.RegisterSinkModule(graphiteModule)
