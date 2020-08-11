@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+var logger *zap.Logger
 var log *zap.SugaredLogger
 
 // Fatalf logs a formatted fatal message
@@ -45,6 +46,16 @@ func Debugf(format string, params ...interface{}) {
 	}
 }
 
+// GetLogger returns the zap logger
+func GetLogger() *zap.Logger {
+	return logger
+}
+
+// GetSugaredLogger returns the sugared zap logger
+func GetSugaredLogger() *zap.SugaredLogger {
+	return log
+}
+
 // InitLogger initializes the error logger
 func InitLogger(logLevel string) {
 	level := zap.NewAtomicLevel()
@@ -79,7 +90,8 @@ func InitLogger(logLevel string) {
 		OutputPaths:      []string{"stdout"},
 		ErrorOutputPaths: []string{"stderr"},
 	}
-	logger, err := config.Build()
+	var err error
+	logger, err = config.Build()
 	if err != nil {
 		panic(err)
 	}
