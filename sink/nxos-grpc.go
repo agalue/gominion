@@ -10,6 +10,7 @@ import (
 	"github.com/agalue/gominion/protobuf/mdt_dialout"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/peer"
+	"google.golang.org/grpc/status"
 )
 
 // NxosGrpcModule represents the Cisco Nexus NX-OS Telemetry module via gRPC
@@ -69,16 +70,17 @@ func (module *NxosGrpcModule) MdtDialout(stream mdt_dialout.GRPCMdtDialout_MdtDi
 	}
 	for {
 		dialoutArgs, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
-			if err == io.EOF {
-				log.Errorf("NX-OS session closed")
-			} else {
-				log.Errorf("NX-OS session error: %v", err)
+			if errStatus, ok := status.FromError(err); ok {
+				return status.Errorf(errStatus.Code(), "error while receiving NX-OS data: %v ", errStatus.Message())
 			}
-			continue
+			return fmt.Errorf("error while receiving NX-OS data: %v", err)
 		}
 		if len(dialoutArgs.Data) == 0 && len(dialoutArgs.Errors) != 0 {
-			log.Errorf("Received from client %s: %s\n", peer.Addr, dialoutArgs.Errors)
+			log.Errorf("Received zero data from client %s: %s\n", peer.Addr, dialoutArgs.Errors)
 			continue
 		}
 		log.Debugf("Received request with ID %d of %d bytes from %s\n", dialoutArgs.ReqId, len(dialoutArgs.Data), peer.Addr)
@@ -86,6 +88,8 @@ func (module *NxosGrpcModule) MdtDialout(stream mdt_dialout.GRPCMdtDialout_MdtDi
 			sendBytes(module.GetID(), module.config, module.sink, bytes)
 		}
 	}
+	log.Warnf("Terminating NX-OS handler")
+	return nil
 }
 
 var nxosGrpcModule = &NxosGrpcModule{}
