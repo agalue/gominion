@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"time"
 
 	"github.com/agalue/gominion/api"
@@ -14,6 +13,7 @@ import (
 	"github.com/agalue/gominion/protobuf/ipc"
 	"github.com/prometheus/client_golang/prometheus"
 
+	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 
 	"google.golang.org/grpc"
@@ -45,20 +45,20 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 	var err error
 
 	cli.config = config
-	options := []grpc.DialOption{grpc.WithBlock()}
+	options := []grpc.DialOption{
+		grpc.WithBlock(),
+		grpc.WithStreamInterceptor(grpc_zap.StreamClientInterceptor(log.GetLogger())),
+	}
 	if config.BrokerProperties == nil {
 		options = append(options, grpc.WithInsecure())
 	} else {
 		// TODO add client certificate for authentication
 		tlsEnabled, ok := config.BrokerProperties["tls-enabled"]
 		if ok && tlsEnabled == "true" {
-			systemRoots, err := cli.getCertPool()
+			cred, err := cli.getCredentials()
 			if err != nil {
 				return err
 			}
-			cred := credentials.NewTLS(&tls.Config{
-				RootCAs: systemRoots,
-			})
 			options = append(options, grpc.WithTransportCredentials(cred))
 		}
 	}
@@ -178,32 +178,21 @@ func (cli *GrpcClient) initPrometheusMetrics() {
 	)
 }
 
-func (cli *GrpcClient) getCertPool() (*x509.CertPool, error) {
-	systemRoots, err := x509.SystemCertPool()
-	if err != nil {
-		return nil, err
-	}
-	srvCert := make([]byte, 0)
+func (cli *GrpcClient) getCredentials() (credentials.TransportCredentials, error) {
 	if srvCertPath, ok := cli.config.BrokerProperties["server-certificate-path"]; ok {
-		data, err := ioutil.ReadFile(srvCertPath)
-		if err != nil {
-			return nil, fmt.Errorf("Cannot read server certificate from file %s: %v", srvCertPath, err)
-		}
-		srvCert = data
+		return credentials.NewClientTLSFromFile(srvCertPath, "")
 	}
-	if len(srvCert) == 0 {
-		if data, ok := cli.config.BrokerProperties["server-certificate"]; ok {
-			srvCert = []byte(data)
-		}
-	}
-	if len(srvCert) > 0 {
-		cert, err := x509.ParseCertificate(srvCert)
+	if data, ok := cli.config.BrokerProperties["server-certificate"]; ok {
+		cert, err := x509.ParseCertificate([]byte(data))
 		if err != nil {
 			return nil, fmt.Errorf("Cannot parse server certificate: %v", err)
 		}
-		systemRoots.AddCert(cert)
+		tlsCert := &tls.Certificate{
+			Certificate: [][]byte{cert.Raw},
+		}
+		return credentials.NewServerTLSFromCert(tlsCert), nil
 	}
-	return systemRoots, nil
+	return nil, fmt.Errorf("Cannot find server certificate")
 }
 
 func (cli *GrpcClient) startSinkStream() error {
