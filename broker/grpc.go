@@ -17,6 +17,7 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 )
@@ -234,7 +235,7 @@ func (cli *GrpcClient) startRPCStream() error {
 					break
 				}
 				errStatus, _ := status.FromError(err)
-				if errStatus.Code().String() != "Unavailable" {
+				if errStatus.Code() != codes.Unavailable {
 					log.Errorf("Cannot receive RPC Request: code=%s, message=%s", errStatus.Code(), errStatus.Message())
 					cli.metricRPCReqReceivedFailed.WithLabelValues(request.ModuleId).Inc()
 				}
@@ -243,6 +244,7 @@ func (cli *GrpcClient) startRPCStream() error {
 		log.Warnf("Terminating RPC API handler")
 	}()
 
+	// Detect termination of the stream and try to restart it until success
 	go func() {
 		<-cli.rpcStream.Context().Done()
 		for {
