@@ -18,6 +18,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 )
@@ -75,7 +76,7 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 	cli.onms = ipc.NewOpenNMSIpcClient(cli.conn)
 
 	log.Infof("Starting Sink API Stream")
-	if err := cli.startSinkStream(); err != nil {
+	if err := cli.initSinkStream(); err != nil {
 		return err
 	}
 
@@ -86,7 +87,7 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 	}
 
 	log.Infof("Starting RPC API Stream")
-	if err := cli.startRPCStream(); err != nil {
+	if err := cli.initRPCStream(); err != nil {
 		return err
 	}
 
@@ -113,9 +114,9 @@ func (cli *GrpcClient) Stop() {
 
 // Send sends a Sink API message
 func (cli *GrpcClient) Send(msg *ipc.SinkMessage) error {
-	if cli.sinkStream == nil {
+	if cli.sinkStream == nil || cli.conn.GetState() != connectivity.Ready {
 		// Try to restart the Sink stream
-		if err := cli.startSinkStream(); err != nil {
+		if err := cli.initSinkStream(); err != nil {
 			return err
 		}
 	}
@@ -124,7 +125,7 @@ func (cli *GrpcClient) Send(msg *ipc.SinkMessage) error {
 		cli.metricSinkMsgDeliverySucceeded.WithLabelValues(msg.ModuleId).Inc()
 	} else if err == io.EOF {
 		// Try to restart the Sink stream on server error
-		cli.startSinkStream()
+		cli.initSinkStream()
 		return fmt.Errorf("Server unreachable; restarting Sink API Stream")
 	} else {
 		cli.metricSinkMsgDeliveryFailed.WithLabelValues(msg.ModuleId).Inc()
@@ -196,7 +197,7 @@ func (cli *GrpcClient) getCredentials() (credentials.TransportCredentials, error
 	return nil, fmt.Errorf("Cannot find server certificate")
 }
 
-func (cli *GrpcClient) startSinkStream() error {
+func (cli *GrpcClient) initSinkStream() error {
 	var err error
 	if cli.sinkStream != nil {
 		cli.sinkStream.CloseSend()
@@ -204,13 +205,13 @@ func (cli *GrpcClient) startSinkStream() error {
 
 	cli.sinkStream, err = cli.onms.SinkStreaming(context.Background())
 	if err != nil {
-		return fmt.Errorf("Cannot start Sink API Stream: %v", err)
+		return fmt.Errorf("Cannot initialize Sink API Stream: %v", err)
 	}
 
 	return nil
 }
 
-func (cli *GrpcClient) startRPCStream() error {
+func (cli *GrpcClient) initRPCStream() error {
 	var err error
 	if cli.rpcStream != nil {
 		cli.rpcStream.CloseSend()
@@ -218,11 +219,11 @@ func (cli *GrpcClient) startRPCStream() error {
 
 	cli.rpcStream, err = cli.onms.RpcStreaming(context.Background())
 	if err != nil {
-		return fmt.Errorf("Cannot start RPC API Stream: %v", err)
+		return fmt.Errorf("Cannot initialize RPC API Stream: %v", err)
 	}
 
 	go func() {
-		cli.sendHeaders()
+		cli.sendMinionHeaders()
 		for {
 			if cli.rpcStream == nil {
 				break
@@ -248,18 +249,17 @@ func (cli *GrpcClient) startRPCStream() error {
 	go func() {
 		<-cli.rpcStream.Context().Done()
 		for {
-			err := cli.startRPCStream()
-			if err == nil {
+			if err := cli.initRPCStream(); err == nil {
 				return
 			}
-			time.Sleep(5 * time.Second)
+			time.Sleep(1 * time.Second)
 		}
 	}()
 
 	return nil
 }
 
-func (cli *GrpcClient) sendHeaders() {
+func (cli *GrpcClient) sendMinionHeaders() {
 	headers := &ipc.RpcResponseProto{
 		ModuleId: "MINION_HEADERS",
 		Location: cli.config.Location,
