@@ -11,7 +11,14 @@ import (
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/ipc"
+
 	"github.com/prometheus/client_golang/prometheus"
+
+	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/uber/jaeger-client-go"
+	jaegercfg "github.com/uber/jaeger-client-go/config"
+	jaegerlog "github.com/uber/jaeger-client-go/log"
+	"github.com/uber/jaeger-lib/metrics"
 
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
@@ -25,11 +32,12 @@ import (
 
 // GrpcClient represents the gRPC client implementation
 type GrpcClient struct {
-	config     *api.MinionConfig
-	conn       *grpc.ClientConn
-	onms       ipc.OpenNMSIpcClient
-	rpcStream  ipc.OpenNMSIpc_RpcStreamingClient
-	sinkStream ipc.OpenNMSIpc_SinkStreamingClient
+	config      *api.MinionConfig
+	conn        *grpc.ClientConn
+	onms        ipc.OpenNMSIpcClient
+	rpcStream   ipc.OpenNMSIpc_RpcStreamingClient
+	sinkStream  ipc.OpenNMSIpc_SinkStreamingClient
+	traceCloser io.Closer
 
 	// Prometheus metrics per module
 	metricSinkMsgDeliverySucceeded *prometheus.CounterVec // Sink messages successfully delivered
@@ -44,13 +52,18 @@ type GrpcClient struct {
 
 // Start initializes the gRPC client
 func (cli *GrpcClient) Start(config *api.MinionConfig) error {
+	cli.config = config
 	var err error
 
-	cli.config = config
+	if err = cli.initTracing(); err != nil {
+		return err
+	}
+
 	options := []grpc.DialOption{
 		grpc.WithBlock(),
 		grpc.WithStreamInterceptor(grpc_zap.StreamClientInterceptor(log.GetLogger())),
 	}
+
 	if config.BrokerProperties == nil {
 		options = append(options, grpc.WithInsecure())
 	} else {
@@ -64,6 +77,7 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 			options = append(options, grpc.WithTransportCredentials(cred))
 		}
 	}
+
 	if config.StatsPort > 0 {
 		cli.initPrometheusMetrics()
 		options = append(options, grpc.WithStreamInterceptor(grpc_prometheus.StreamClientInterceptor))
@@ -109,6 +123,9 @@ func (cli *GrpcClient) Stop() {
 	if cli.conn != nil {
 		cli.conn.Close()
 	}
+	if cli.traceCloser != nil {
+		cli.traceCloser.Close()
+	}
 	log.Infof("Good bye")
 }
 
@@ -120,6 +137,7 @@ func (cli *GrpcClient) Send(msg *ipc.SinkMessage) error {
 			return err
 		}
 	}
+	trace := cli.buildSpanForSinkMessage(msg)
 	err := cli.sinkStream.Send(msg)
 	if err == nil {
 		cli.metricSinkMsgDeliverySucceeded.WithLabelValues(msg.ModuleId).Inc()
@@ -129,7 +147,10 @@ func (cli *GrpcClient) Send(msg *ipc.SinkMessage) error {
 		return fmt.Errorf("Server unreachable; restarting Sink API Stream")
 	} else {
 		cli.metricSinkMsgDeliveryFailed.WithLabelValues(msg.ModuleId).Inc()
+		trace.SetTag("failed", "true")
+		trace.LogKV("event", err.Error())
 	}
+	trace.Finish()
 	return err
 }
 
@@ -178,6 +199,29 @@ func (cli *GrpcClient) initPrometheusMetrics() {
 		cli.metricRPCResSentSucceeded,
 		cli.metricRPCResSentFailed,
 	)
+}
+
+func (cli *GrpcClient) initTracing() error {
+	cfg := jaegercfg.Configuration{
+		ServiceName: cli.config.Location + "@" + cli.config.ID,
+		Sampler: &jaegercfg.SamplerConfig{
+			Type:  jaeger.SamplerTypeConst,
+			Param: 1, // JAEGER_SAMPLER_PARAM
+		},
+		Reporter: &jaegercfg.ReporterConfig{
+			LogSpans: true,
+		},
+	}
+	tracer, closer, err := cfg.NewTracer(
+		jaegercfg.Logger(jaegerlog.NullLogger),
+		jaegercfg.Metrics(metrics.NullFactory),
+	)
+	if err != nil {
+		return err
+	}
+	opentracing.SetGlobalTracer(tracer)
+	cli.traceCloser = closer
+	return nil
 }
 
 func (cli *GrpcClient) getCredentials() (credentials.TransportCredentials, error) {
@@ -276,11 +320,14 @@ func (cli *GrpcClient) processRequest(request *ipc.RpcRequestProto) {
 	log.Debugf("Received RPC request with ID %s for module %s at location %s", request.RpcId, request.ModuleId, request.Location)
 	if module, ok := api.GetRPCModule(request.ModuleId); ok {
 		go func() {
+			trace := cli.buildSpanFromRPCMessage(request)
 			if response := module.Execute(request); response != nil {
 				cli.metricRPCReqProcessedSucceeded.WithLabelValues(request.ModuleId).Inc()
 				if err := cli.rpcStream.Send(response); err == nil {
 					cli.metricRPCResSentSucceeded.WithLabelValues(request.ModuleId).Inc()
 				} else {
+					trace.SetTag("failed", "true")
+					trace.LogKV("event", err.Error())
 					cli.metricRPCResSentFailed.WithLabelValues(request.ModuleId).Inc()
 					log.Errorf("Cannot send RPC response for module %s with ID %s: %v", request.ModuleId, request.RpcId, err)
 				}
@@ -288,8 +335,51 @@ func (cli *GrpcClient) processRequest(request *ipc.RpcRequestProto) {
 				log.Errorf("Module %s returned an empty response for request %s, ignoring", request.ModuleId, request.RpcId)
 				cli.metricRPCReqProcessedFailed.WithLabelValues(request.ModuleId).Inc()
 			}
+			trace.Finish()
 		}()
 	} else {
 		log.Errorf("Cannot find implementation for module %s, ignoring request with ID %s", request.ModuleId, request.RpcId)
 	}
+}
+
+func (cli *GrpcClient) buildSpanFromRPCMessage(request *ipc.RpcRequestProto) opentracing.Span {
+	tracer := opentracing.GlobalTracer()
+	tags := cli.getTagsForRPC(request)
+	ctx, err := tracer.Extract(opentracing.TextMap, request.TracingInfo)
+	if err == nil {
+		return tracer.StartSpan(request.ModuleId, opentracing.FollowsFrom(ctx), tags)
+	}
+	return tracer.StartSpan(request.ModuleId, tags)
+}
+
+func (cli *GrpcClient) getTagsForRPC(request *ipc.RpcRequestProto) opentracing.Tags {
+	var tags = opentracing.Tags{"location": request.Location}
+	if request.SystemId != "" {
+		tags["systemId"] = request.SystemId
+	}
+	for key, value := range request.TracingInfo {
+		tags[key] = value
+	}
+	return tags
+}
+
+func (cli *GrpcClient) buildSpanForSinkMessage(msg *ipc.SinkMessage) opentracing.Span {
+	tracer := opentracing.GlobalTracer()
+	tags := cli.getTagsForSink(msg)
+	ctx, err := tracer.Extract(opentracing.TextMap, msg.TracingInfo)
+	if err == nil {
+		return tracer.StartSpan(msg.ModuleId, opentracing.FollowsFrom(ctx), tags)
+	}
+	return tracer.StartSpan(msg.ModuleId, tags)
+}
+
+func (cli *GrpcClient) getTagsForSink(msg *ipc.SinkMessage) opentracing.Tags {
+	var tags = opentracing.Tags{"location": msg.Location}
+	if msg.SystemId != "" {
+		tags["systemId"] = msg.SystemId
+	}
+	for key, value := range msg.TracingInfo {
+		tags[key] = value
+	}
+	return tags
 }
