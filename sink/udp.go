@@ -42,7 +42,7 @@ func (module *UDPForwardModule) Start(config *api.MinionConfig, sink api.Sink) e
 	if err != nil {
 		return err
 	}
-	log.Infof("Starting %s receiver on port UDP %d", module.name, config.TrapPort)
+	log.Infof("Starting %s receiver on port UDP %d", module.name, listener.Port)
 	go func() {
 		payload := make([]byte, 1024)
 		for {
@@ -56,7 +56,7 @@ func (module *UDPForwardModule) Start(config *api.MinionConfig, sink api.Sink) e
 			payloadCut := make([]byte, size)
 			copy(payloadCut, payload[0:size])
 			log.Debugf("Received %d bytes from %s", size, pktAddr)
-			if bytes := wrapMessageToTelemetry(config, pktAddr.IP.String(), uint32(pktAddr.Port), payloadCut); bytes != nil {
+			if bytes := wrapMessageToTelemetry(module.config, pktAddr.IP.String(), uint32(pktAddr.Port), payloadCut); bytes != nil {
 				sendBytes(module.GetID(), module.config, module.sink, bytes)
 			}
 		}
