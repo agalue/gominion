@@ -54,7 +54,7 @@ func wrapMessageToTelemetry(config *api.MinionConfig, sourceAddress string, sour
 	}
 	bytes, err := proto.Marshal(logMsg)
 	if err != nil {
-		log.Errorf("Cannot serialize telemetry message: %v\n", err)
+		log.Errorf("Cannot serialize telemetry message: %v", err)
 		return nil
 	}
 	return bytes

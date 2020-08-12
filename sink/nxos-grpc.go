@@ -41,7 +41,7 @@ func (module *NxosGrpcModule) Start(config *api.MinionConfig, sink api.Sink) err
 	module.server = grpc.NewServer()
 	mdt_dialout.RegisterGRPCMdtDialoutServer(module.server, module)
 
-	log.Infof("Starting NX-OS telemetry gRPC server on port %d\n", listener.Port)
+	log.Infof("Starting NX-OS telemetry gRPC server on port %d", listener.Port)
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", listener.Port))
 	if err != nil {
 		return fmt.Errorf("Error cannot start TCP listener: %s", err)
@@ -66,7 +66,7 @@ func (module *NxosGrpcModule) Stop() {
 func (module *NxosGrpcModule) MdtDialout(stream mdt_dialout.GRPCMdtDialout_MdtDialoutServer) error {
 	peer, peerOK := peer.FromContext(stream.Context())
 	if peerOK {
-		log.Debugf("Accepted Cisco MDT GRPC dialout connection from %s\n", peer.Addr)
+		log.Debugf("Accepted Cisco MDT GRPC dialout connection from %s", peer.Addr)
 	}
 	for {
 		dialoutArgs, err := stream.Recv()
@@ -80,10 +80,10 @@ func (module *NxosGrpcModule) MdtDialout(stream mdt_dialout.GRPCMdtDialout_MdtDi
 			return fmt.Errorf("error while receiving NX-OS data: %v", err)
 		}
 		if len(dialoutArgs.Data) == 0 && len(dialoutArgs.Errors) != 0 {
-			log.Errorf("Received zero data from client %s: %s\n", peer.Addr, dialoutArgs.Errors)
+			log.Errorf("Received zero data from client %s: %s", peer.Addr, dialoutArgs.Errors)
 			continue
 		}
-		log.Debugf("Received request with ID %d of %d bytes from %s\n", dialoutArgs.ReqId, len(dialoutArgs.Data), peer.Addr)
+		log.Debugf("Received request with ID %d of %d bytes from %s", dialoutArgs.ReqId, len(dialoutArgs.Data), peer.Addr)
 		if bytes := wrapMessageToTelemetry(module.config, peer.Addr.String(), uint32(module.port), dialoutArgs.Data); bytes != nil {
 			sendBytes(module.GetID(), module.config, module.sink, bytes)
 		}

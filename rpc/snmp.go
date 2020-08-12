@@ -53,7 +53,7 @@ func (module *SNMPProxyRPCModule) snmpWalk(client api.SNMPHandler, walk api.SNMP
 			return nil
 		})
 		if err != nil {
-			log.Errorf("Cannot execute snmpwalk for %s: %v\n", effectiveOid, err)
+			log.Errorf("Cannot execute snmpwalk for %s: %v", effectiveOid, err)
 			return response
 		}
 	}
