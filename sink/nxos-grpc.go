@@ -10,7 +10,6 @@ import (
 	"github.com/agalue/gominion/protobuf/mdt_dialout"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/peer"
-	"google.golang.org/grpc/status"
 )
 
 // NxosGrpcModule represents the Cisco Nexus NX-OS Telemetry module via gRPC
@@ -64,9 +63,11 @@ func (module *NxosGrpcModule) Stop() {
 
 // MdtDialout implements Cisco NX-OS streaming telemetry service
 func (module *NxosGrpcModule) MdtDialout(stream mdt_dialout.GRPCMdtDialout_MdtDialoutServer) error {
+	ipaddr := "127.0.0.1"
 	peer, peerOK := peer.FromContext(stream.Context())
 	if peerOK {
 		log.Debugf("Accepted Cisco MDT GRPC dialout connection from %s", peer.Addr)
+		ipaddr = peer.Addr.String()
 	}
 	for {
 		dialoutArgs, err := stream.Recv()
@@ -74,17 +75,15 @@ func (module *NxosGrpcModule) MdtDialout(stream mdt_dialout.GRPCMdtDialout_MdtDi
 			break
 		}
 		if err != nil {
-			if errStatus, ok := status.FromError(err); ok {
-				return status.Errorf(errStatus.Code(), "error while receiving NX-OS data: %v ", errStatus.Message())
-			}
-			return fmt.Errorf("error while receiving NX-OS data: %v", err)
+			log.Errorf("Dialout receive error from client %s: %s", ipaddr, dialoutArgs.Errors)
+			return err
 		}
 		if len(dialoutArgs.Data) == 0 && len(dialoutArgs.Errors) != 0 {
-			log.Errorf("Received zero data from client %s: %s", peer.Addr, dialoutArgs.Errors)
-			continue
+			log.Errorf("Dialout error from client %s: %s", ipaddr, dialoutArgs.Errors)
+			break
 		}
-		log.Debugf("Received request with ID %d of %d bytes from %s", dialoutArgs.ReqId, len(dialoutArgs.Data), peer.Addr)
-		if bytes := wrapMessageToTelemetry(module.config, peer.Addr.String(), uint32(module.port), dialoutArgs.Data); bytes != nil {
+		log.Debugf("Received request with ID %d of %d bytes from %s", dialoutArgs.ReqId, len(dialoutArgs.Data), ipaddr)
+		if bytes := wrapMessageToTelemetry(module.config, ipaddr, uint32(module.port), dialoutArgs.Data); bytes != nil {
 			sendBytes(module.GetID(), module.config, module.sink, bytes)
 		}
 	}
