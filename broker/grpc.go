@@ -12,8 +12,6 @@ import (
 	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/ipc"
 
-	"github.com/prometheus/client_golang/prometheus"
-
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
@@ -38,22 +36,15 @@ type GrpcClient struct {
 	rpcStream   ipc.OpenNMSIpc_RpcStreamingClient
 	sinkStream  ipc.OpenNMSIpc_SinkStreamingClient
 	traceCloser io.Closer
-
-	// Prometheus metrics per module
-	metricSinkMsgDeliverySucceeded *prometheus.CounterVec // Sink messages successfully delivered
-	metricSinkMsgDeliveryFailed    *prometheus.CounterVec // Failed attempts to send Sink messages
-	metricRPCReqReceivedSucceeded  *prometheus.CounterVec // RPC requests successfully received
-	metricRPCReqReceivedFailed     *prometheus.CounterVec // Failed attempts to receive RPC requests
-	metricRPCReqProcessedSucceeded *prometheus.CounterVec // RPC requests successfully processed
-	metricRPCReqProcessedFailed    *prometheus.CounterVec // Failed attempts to process RPC requests
-	metricRPCResSentSucceeded      *prometheus.CounterVec // RPC responses successfully sent
-	metricRPCResSentFailed         *prometheus.CounterVec // Failed attempts to send RPC responses
+	metrics     Metrics
 }
 
 // Start initializes the gRPC client
 func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 	cli.config = config
 	var err error
+
+	cli.metrics = NewMetrics()
 
 	if err = cli.initTracing(); err != nil {
 		return err
@@ -79,7 +70,7 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 	}
 
 	if config.StatsPort > 0 {
-		cli.initPrometheusMetrics()
+		cli.metrics.Register()
 		options = append(options, grpc.WithStreamInterceptor(grpc_prometheus.StreamClientInterceptor))
 	}
 
@@ -141,63 +132,16 @@ func (cli *GrpcClient) Send(msg *ipc.SinkMessage) error {
 	defer trace.Finish()
 	err := cli.sinkStream.Send(msg)
 	if err == nil {
-		cli.metricSinkMsgDeliverySucceeded.WithLabelValues(msg.ModuleId).Inc()
+		cli.metrics.SinkMsgDeliverySucceeded.WithLabelValues(msg.ModuleId).Inc()
 		return nil
 	}
 	if err == io.EOF {
 		err = fmt.Errorf("Server unreachable")
 	}
-	cli.metricSinkMsgDeliveryFailed.WithLabelValues(msg.ModuleId).Inc()
+	cli.metrics.SinkMsgDeliveryFailed.WithLabelValues(msg.ModuleId).Inc()
 	trace.SetTag("failed", "true")
 	trace.LogKV("event", err.Error())
 	return err
-}
-
-// Initialize prometheus counters. Should be called once.
-func (cli *GrpcClient) initPrometheusMetrics() {
-	cli.metricSinkMsgDeliverySucceeded = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "onms_sink_messages_delivery_succeeded",
-		Help: "The total number of Sink messages successfully delivered per module",
-	}, []string{"module"})
-	cli.metricSinkMsgDeliveryFailed = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "onms_sink_messages_delivery_failed",
-		Help: "The total number of failed attempts to send Sink messages per module",
-	}, []string{"module"})
-	cli.metricRPCReqReceivedSucceeded = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "onms_rpc_requests_received_succeeded",
-		Help: "The total number of RPC requests successfully received per module",
-	}, []string{"module"})
-	cli.metricRPCReqReceivedFailed = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "onms_rpc_requests_received_failed",
-		Help: "The total number of failed attempts to receive RPC messages per module",
-	}, []string{"module"})
-	cli.metricRPCReqProcessedSucceeded = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "onms_rpc_requests_processed_succeeded",
-		Help: "The total number of RPC requests successfully processed per module",
-	}, []string{"module"})
-	cli.metricRPCReqProcessedFailed = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "onms_rpc_requests_processed_failed",
-		Help: "The total number of failed attempts to process RPC messages per module",
-	}, []string{"module"})
-	cli.metricRPCResSentSucceeded = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "onms_rpc_responses_sent_succeeded",
-		Help: "The total number of RPC responses successfully sent per module",
-	}, []string{"module"})
-	cli.metricRPCResSentFailed = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "onms_rpc_responses_sent_failed",
-		Help: "The total number of failed attempts to send RPC responses per module",
-	}, []string{"module"})
-
-	prometheus.MustRegister(
-		cli.metricSinkMsgDeliverySucceeded,
-		cli.metricSinkMsgDeliveryFailed,
-		cli.metricRPCReqReceivedSucceeded,
-		cli.metricRPCReqReceivedFailed,
-		cli.metricRPCReqProcessedSucceeded,
-		cli.metricRPCReqProcessedFailed,
-		cli.metricRPCResSentSucceeded,
-		cli.metricRPCResSentFailed,
-	)
 }
 
 func (cli *GrpcClient) initTracing() error {
@@ -273,7 +217,7 @@ func (cli *GrpcClient) initRPCStream() error {
 			}
 			if request, err := cli.rpcStream.Recv(); err == nil {
 				cli.processRequest(request)
-				cli.metricRPCReqReceivedSucceeded.WithLabelValues(request.ModuleId).Inc()
+				cli.metrics.RPCReqReceivedSucceeded.WithLabelValues(request.ModuleId).Inc()
 			} else {
 				if err == io.EOF {
 					break
@@ -281,7 +225,7 @@ func (cli *GrpcClient) initRPCStream() error {
 				if errStatus, _ := status.FromError(err); errStatus.Code() != codes.Unavailable {
 					log.Errorf("Cannot receive RPC Request: %v", err)
 				}
-				cli.metricRPCReqReceivedFailed.WithLabelValues(request.ModuleId).Inc()
+				cli.metrics.RPCReqReceivedFailed.WithLabelValues(request.ModuleId).Inc()
 			}
 		}
 		log.Warnf("Terminating RPC API handler")
@@ -321,10 +265,10 @@ func (cli *GrpcClient) processRequest(request *ipc.RpcRequestProto) {
 			trace := cli.startSpanFromRPCMessage(request)
 			var err error
 			if response := module.Execute(request); response != nil {
-				cli.metricRPCReqProcessedSucceeded.WithLabelValues(request.ModuleId).Inc()
+				cli.metrics.RPCReqProcessedSucceeded.WithLabelValues(request.ModuleId).Inc()
 				err = cli.sendResponse(response)
 			} else {
-				cli.metricRPCReqProcessedFailed.WithLabelValues(request.ModuleId).Inc()
+				cli.metrics.RPCReqProcessedFailed.WithLabelValues(request.ModuleId).Inc()
 				err = fmt.Errorf("Module %s returned an empty response for request %s, ignoring", request.ModuleId, request.RpcId)
 			}
 			if err != nil {
@@ -342,13 +286,13 @@ func (cli *GrpcClient) sendResponse(response *ipc.RpcResponseProto) error {
 	if cli.conn.GetState() == connectivity.Ready {
 		err := cli.rpcStream.Send(response)
 		if err == nil {
-			cli.metricRPCResSentSucceeded.WithLabelValues(response.ModuleId).Inc()
+			cli.metrics.RPCResSentSucceeded.WithLabelValues(response.ModuleId).Inc()
 			return nil
 		}
-		cli.metricRPCResSentFailed.WithLabelValues(response.ModuleId).Inc()
+		cli.metrics.RPCResSentFailed.WithLabelValues(response.ModuleId).Inc()
 		return fmt.Errorf("Cannot send RPC response for module %s with ID %s: %v", response.ModuleId, response.RpcId, err)
 	}
-	cli.metricRPCResSentFailed.WithLabelValues(response.ModuleId).Inc()
+	cli.metrics.RPCResSentFailed.WithLabelValues(response.ModuleId).Inc()
 	return fmt.Errorf("Cannot connect to the server, ignoring RPC request for module %s with ID %s", response.ModuleId, response.RpcId)
 }
 
