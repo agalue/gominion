@@ -340,7 +340,8 @@ func (cli *GrpcClient) processRequest(request *ipc.RpcRequestProto) {
 
 func (cli *GrpcClient) sendResponse(response *ipc.RpcResponseProto) error {
 	if cli.conn.GetState() == connectivity.Ready {
-		if err := cli.rpcStream.Send(response); err == nil {
+		err := cli.rpcStream.Send(response)
+		if err == nil {
 			cli.metricRPCResSentSucceeded.WithLabelValues(response.ModuleId).Inc()
 			return nil
 		}
