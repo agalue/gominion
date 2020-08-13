@@ -90,18 +90,18 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 	cli.onms = ipc.NewOpenNMSIpcClient(cli.conn)
 
 	log.Infof("Starting Sink API Stream")
-	if err := cli.initSinkStream(); err != nil {
+	if err = cli.initSinkStream(); err != nil {
 		return err
 	}
 
 	for _, module := range api.GetAllSinkModules() {
-		if err := module.Start(cli.config, cli); err != nil {
+		if err = module.Start(cli.config, cli); err != nil {
 			return fmt.Errorf("Cannot start Sink API module %s: %v", module.GetID(), err)
 		}
 	}
 
 	log.Infof("Starting RPC API Stream")
-	if err := cli.initRPCStream(); err != nil {
+	if err = cli.initRPCStream(); err != nil {
 		return err
 	}
 
@@ -129,7 +129,7 @@ func (cli *GrpcClient) Stop() {
 	log.Infof("Good bye")
 }
 
-// Send sends a Sink API message
+// Send sends a Sink API message to the server
 func (cli *GrpcClient) Send(msg *ipc.SinkMessage) error {
 	if cli.sinkStream == nil || cli.conn.GetState() != connectivity.Ready {
 		// Try to restart the Sink stream
@@ -142,16 +142,14 @@ func (cli *GrpcClient) Send(msg *ipc.SinkMessage) error {
 	err := cli.sinkStream.Send(msg)
 	if err == nil {
 		cli.metricSinkMsgDeliverySucceeded.WithLabelValues(msg.ModuleId).Inc()
-	} else if err == io.EOF {
-		// Try to restart the Sink stream on server error
-		cli.initSinkStream()
-		trace.SetTag("failed", "true")
-		return fmt.Errorf("Server unreachable; restarting Sink API Stream")
-	} else {
-		cli.metricSinkMsgDeliveryFailed.WithLabelValues(msg.ModuleId).Inc()
-		trace.SetTag("failed", "true")
-		trace.LogKV("event", err.Error())
+		return nil
 	}
+	if err == io.EOF {
+		err = fmt.Errorf("Server unreachable")
+	}
+	cli.metricSinkMsgDeliveryFailed.WithLabelValues(msg.ModuleId).Inc()
+	trace.SetTag("failed", "true")
+	trace.LogKV("event", err.Error())
 	return err
 }
 
@@ -270,27 +268,26 @@ func (cli *GrpcClient) initRPCStream() error {
 	go func() {
 		cli.sendMinionHeaders()
 		for {
-			if cli.rpcStream == nil {
+			if cli.rpcStream == nil || cli.conn.GetState() != connectivity.Ready {
 				break
 			}
 			if request, err := cli.rpcStream.Recv(); err == nil {
-				cli.metricRPCReqReceivedSucceeded.WithLabelValues(request.ModuleId).Inc()
 				cli.processRequest(request)
+				cli.metricRPCReqReceivedSucceeded.WithLabelValues(request.ModuleId).Inc()
 			} else {
 				if err == io.EOF {
 					break
 				}
-				errStatus, _ := status.FromError(err)
-				if errStatus.Code() != codes.Unavailable {
-					log.Errorf("Cannot receive RPC Request: code=%s, message=%s", errStatus.Code(), errStatus.Message())
-					cli.metricRPCReqReceivedFailed.WithLabelValues(request.ModuleId).Inc()
+				if errStatus, _ := status.FromError(err); errStatus.Code() != codes.Unavailable {
+					log.Errorf("Cannot receive RPC Request: %v", err)
 				}
+				cli.metricRPCReqReceivedFailed.WithLabelValues(request.ModuleId).Inc()
 			}
 		}
 		log.Warnf("Terminating RPC API handler")
 	}()
 
-	// Detect termination of the stream and try to restart it until success
+	// Detects the termination of the stream and try to restart it until success
 	go func() {
 		<-cli.rpcStream.Context().Done()
 		for {
@@ -343,8 +340,7 @@ func (cli *GrpcClient) processRequest(request *ipc.RpcRequestProto) {
 
 func (cli *GrpcClient) sendResponse(response *ipc.RpcResponseProto) error {
 	if cli.conn.GetState() == connectivity.Ready {
-		err := cli.rpcStream.Send(response)
-		if err == nil {
+		if err := cli.rpcStream.Send(response); err == nil {
 			cli.metricRPCResSentSucceeded.WithLabelValues(response.ModuleId).Inc()
 			return nil
 		}
