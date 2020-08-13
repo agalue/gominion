@@ -137,20 +137,21 @@ func (cli *GrpcClient) Send(msg *ipc.SinkMessage) error {
 			return err
 		}
 	}
-	trace := cli.buildSpanForSinkMessage(msg)
+	trace := cli.startSpanForSinkMessage(msg)
+	defer trace.Finish()
 	err := cli.sinkStream.Send(msg)
 	if err == nil {
 		cli.metricSinkMsgDeliverySucceeded.WithLabelValues(msg.ModuleId).Inc()
 	} else if err == io.EOF {
 		// Try to restart the Sink stream on server error
 		cli.initSinkStream()
+		trace.SetTag("failed", "true")
 		return fmt.Errorf("Server unreachable; restarting Sink API Stream")
 	} else {
 		cli.metricSinkMsgDeliveryFailed.WithLabelValues(msg.ModuleId).Inc()
 		trace.SetTag("failed", "true")
 		trace.LogKV("event", err.Error())
 	}
-	trace.Finish()
 	return err
 }
 
@@ -320,7 +321,7 @@ func (cli *GrpcClient) processRequest(request *ipc.RpcRequestProto) {
 	log.Debugf("Received RPC request with ID %s for module %s at location %s", request.RpcId, request.ModuleId, request.Location)
 	if module, ok := api.GetRPCModule(request.ModuleId); ok {
 		go func() {
-			trace := cli.buildSpanFromRPCMessage(request)
+			trace := cli.startSpanFromRPCMessage(request)
 			var err error
 			if response := module.Execute(request); response != nil {
 				cli.metricRPCReqProcessedSucceeded.WithLabelValues(request.ModuleId).Inc()
@@ -354,7 +355,7 @@ func (cli *GrpcClient) sendResponse(response *ipc.RpcResponseProto) error {
 	return fmt.Errorf("Cannot connect to the server, ignoring RPC request for module %s with ID %s", response.ModuleId, response.RpcId)
 }
 
-func (cli *GrpcClient) buildSpanFromRPCMessage(request *ipc.RpcRequestProto) opentracing.Span {
+func (cli *GrpcClient) startSpanFromRPCMessage(request *ipc.RpcRequestProto) opentracing.Span {
 	tracer := opentracing.GlobalTracer()
 	tags := cli.getTagsForRPC(request)
 	ctx, err := tracer.Extract(opentracing.TextMap, request.TracingInfo)
@@ -375,7 +376,7 @@ func (cli *GrpcClient) getTagsForRPC(request *ipc.RpcRequestProto) opentracing.T
 	return tags
 }
 
-func (cli *GrpcClient) buildSpanForSinkMessage(msg *ipc.SinkMessage) opentracing.Span {
+func (cli *GrpcClient) startSpanForSinkMessage(msg *ipc.SinkMessage) opentracing.Span {
 	tracer := opentracing.GlobalTracer()
 	tags := cli.getTagsForSink(msg)
 	ctx, err := tracer.Extract(opentracing.TextMap, msg.TracingInfo)
