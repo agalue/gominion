@@ -321,34 +321,37 @@ func (cli *GrpcClient) processRequest(request *ipc.RpcRequestProto) {
 	if module, ok := api.GetRPCModule(request.ModuleId); ok {
 		go func() {
 			trace := cli.buildSpanFromRPCMessage(request)
+			var err error
 			if response := module.Execute(request); response != nil {
 				cli.metricRPCReqProcessedSucceeded.WithLabelValues(request.ModuleId).Inc()
-				if cli.conn.GetState() == connectivity.Ready {
-					if err := cli.rpcStream.Send(response); err == nil {
-						cli.metricRPCResSentSucceeded.WithLabelValues(request.ModuleId).Inc()
-					} else {
-						trace.SetTag("failed", "true")
-						trace.LogKV("event", err.Error())
-						cli.metricRPCResSentFailed.WithLabelValues(request.ModuleId).Inc()
-						log.Errorf("Cannot send RPC response for module %s with ID %s: %v", request.ModuleId, request.RpcId, err)
-					}
-				} else {
-					log.Errorf("Cannot connect to the server, ignoring RPC request for module %s with ID %s", request.ModuleId, request.RpcId)
-					trace.SetTag("failed", "true")
-					trace.LogKV("event", "cannot connect to the server")
-					cli.metricRPCResSentFailed.WithLabelValues(request.ModuleId).Inc()
-				}
+				err = cli.sendResponse(response)
 			} else {
-				log.Errorf("Module %s returned an empty response for request %s, ignoring", request.ModuleId, request.RpcId)
 				cli.metricRPCReqProcessedFailed.WithLabelValues(request.ModuleId).Inc()
+				err = fmt.Errorf("Module %s returned an empty response for request %s, ignoring", request.ModuleId, request.RpcId)
+			}
+			if err != nil {
 				trace.SetTag("failed", "true")
-				trace.LogKV("event", "empty response")
+				trace.LogKV("event", err.Error())
 			}
 			trace.Finish()
 		}()
 	} else {
 		log.Errorf("Cannot find implementation for module %s, ignoring request with ID %s", request.ModuleId, request.RpcId)
 	}
+}
+
+func (cli *GrpcClient) sendResponse(response *ipc.RpcResponseProto) error {
+	if cli.conn.GetState() == connectivity.Ready {
+		err := cli.rpcStream.Send(response)
+		if err == nil {
+			cli.metricRPCResSentSucceeded.WithLabelValues(response.ModuleId).Inc()
+			return nil
+		}
+		cli.metricRPCResSentFailed.WithLabelValues(response.ModuleId).Inc()
+		return fmt.Errorf("Cannot send RPC response for module %s with ID %s: %v", response.ModuleId, response.RpcId, err)
+	}
+	cli.metricRPCResSentFailed.WithLabelValues(response.ModuleId).Inc()
+	return fmt.Errorf("Cannot connect to the server, ignoring RPC request for module %s with ID %s", response.ModuleId, response.RpcId)
 }
 
 func (cli *GrpcClient) buildSpanFromRPCMessage(request *ipc.RpcRequestProto) opentracing.Span {
