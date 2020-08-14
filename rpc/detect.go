@@ -19,7 +19,7 @@ func (module *DetectorClientRPCModule) GetID() string {
 	return "Detect"
 }
 
-// Execute executes the request synchronously and return the response from the module
+// Execute executes the detection request synchronously and return the response
 func (module *DetectorClientRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.RpcResponseProto {
 	req := &api.DetectorRequestDTO{}
 	if err := xml.Unmarshal(request.RpcContent, req); err != nil {

@@ -23,7 +23,7 @@ func (monitor *SNMPMonitor) GetID() string {
 	return "SnmpMonitor"
 }
 
-// Poll execute the monitor request and return the service status
+// Poll execute the SNMP monitor request and return the poller response
 func (monitor *SNMPMonitor) Poll(request *api.PollerRequestDTO) *api.PollerResponseDTO {
 	agent := &api.SNMPAgentDTO{}
 	response := &api.PollerResponseDTO{Status: &api.PollStatus{}}

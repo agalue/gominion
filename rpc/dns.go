@@ -19,7 +19,7 @@ func (module *DNSLookupClientRPCModule) GetID() string {
 	return "DNS"
 }
 
-// Execute executes the request synchronously and return the response from the module
+// Execute executes the DNS request synchronously and return the response
 func (module *DNSLookupClientRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.RpcResponseProto {
 	req := &api.DNSLookupRequestDTO{}
 	if err := xml.Unmarshal(request.RpcContent, req); err != nil {

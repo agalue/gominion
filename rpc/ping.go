@@ -19,7 +19,7 @@ func (module *PingProxyRPCModule) GetID() string {
 	return "PING"
 }
 
-// Execute executes the request synchronously and return the response from the module
+// Execute executes the ping request synchronously and return the response
 func (module *PingProxyRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.RpcResponseProto {
 	req := &api.PingRequest{}
 	if err := xml.Unmarshal(request.RpcContent, req); err != nil {

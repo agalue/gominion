@@ -19,7 +19,7 @@ func (module *SNMPProxyRPCModule) GetID() string {
 	return "SNMP"
 }
 
-// Execute executes the request synchronously and return the response from the module
+// Execute executes the SNMP request synchronously and return the response
 func (module *SNMPProxyRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.RpcResponseProto {
 	req := &api.SNMPRequestDTO{}
 	if err := xml.Unmarshal(request.RpcContent, req); err != nil {

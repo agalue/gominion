@@ -17,7 +17,7 @@ func (detector *TCPDetector) GetID() string {
 	return "TcpDetector"
 }
 
-// Detect execute the detector request and return the service status
+// Detect execute the TCP detector request and return the detection response
 func (detector *TCPDetector) Detect(request *api.DetectorRequestDTO) *api.DetectorResponseDTO {
 	results := &api.DetectorResponseDTO{Detected: false}
 

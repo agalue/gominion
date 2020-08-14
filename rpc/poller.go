@@ -19,7 +19,7 @@ func (module *PollerClientRPCModule) GetID() string {
 	return "Poller"
 }
 
-// Execute executes the request synchronously and return the response from the module
+// Execute executes the polling request synchronously and return the response
 func (module *PollerClientRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.RpcResponseProto {
 	req := &api.PollerRequestDTO{}
 	if err := xml.Unmarshal(request.RpcContent, req); err != nil {

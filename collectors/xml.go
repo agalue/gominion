@@ -18,12 +18,12 @@ const xmlCollectionAttr = "xmlDatacollection"
 type XMLCollector struct {
 }
 
-// GetID gets the detector ID (simple class name from its Java counterpart)
+// GetID gets the collector ID (simple class name from its Java counterpart)
 func (collector *XMLCollector) GetID() string {
 	return "XmlCollector"
 }
 
-// Collect execute the collector request and return the collection set
+// Collect execute the collector request and return the collection response
 func (collector *XMLCollector) Collect(request *api.CollectorRequestDTO) *api.CollectorResponseDTO {
 	response := &api.CollectorResponseDTO{}
 	xmlCollection := &api.XMLCollection{}

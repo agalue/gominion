@@ -16,7 +16,7 @@ func (monitor *ICMPMonitor) GetID() string {
 	return "IcmpMonitor"
 }
 
-// Poll execute the monitor request and return the service status
+// Poll execute the ICMP monitor request and return the the poller response
 func (monitor *ICMPMonitor) Poll(request *api.PollerRequestDTO) *api.PollerResponseDTO {
 	response := &api.PollerResponseDTO{Status: &api.PollStatus{}}
 	if duration, err := tools.Ping(request.IPAddress, request.GetTimeout()); err == nil {

@@ -20,7 +20,7 @@ func (detector *SNMPDetector) GetID() string {
 	return "SnmpDetector"
 }
 
-// Detect execute the detector request and return the service status
+// Detect execute the SNMP detector request and return the detection response
 func (detector *SNMPDetector) Detect(request *api.DetectorRequestDTO) *api.DetectorResponseDTO {
 	oid := request.GetAttributeValue("oid", defaultOID)
 	isTable := request.GetAttributeValue("isTable", "false")

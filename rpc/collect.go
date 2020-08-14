@@ -19,7 +19,7 @@ func (module *CollectorClientRPCModule) GetID() string {
 	return "Collect"
 }
 
-// Execute executes the request synchronously and return the response from the module
+// Execute executes the collection request synchronously and return the response
 func (module *CollectorClientRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.RpcResponseProto {
 	req := &api.CollectorRequestDTO{}
 	if err := xml.Unmarshal(request.RpcContent, req); err != nil {

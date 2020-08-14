@@ -13,7 +13,8 @@ func (monitor *JMXMonitor) GetID() string {
 	return "Jsr160Monitor"
 }
 
-// Poll execute the monitor request and return the service status
+// Poll execute the JMX monitor request and return the the poller response.
+// It only assumes the service is up for JMX-Minion; returns an error otherwise.
 func (monitor *JMXMonitor) Poll(request *api.PollerRequestDTO) *api.PollerResponseDTO {
 	response := &api.PollerResponseDTO{Status: &api.PollStatus{}}
 	// Whitelist JMX-Minion by default to avoid outages.

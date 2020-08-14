@@ -18,7 +18,7 @@ func (module *EchoRPCModule) GetID() string {
 	return "Echo"
 }
 
-// Execute executes the request synchronously and return the response from the module
+// Execute executes the echo request synchronously and return the response
 func (module *EchoRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.RpcResponseProto {
 	req := &api.EchoRequest{}
 	if err := xml.Unmarshal(request.RpcContent, req); err != nil {

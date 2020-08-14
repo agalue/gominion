@@ -19,12 +19,12 @@ const httpCollectionAttr = "httpCollection"
 type HTTPCollector struct {
 }
 
-// GetID gets the detector ID (simple class name from its Java counterpart)
+// GetID gets the collector ID (simple class name from its Java counterpart)
 func (collector *HTTPCollector) GetID() string {
 	return "HttpCollector"
 }
 
-// Collect execute the collector request and return the collection set
+// Collect execute the collector request and return the collection response
 func (collector *HTTPCollector) Collect(request *api.CollectorRequestDTO) *api.CollectorResponseDTO {
 	response := &api.CollectorResponseDTO{}
 	httpCollection := &api.HTTPCollection{}

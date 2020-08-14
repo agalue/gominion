@@ -12,12 +12,12 @@ type EmptyDetector struct {
 
 // GetID gets the detector ID (simple class name from its Java counterpart)
 func (detector *EmptyDetector) GetID() string {
-	return "EMPTY"
+	return "XXX"
 }
 
-// Detect execute the detector request and return the service status
+// Detect execute the XXX detector request and return the detection response
 func (detector *EmptyDetector) Detect(request *api.DetectorRequestDTO) *api.DetectorResponseDTO {
-	response := &api.DetectorResponseDTO{Detected: false}
+	response := &api.DetectorResponseDTO{Detected: false, Error: "Not Implemented"}
 	return response
 }
 

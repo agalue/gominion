@@ -18,7 +18,7 @@ func (monitor *TCPMonitor) GetID() string {
 	return "TcpMonitor"
 }
 
-// Poll execute the monitor request and return the service status
+// Poll execute the TCP monitor request and return the the poller response
 func (monitor *TCPMonitor) Poll(request *api.PollerRequestDTO) *api.PollerResponseDTO {
 	response := &api.PollerResponseDTO{Status: &api.PollStatus{}}
 	start := time.Now()

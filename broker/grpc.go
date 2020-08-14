@@ -271,7 +271,7 @@ func (cli *GrpcClient) sendMinionHeaders() {
 	}
 }
 
-// Processes an RPC API request sent by OpenNMS
+// Processes an RPC API request sent by OpenNMS asynchronously within a goroutine and sends back the response from the module.
 func (cli *GrpcClient) processRequest(request *ipc.RpcRequestProto) {
 	log.Debugf("Received RPC request with ID %s for module %s at location %s", request.RpcId, request.ModuleId, request.Location)
 	if module, ok := api.GetRPCModule(request.ModuleId); ok {

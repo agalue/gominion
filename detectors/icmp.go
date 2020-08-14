@@ -14,7 +14,7 @@ func (detector *ICMPDetector) GetID() string {
 	return "IcmpDetector"
 }
 
-// Detect execute the detector request and return the service status
+// Detect execute the ICMP detector request and return the detection response
 func (detector *ICMPDetector) Detect(request *api.DetectorRequestDTO) *api.DetectorResponseDTO {
 	results := &api.DetectorResponseDTO{}
 	if _, err := tools.Ping(request.IPAddress, request.GetTimeout()); err == nil {

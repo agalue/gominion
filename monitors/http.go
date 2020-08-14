@@ -25,7 +25,7 @@ func (monitor *HTTPMonitor) GetID() string {
 	return monitor.Name
 }
 
-// Poll execute the monitor request and return the service status
+// Poll execute the HTTP monitor request and return the the poller response
 func (monitor *HTTPMonitor) Poll(request *api.PollerRequestDTO) *api.PollerResponseDTO {
 	response := &api.PollerResponseDTO{Status: &api.PollStatus{}}
 	start := time.Now()

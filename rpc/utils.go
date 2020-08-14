@@ -8,8 +8,9 @@ import (
 	"github.com/agalue/gominion/protobuf/ipc"
 )
 
-func transformResponse(request *ipc.RpcRequestProto, object interface{}) *ipc.RpcResponseProto {
-	bytes, err := xml.MarshalIndent(object, "", "   ")
+// Builds the RPC Response based on the payload and the request
+func transformResponse(request *ipc.RpcRequestProto, payload interface{}) *ipc.RpcResponseProto {
+	bytes, err := xml.MarshalIndent(payload, "", "   ")
 	if err != nil {
 		log.Errorf("Cannot parse RPC content: %v", err)
 		return nil

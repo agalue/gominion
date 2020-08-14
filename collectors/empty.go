@@ -3,7 +3,7 @@ package collectors
 // Placeholder for implementing new collectors
 
 import (
-	"time"
+	"fmt"
 
 	"github.com/agalue/gominion/api"
 )
@@ -12,21 +12,15 @@ import (
 type EmptyCollector struct {
 }
 
-// GetID gets the detector ID (simple class name from its Java counterpart)
+// GetID gets the collector ID (simple class name from its Java counterpart)
 func (collector *EmptyCollector) GetID() string {
-	return "EMPTY"
+	return "XXX"
 }
 
-// Collect execute the collector request and return the collection set
-func (collector *EmptyCollector) Collect(request *api.CollectorRequestDTO) api.CollectorResponseDTO {
-	response := api.CollectorResponseDTO{
-		Error: "Not Implemented",
-		CollectionSet: &api.CollectionSetDTO{
-			Timestamp: &api.Timestamp{Time: time.Now()},
-			Status:    api.CollectionStatusUnknown,
-			Agent:     request.CollectionAgent,
-		},
-	}
+// Collect execute the XXX collector request and return the collection response
+func (collector *EmptyCollector) Collect(request *api.CollectorRequestDTO) *api.CollectorResponseDTO {
+	response := new(api.CollectorResponseDTO)
+	response.MarkAsFailed(request.CollectionAgent, fmt.Errorf("Not Implemented"))
 	return response
 }
 
