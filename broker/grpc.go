@@ -28,7 +28,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// GrpcClient represents the gRPC client implementation
+// GrpcClient represents the gRPC client implementation for the OpenNMS IPC API.
 type GrpcClient struct {
 	config      *api.MinionConfig
 	conn        *grpc.ClientConn
@@ -39,7 +39,8 @@ type GrpcClient struct {
 	metrics     Metrics
 }
 
-// Start initializes the gRPC client
+// Start initializes the gRPC client.
+// Returns an error when the configuration is incorrect or cannot connect to the server.
 func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 	cli.config = config
 	var err error
@@ -61,7 +62,7 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 		// TODO add client certificate for authentication
 		tlsEnabled, ok := config.BrokerProperties["tls-enabled"]
 		if ok && tlsEnabled == "true" {
-			cred, err := cli.getCredentials()
+			cred, err := cli.getTransportCredentials()
 			if err != nil {
 				return err
 			}
@@ -99,7 +100,7 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 	return nil
 }
 
-// Stop finilizes the gRPC client
+// Stop finalizes the gRPC client and all its dependencies.
 func (cli *GrpcClient) Stop() {
 	for _, module := range api.GetAllSinkModules() {
 		module.Stop()
@@ -120,13 +121,16 @@ func (cli *GrpcClient) Stop() {
 	log.Infof("Good bye")
 }
 
-// Send sends a Sink API message to the server
+// Send forwards a Sink API message to the OpenNMS gRPC server.
+// Attempts to restart the client when the stream is unavailable or the connection is not ready.
+// Messages are discarded when the server is unavailable.
 func (cli *GrpcClient) Send(msg *ipc.SinkMessage) error {
 	if cli.sinkStream == nil || cli.conn.GetState() != connectivity.Ready {
 		// Try to restart the Sink stream
 		if err := cli.initSinkStream(); err != nil {
 			return err
 		}
+		log.Warnf("Sink API stream restarted")
 	}
 	trace := cli.startSpanForSinkMessage(msg)
 	defer trace.Finish()
@@ -144,6 +148,8 @@ func (cli *GrpcClient) Send(msg *ipc.SinkMessage) error {
 	return err
 }
 
+// Initializes the OpenTracing integration using Jaeger.
+// Overrides the global tracer when Jaeger is available.
 func (cli *GrpcClient) initTracing() error {
 	cfg := jaegercfg.Configuration{
 		ServiceName: cli.config.Location + "@" + cli.config.ID,
@@ -167,23 +173,7 @@ func (cli *GrpcClient) initTracing() error {
 	return nil
 }
 
-func (cli *GrpcClient) getCredentials() (credentials.TransportCredentials, error) {
-	if srvCertPath, ok := cli.config.BrokerProperties["server-certificate-path"]; ok {
-		return credentials.NewClientTLSFromFile(srvCertPath, "")
-	}
-	if data, ok := cli.config.BrokerProperties["server-certificate"]; ok {
-		cert, err := x509.ParseCertificate([]byte(data))
-		if err != nil {
-			return nil, fmt.Errorf("Cannot parse server certificate: %v", err)
-		}
-		tlsCert := &tls.Certificate{
-			Certificate: [][]byte{cert.Raw},
-		}
-		return credentials.NewServerTLSFromCert(tlsCert), nil
-	}
-	return nil, fmt.Errorf("Cannot find server certificate")
-}
-
+// Initializes the Sink API stream
 func (cli *GrpcClient) initSinkStream() error {
 	var err error
 	if cli.sinkStream != nil {
@@ -198,6 +188,7 @@ func (cli *GrpcClient) initSinkStream() error {
 	return nil
 }
 
+// Initializes the RPC API stream
 func (cli *GrpcClient) initRPCStream() error {
 	var err error
 	if cli.rpcStream != nil {
@@ -209,6 +200,7 @@ func (cli *GrpcClient) initRPCStream() error {
 		return fmt.Errorf("Cannot initialize RPC API Stream: %v", err)
 	}
 
+	// Goroutine to handle RPC API requests from the gRPC server.
 	go func() {
 		cli.sendMinionHeaders()
 		for {
@@ -236,6 +228,7 @@ func (cli *GrpcClient) initRPCStream() error {
 		<-cli.rpcStream.Context().Done()
 		for {
 			if err := cli.initRPCStream(); err == nil {
+				log.Warnf("RPC API stream restarted")
 				return
 			}
 			time.Sleep(1 * time.Second)
@@ -245,6 +238,26 @@ func (cli *GrpcClient) initRPCStream() error {
 	return nil
 }
 
+// Gets the TLS transport credentials from a file or a string.
+func (cli *GrpcClient) getTransportCredentials() (credentials.TransportCredentials, error) {
+	if srvCertPath, ok := cli.config.BrokerProperties["server-certificate-path"]; ok {
+		return credentials.NewClientTLSFromFile(srvCertPath, "")
+	}
+	if data, ok := cli.config.BrokerProperties["server-certificate"]; ok {
+		cert, err := x509.ParseCertificate([]byte(data))
+		if err != nil {
+			return nil, fmt.Errorf("Cannot parse server certificate: %v", err)
+		}
+		tlsCert := &tls.Certificate{
+			Certificate: [][]byte{cert.Raw},
+		}
+		return credentials.NewServerTLSFromCert(tlsCert), nil
+	}
+	return nil, fmt.Errorf("Cannot find server certificate")
+}
+
+// Sends the Minion headers as an RPC API response, to register the Minion as a client.
+// Executes this every time the RPC API Stream is created.
 func (cli *GrpcClient) sendMinionHeaders() {
 	headers := &ipc.RpcResponseProto{
 		ModuleId: "MINION_HEADERS",
@@ -258,6 +271,7 @@ func (cli *GrpcClient) sendMinionHeaders() {
 	}
 }
 
+// Processes an RPC API request sent by OpenNMS
 func (cli *GrpcClient) processRequest(request *ipc.RpcRequestProto) {
 	log.Debugf("Received RPC request with ID %s for module %s at location %s", request.RpcId, request.ModuleId, request.Location)
 	if module, ok := api.GetRPCModule(request.ModuleId); ok {
@@ -282,6 +296,7 @@ func (cli *GrpcClient) processRequest(request *ipc.RpcRequestProto) {
 	}
 }
 
+// Sends an RPC API response to OpenNMS
 func (cli *GrpcClient) sendResponse(response *ipc.RpcResponseProto) error {
 	if cli.conn.GetState() == connectivity.Ready {
 		err := cli.rpcStream.Send(response)
@@ -296,6 +311,7 @@ func (cli *GrpcClient) sendResponse(response *ipc.RpcResponseProto) error {
 	return fmt.Errorf("Cannot connect to the server, ignoring RPC request for module %s with ID %s", response.ModuleId, response.RpcId)
 }
 
+// Starts a tracing span for an RPC API request
 func (cli *GrpcClient) startSpanFromRPCMessage(request *ipc.RpcRequestProto) opentracing.Span {
 	tracer := opentracing.GlobalTracer()
 	tags := cli.getTagsForRPC(request)
@@ -306,6 +322,7 @@ func (cli *GrpcClient) startSpanFromRPCMessage(request *ipc.RpcRequestProto) ope
 	return tracer.StartSpan(request.ModuleId, tags)
 }
 
+// Gets the tracing span tags for an RPC API request
 func (cli *GrpcClient) getTagsForRPC(request *ipc.RpcRequestProto) opentracing.Tags {
 	var tags = opentracing.Tags{"location": request.Location}
 	if request.SystemId != "" {
@@ -317,6 +334,7 @@ func (cli *GrpcClient) getTagsForRPC(request *ipc.RpcRequestProto) opentracing.T
 	return tags
 }
 
+// Starts a tracing span for a Sink API message
 func (cli *GrpcClient) startSpanForSinkMessage(msg *ipc.SinkMessage) opentracing.Span {
 	tracer := opentracing.GlobalTracer()
 	tags := cli.getTagsForSink(msg)
@@ -327,6 +345,7 @@ func (cli *GrpcClient) startSpanForSinkMessage(msg *ipc.SinkMessage) opentracing
 	return tracer.StartSpan(msg.ModuleId, tags)
 }
 
+// Gets the tracing span tags for a Sink API message
 func (cli *GrpcClient) getTagsForSink(msg *ipc.SinkMessage) opentracing.Tags {
 	var tags = opentracing.Tags{"location": msg.Location}
 	if msg.SystemId != "" {
