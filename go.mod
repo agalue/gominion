@@ -1,6 +1,6 @@
 module github.com/agalue/gominion
 
-go 1.14
+go 1.15
 
 require (
 	github.com/andybalholm/cascadia v1.2.0
@@ -12,7 +12,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/golang/protobuf v1.4.2
 	github.com/google/uuid v1.1.1
-	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
+	github.com/grpc-ecosystem/go-grpc-middleware v1.2.1
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/libp2p/go-reuseport v0.0.2 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
@@ -20,7 +20,7 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pelletier/go-toml v1.8.0 // indirect
 	github.com/prometheus/client_golang v1.7.1
-	github.com/prometheus/common v0.11.1 // indirect
+	github.com/prometheus/common v0.12.0 // indirect
 	github.com/soniah/gosnmp v1.27.0
 	github.com/spf13/afero v1.3.4 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
@@ -33,13 +33,13 @@ require (
 	go.uber.org/zap v1.15.0
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/net v0.0.0-20200813134508-3edf25e44fcc
-	golang.org/x/sys v0.0.0-20200812155832-6a926be9bd1d // indirect
+	golang.org/x/sys v0.0.0-20200814200057-3d37ad5750ed // indirect
 	golang.org/x/tools v0.0.0-20200813231717-0a73ddcff9b8 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	google.golang.org/genproto v0.0.0-20200814021100-8c09557e8a18 // indirect
+	google.golang.org/genproto v0.0.0-20200815001618-f69a88009b70 // indirect
 	google.golang.org/grpc v1.31.0
 	google.golang.org/protobuf v1.25.0
-	gopkg.in/ini.v1 v1.58.0 // indirect
+	gopkg.in/ini.v1 v1.60.0 // indirect
 	gopkg.in/mcuadros/go-syslog.v2 v2.3.0
 	gopkg.in/yaml.v2 v2.3.0
 	gotest.tools v2.2.0+incompatible
