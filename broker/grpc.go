@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/agalue/gominion/api"
@@ -29,6 +30,7 @@ import (
 )
 
 // GrpcClient represents the gRPC client implementation for the OpenNMS IPC API.
+// This should be equivalent to MinionGrpcClient.java
 type GrpcClient struct {
 	config      *api.MinionConfig
 	conn        *grpc.ClientConn
@@ -37,6 +39,8 @@ type GrpcClient struct {
 	sinkStream  ipc.OpenNMSIpc_SinkStreamingClient
 	traceCloser io.Closer
 	metrics     Metrics
+	sinkMutex   *sync.Mutex
+	rpcMutex    *sync.Mutex
 }
 
 // Start initializes the gRPC client.
@@ -46,6 +50,8 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 	var err error
 
 	cli.metrics = NewMetrics()
+	cli.sinkMutex = new(sync.Mutex)
+	cli.rpcMutex = new(sync.Mutex)
 
 	if err = cli.initTracing(); err != nil {
 		return err
@@ -134,7 +140,9 @@ func (cli *GrpcClient) Send(msg *ipc.SinkMessage) error {
 	}
 	trace := cli.startSpanForSinkMessage(msg)
 	defer trace.Finish()
+	cli.sinkMutex.Lock()
 	err := cli.sinkStream.Send(msg)
+	cli.sinkMutex.Unlock()
 	if err == nil {
 		cli.metrics.SinkMsgDeliverySucceeded.WithLabelValues(msg.ModuleId).Inc()
 		return nil
@@ -176,6 +184,10 @@ func (cli *GrpcClient) initTracing() error {
 // Initializes the Sink API stream
 func (cli *GrpcClient) initSinkStream() error {
 	var err error
+
+	cli.sinkMutex.Lock()
+	defer cli.sinkMutex.Unlock()
+
 	if cli.sinkStream != nil {
 		cli.sinkStream.CloseSend()
 	}
@@ -191,6 +203,10 @@ func (cli *GrpcClient) initSinkStream() error {
 // Initializes the RPC API stream
 func (cli *GrpcClient) initRPCStream() error {
 	var err error
+
+	cli.rpcMutex.Lock()
+	defer cli.rpcMutex.Unlock()
+
 	if cli.rpcStream != nil {
 		cli.rpcStream.CloseSend()
 	}
@@ -266,9 +282,11 @@ func (cli *GrpcClient) sendMinionHeaders() {
 		RpcId:    cli.config.ID,
 	}
 	log.Infof("Sending Minion Headers from SystemId %s to gRPC server", cli.config.ID)
+	cli.rpcMutex.Lock()
 	if err := cli.rpcStream.Send(headers); err != nil {
 		log.Errorf("Cannot send RPC headers: %v", err)
 	}
+	cli.rpcMutex.Unlock()
 }
 
 // Processes an RPC API request sent by OpenNMS asynchronously within a goroutine and sends back the response from the module.
@@ -298,8 +316,10 @@ func (cli *GrpcClient) processRequest(request *ipc.RpcRequestProto) {
 
 // Sends an RPC API response to OpenNMS
 func (cli *GrpcClient) sendResponse(response *ipc.RpcResponseProto) error {
-	if cli.conn.GetState() == connectivity.Ready {
+	if cli.rpcStream != nil && cli.conn.GetState() == connectivity.Ready {
+		cli.rpcMutex.Lock()
 		err := cli.rpcStream.Send(response)
+		cli.rpcMutex.Unlock()
 		if err == nil {
 			cli.metrics.RPCResSentSucceeded.WithLabelValues(response.ModuleId).Inc()
 			return nil
