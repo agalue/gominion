@@ -13,12 +13,6 @@ import (
 	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/ipc"
 
-	opentracing "github.com/opentracing/opentracing-go"
-	"github.com/uber/jaeger-client-go"
-	jaegercfg "github.com/uber/jaeger-client-go/config"
-	jaegerlog "github.com/uber/jaeger-client-go/log"
-	"github.com/uber/jaeger-lib/metrics"
-
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 
@@ -53,7 +47,7 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 	cli.sinkMutex = new(sync.Mutex)
 	cli.rpcMutex = new(sync.Mutex)
 
-	if err = cli.initTracing(); err != nil {
+	if cli.traceCloser, err = initTracing(cli.config); err != nil {
 		return err
 	}
 
@@ -138,7 +132,7 @@ func (cli *GrpcClient) Send(msg *ipc.SinkMessage) error {
 		}
 		log.Warnf("Sink API stream restarted")
 	}
-	trace := cli.startSpanForSinkMessage(msg)
+	trace := startSpanForSinkMessage(msg)
 	defer trace.Finish()
 	cli.sinkMutex.Lock()
 	err := cli.sinkStream.Send(msg)
@@ -154,31 +148,6 @@ func (cli *GrpcClient) Send(msg *ipc.SinkMessage) error {
 	trace.SetTag("failed", "true")
 	trace.LogKV("event", err.Error())
 	return err
-}
-
-// Initializes the OpenTracing integration using Jaeger.
-// Overrides the global tracer when Jaeger is available.
-func (cli *GrpcClient) initTracing() error {
-	cfg := jaegercfg.Configuration{
-		ServiceName: cli.config.Location + "@" + cli.config.ID,
-		Sampler: &jaegercfg.SamplerConfig{
-			Type:  jaeger.SamplerTypeConst,
-			Param: 1, // JAEGER_SAMPLER_PARAM
-		},
-		Reporter: &jaegercfg.ReporterConfig{
-			LogSpans: true,
-		},
-	}
-	tracer, closer, err := cfg.NewTracer(
-		jaegercfg.Logger(jaegerlog.NullLogger),
-		jaegercfg.Metrics(metrics.NullFactory),
-	)
-	if err != nil {
-		return err
-	}
-	opentracing.SetGlobalTracer(tracer)
-	cli.traceCloser = closer
-	return nil
 }
 
 // Initializes the Sink API stream
@@ -275,12 +244,7 @@ func (cli *GrpcClient) getTransportCredentials() (credentials.TransportCredentia
 // Sends the Minion headers as an RPC API response, to register the Minion as a client.
 // Executes this every time the RPC API Stream is created.
 func (cli *GrpcClient) sendMinionHeaders() {
-	headers := &ipc.RpcResponseProto{
-		ModuleId: "MINION_HEADERS",
-		Location: cli.config.Location,
-		SystemId: cli.config.ID,
-		RpcId:    cli.config.ID,
-	}
+	headers := cli.config.GetHeaderResponse()
 	log.Infof("Sending Minion Headers from SystemId %s to gRPC server", cli.config.ID)
 	cli.rpcMutex.Lock()
 	if err := cli.rpcStream.Send(headers); err != nil {
@@ -294,7 +258,7 @@ func (cli *GrpcClient) processRequest(request *ipc.RpcRequestProto) {
 	log.Debugf("Received RPC request with ID %s for module %s at location %s", request.RpcId, request.ModuleId, request.Location)
 	if module, ok := api.GetRPCModule(request.ModuleId); ok {
 		go func() {
-			trace := cli.startSpanFromRPCMessage(request)
+			trace := startSpanFromRPCMessage(request)
 			var err error
 			if response := module.Execute(request); response != nil {
 				cli.metrics.RPCReqProcessedSucceeded.WithLabelValues(request.ModuleId).Inc()
@@ -329,50 +293,4 @@ func (cli *GrpcClient) sendResponse(response *ipc.RpcResponseProto) error {
 	}
 	cli.metrics.RPCResSentFailed.WithLabelValues(response.ModuleId).Inc()
 	return fmt.Errorf("Cannot connect to the server, ignoring RPC request for module %s with ID %s", response.ModuleId, response.RpcId)
-}
-
-// Starts a tracing span for an RPC API request
-func (cli *GrpcClient) startSpanFromRPCMessage(request *ipc.RpcRequestProto) opentracing.Span {
-	tracer := opentracing.GlobalTracer()
-	tags := cli.getTagsForRPC(request)
-	ctx, err := tracer.Extract(opentracing.TextMap, request.TracingInfo)
-	if err == nil {
-		return tracer.StartSpan(request.ModuleId, opentracing.FollowsFrom(ctx), tags)
-	}
-	return tracer.StartSpan(request.ModuleId, tags)
-}
-
-// Gets the tracing span tags for an RPC API request
-func (cli *GrpcClient) getTagsForRPC(request *ipc.RpcRequestProto) opentracing.Tags {
-	var tags = opentracing.Tags{"location": request.Location}
-	if request.SystemId != "" {
-		tags["systemId"] = request.SystemId
-	}
-	for key, value := range request.TracingInfo {
-		tags[key] = value
-	}
-	return tags
-}
-
-// Starts a tracing span for a Sink API message
-func (cli *GrpcClient) startSpanForSinkMessage(msg *ipc.SinkMessage) opentracing.Span {
-	tracer := opentracing.GlobalTracer()
-	tags := cli.getTagsForSink(msg)
-	ctx, err := tracer.Extract(opentracing.TextMap, msg.TracingInfo)
-	if err == nil {
-		return tracer.StartSpan(msg.ModuleId, opentracing.FollowsFrom(ctx), tags)
-	}
-	return tracer.StartSpan(msg.ModuleId, tags)
-}
-
-// Gets the tracing span tags for a Sink API message
-func (cli *GrpcClient) getTagsForSink(msg *ipc.SinkMessage) opentracing.Tags {
-	var tags = opentracing.Tags{"location": msg.Location}
-	if msg.SystemId != "" {
-		tags["systemId"] = msg.SystemId
-	}
-	for key, value := range msg.TracingInfo {
-		tags[key] = value
-	}
-	return tags
 }

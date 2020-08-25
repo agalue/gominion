@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/agalue/gominion/protobuf/ipc"
 )
 
 // MinionListener represents a Minion Listener
@@ -98,4 +100,14 @@ func (cfg *MinionConfig) IsValid() error {
 		return fmt.Errorf("Broker URL required")
 	}
 	return nil
+}
+
+// GetHeaderResponse builds an RPC response with the headers context
+func (cfg *MinionConfig) GetHeaderResponse() *ipc.RpcResponseProto {
+	return &ipc.RpcResponseProto{
+		ModuleId: "MINION_HEADERS",
+		Location: cfg.Location,
+		SystemId: cfg.ID,
+		RpcId:    cfg.ID,
+	}
 }
