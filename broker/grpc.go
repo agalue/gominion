@@ -109,8 +109,8 @@ func (cli *GrpcClient) Stop() {
 	if cli.rpcStream != nil {
 		cli.rpcStream.CloseSend()
 	}
-	if cli.rpcStream != nil {
-		cli.rpcStream.CloseSend()
+	if cli.sinkStream != nil {
+		cli.sinkStream.CloseSend()
 	}
 	if cli.conn != nil {
 		cli.conn.Close()
