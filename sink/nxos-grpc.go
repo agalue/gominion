@@ -83,7 +83,9 @@ func (module *NxosGrpcModule) MdtDialout(stream mdt_dialout.GRPCMdtDialout_MdtDi
 			break
 		}
 		log.Debugf("Received request with ID %d of %d bytes from %s", dialoutArgs.ReqId, len(dialoutArgs.Data), ipaddr)
-		if bytes := wrapMessageToTelemetry(module.config, ipaddr, uint32(module.port), dialoutArgs.Data); bytes != nil {
+		messages := make([][]byte, 1)
+		messages[0] = dialoutArgs.Data
+		if bytes := wrapMessageToTelemetry(module.config, ipaddr, uint32(module.port), messages); bytes != nil {
 			sendBytes(module.GetID(), module.config, module.sink, bytes)
 		}
 	}

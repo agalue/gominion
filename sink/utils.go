@@ -38,19 +38,20 @@ func sendBytes(moduleID string, config *api.MinionConfig, sink api.Sink, bytes [
 	}
 }
 
-func wrapMessageToTelemetry(config *api.MinionConfig, sourceAddress string, sourcePort uint32, data []byte) []byte {
+func wrapMessageToTelemetry(config *api.MinionConfig, sourceAddress string, sourcePort uint32, data [][]byte) []byte {
 	now := uint64(time.Now().UnixNano() / int64(time.Millisecond))
 	logMsg := &telemetry.TelemetryMessageLog{
 		SystemId:      &config.ID,
 		Location:      &config.Location,
 		SourceAddress: &sourceAddress,
 		SourcePort:    &sourcePort,
-		Message: []*telemetry.TelemetryMessage{
-			{
-				Timestamp: &now,
-				Bytes:     data,
-			},
-		},
+		Message:       make([]*telemetry.TelemetryMessage, len(data)),
+	}
+	for i := 0; i < len(data); i++ {
+		logMsg.Message[i] = &telemetry.TelemetryMessage{
+			Timestamp: &now,
+			Bytes:     data[i],
+		}
 	}
 	bytes, err := proto.Marshal(logMsg)
 	if err != nil {

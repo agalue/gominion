@@ -1,15 +1,22 @@
 package sink
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net"
+	"runtime"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/netflow"
 	"github.com/golang/protobuf/proto"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/dnscache"
+	"github.com/sony/gobreaker"
 
 	decoder "github.com/cloudflare/goflow/v3/decoders"
 	goflowMsg "github.com/cloudflare/goflow/v3/pb"
@@ -74,6 +81,8 @@ type NetflowModule struct {
 	conn      *net.UDPConn
 	processor *decoder.Processor
 	stopping  bool
+	resolver  *dnscache.Resolver
+	breaker   *gobreaker.CircuitBreaker
 }
 
 // GetID gets the ID of the sink module
@@ -101,6 +110,8 @@ func (module *NetflowModule) Start(config *api.MinionConfig, sink api.Sink) erro
 		return nil
 	}
 	log.Infof("Starting %s flow receiver on port UDP %d", module.name, module.listener.Port)
+	module.initDNSResolver()
+	module.initCircuitBreaker()
 	module.startProcessor(handler)
 
 	localIP := module.conn.LocalAddr().String()
@@ -171,8 +182,12 @@ func (module *NetflowModule) Stop() {
 
 // Publish represents the Transport interface implementation used by goflow
 func (module *NetflowModule) Publish(msgs []*goflowMsg.FlowMessage) {
-	log.Debugf("Received %d %s messages", len(msgs), module.name)
-	for _, flowmsg := range msgs {
+	messages := make([][]byte, len(msgs))
+	sourceAddress := ""
+	for idx, flowmsg := range msgs {
+		if sourceAddress == "" {
+			sourceAddress = net.IP(flowmsg.SamplerAddress).String()
+		}
 		if flowmsg.Type == goflowMsg.FlowMessage_SFLOW_5 {
 			// DEBUG: start
 			if bytes, err := json.MarshalIndent(flowmsg, "", "  "); err != nil {
@@ -182,10 +197,11 @@ func (module *NetflowModule) Publish(msgs []*goflowMsg.FlowMessage) {
 		} else {
 			msg := module.convertToNetflow(flowmsg)
 			buffer, _ := proto.Marshal(msg)
-			if bytes := wrapMessageToTelemetry(module.config, net.IP(flowmsg.SamplerAddress).String(), uint32(module.listener.Port), buffer); bytes != nil {
-				sendBytes("Telemetry-"+module.listener.Name, module.config, module.sink, bytes)
-			}
+			messages[idx] = buffer
 		}
+	}
+	if bytes := wrapMessageToTelemetry(module.config, sourceAddress, uint32(module.listener.Port), messages); bytes != nil {
+		sendBytes("Telemetry-"+module.listener.Name, module.config, module.sink, bytes)
 	}
 }
 
@@ -228,17 +244,60 @@ func (module *NetflowModule) startProcessor(handler decoder.DecoderFunc) {
 		DoneCallback:  goflow.DefaultAccountCallback,
 		ErrorCallback: ecb.Callback,
 	}
-	processor := decoder.CreateProcessor(1, decoderParams, module.goflowID)
+	processor := decoder.CreateProcessor(runtime.NumCPU(), decoderParams, module.goflowID) // TODO Make workers configurable
 	module.processor = &processor
 	module.processor.Start()
 }
 
-func (module *NetflowModule) lookup(addr string) string {
-	hostnames, err := net.LookupAddr(addr)
-	if err != nil && len(hostnames) == 0 {
-		return addr
+// DNS processing can slow down flow processing, which is why reverse DNS is disabled by default
+func (module *NetflowModule) lookup(addr string) ([]string, error) {
+	body, err := module.breaker.Execute(func() (interface{}, error) {
+		return module.resolver.LookupAddr(context.Background(), addr)
+	})
+	if err != nil {
+		return nil, err
 	}
-	return hostnames[0]
+	return body.([]string), err
+}
+
+func (module *NetflowModule) initDNSResolver() {
+	if module.resolver != nil {
+		return
+	}
+	module.resolver = &dnscache.Resolver{
+		Timeout: 500 * time.Millisecond, // TODO Make it configurable
+	}
+	if value, ok := module.listener.Properties["nameserver"]; ok {
+		module.resolver.Resolver = &net.Resolver{
+			PreferGo: true,
+			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+				d := net.Dialer{}
+				return d.DialContext(ctx, "udp", fmt.Sprintf("%s:%d", value, 53))
+			},
+		}
+	}
+	go func() {
+		t := time.NewTicker(30 * time.Minute) // TODO Make it configurable
+		defer t.Stop()
+		for range t.C {
+			module.resolver.Refresh(true)
+		}
+	}()
+}
+
+// TODO Make Circuit Breaker configurable
+func (module *NetflowModule) initCircuitBreaker() {
+	if module.breaker != nil {
+		return
+	}
+	module.breaker = gobreaker.NewCircuitBreaker(gobreaker.Settings{
+		Name: module.GetID(),
+	})
+}
+
+func (module *NetflowModule) isReverseDNSEnabled() bool {
+	value, ok := module.listener.Properties["dnsLookupsEnabled"]
+	return ok && value == "true"
 }
 
 func (module *NetflowModule) convertToNetflow(flowmsg *goflowMsg.FlowMessage) *netflow.FlowMessage {
@@ -259,17 +318,14 @@ func (module *NetflowModule) convertToNetflow(flowmsg *goflowMsg.FlowMessage) *n
 		Direction:         netflow.Direction(flowmsg.FlowDirection),
 		Timestamp:         flowmsg.TimeReceived * 1000,
 		SrcAddress:        srcAddress,
-		SrcHostname:       module.lookup(srcAddress),
 		SrcPort:           &wrappers.UInt32Value{Value: flowmsg.SrcPort},
 		SrcAs:             &wrappers.UInt64Value{Value: uint64(flowmsg.SrcAS)},
 		SrcMaskLen:        &wrappers.UInt32Value{Value: flowmsg.SrcNet},
 		DstAddress:        dstAddress,
-		DstHostname:       module.lookup(dstAddress),
 		DstPort:           &wrappers.UInt32Value{Value: flowmsg.DstPort},
 		DstAs:             &wrappers.UInt64Value{Value: uint64(flowmsg.DstAS)},
 		DstMaskLen:        &wrappers.UInt32Value{Value: flowmsg.DstNet},
 		NextHopAddress:    nextHopeAddress,
-		NextHopHostname:   module.lookup(nextHopeAddress),
 		InputSnmpIfindex:  &wrappers.UInt32Value{Value: flowmsg.InIf},
 		OutputSnmpIfindex: &wrappers.UInt32Value{Value: flowmsg.OutIf},
 		FirstSwitched:     &wrappers.UInt64Value{Value: flowmsg.TimeFlowStart * 1000},
@@ -283,6 +339,23 @@ func (module *NetflowModule) convertToNetflow(flowmsg *goflowMsg.FlowMessage) *n
 		NumBytes:          &wrappers.UInt64Value{Value: flowmsg.Bytes},
 		NumPackets:        &wrappers.UInt64Value{Value: flowmsg.Packets},
 		Vlan:              &wrappers.UInt32Value{Value: flowmsg.VlanId},
+	}
+	if module.isReverseDNSEnabled() {
+		wg := &sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			if array, err := module.lookup(srcAddress); err != nil && len(array) > 0 {
+				msg.SrcHostname = array[0]
+			}
+		}()
+		go func() {
+			defer wg.Done()
+			if array, err := module.lookup(dstAddress); err != nil && len(array) > 0 {
+				msg.DstHostname = array[0]
+			}
+		}()
+		wg.Wait()
 	}
 	return msg
 }
