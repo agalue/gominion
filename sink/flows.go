@@ -244,7 +244,7 @@ func (module *NetflowModule) startProcessor(handler decoder.DecoderFunc) {
 		DoneCallback:  goflow.DefaultAccountCallback,
 		ErrorCallback: ecb.Callback,
 	}
-	processor := decoder.CreateProcessor(runtime.NumCPU(), decoderParams, module.goflowID) // TODO Make workers configurable
+	processor := decoder.CreateProcessor(module.getWorkers(), decoderParams, module.goflowID)
 	module.processor = &processor
 	module.processor.Start()
 }
@@ -264,20 +264,28 @@ func (module *NetflowModule) initDNSResolver() {
 	if module.resolver != nil {
 		return
 	}
-	module.resolver = &dnscache.Resolver{
-		Timeout: 500 * time.Millisecond, // TODO Make it configurable
-	}
-	if value, ok := module.listener.Properties["nameserver"]; ok {
-		module.resolver.Resolver = &net.Resolver{
-			PreferGo: true,
-			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-				d := net.Dialer{}
-				return d.DialContext(ctx, "udp", fmt.Sprintf("%s:%d", value, 53))
-			},
+	dns := module.config.DNS
+	module.resolver = &dnscache.Resolver{}
+	if dns != nil {
+		if dns.Timeout > 0 {
+			module.resolver.Timeout = time.Duration(dns.Timeout) * time.Microsecond
+		}
+		if dns.NameServer != "" {
+			module.resolver.Resolver = &net.Resolver{
+				PreferGo: true,
+				Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+					d := net.Dialer{}
+					return d.DialContext(ctx, "udp", fmt.Sprintf("%s:%d", dns.NameServer, 53))
+				},
+			}
 		}
 	}
 	go func() {
-		t := time.NewTicker(30 * time.Minute) // TODO Make it configurable
+		duration := 30 * time.Minute
+		if dns != nil && dns.CacheRefreshDuration > 0 {
+			duration = time.Duration(dns.CacheRefreshDuration) * time.Microsecond
+		}
+		t := time.NewTicker(duration)
 		defer t.Stop()
 		for range t.C {
 			module.resolver.Refresh(true)
@@ -285,19 +293,39 @@ func (module *NetflowModule) initDNSResolver() {
 	}()
 }
 
-// TODO Make Circuit Breaker configurable
 func (module *NetflowModule) initCircuitBreaker() {
 	if module.breaker != nil {
 		return
 	}
-	module.breaker = gobreaker.NewCircuitBreaker(gobreaker.Settings{
-		Name: module.GetID(),
-	})
+	config := gobreaker.Settings{Name: module.GetID()}
+	dns := module.config.DNS
+	if dns != nil {
+		cb := dns.CircuitBreaker
+		config.MaxRequests = cb.MaxRequests
+		if cb.Interval > 0 {
+			config.Interval = time.Duration(cb.Interval) * time.Millisecond
+		}
+		if cb.Timeout > 0 {
+			config.Timeout = time.Duration(cb.Timeout) * time.Millisecond
+		}
+	}
+	module.breaker = gobreaker.NewCircuitBreaker(config)
 }
 
 func (module *NetflowModule) isReverseDNSEnabled() bool {
 	value, ok := module.listener.Properties["dnsLookupsEnabled"]
 	return ok && value == "true"
+}
+
+func (module *NetflowModule) getWorkers() int {
+	value, ok := module.listener.Properties["workers"]
+	if ok {
+		w, err := strconv.Atoi(value)
+		if err != nil && w > 0 {
+			return w
+		}
+	}
+	return runtime.NumCPU()
 }
 
 func (module *NetflowModule) convertToNetflow(flowmsg *goflowMsg.FlowMessage) *netflow.FlowMessage {

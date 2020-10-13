@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
@@ -31,6 +32,21 @@ func (listener *MinionListener) Is(parser string) bool {
 	return strings.ToLower(listener.GetParser()) == strings.ToLower(parser)
 }
 
+// CircuitBreakerConfig Circuit Breaker Configuration
+type CircuitBreakerConfig struct {
+	MaxRequests uint32 `yaml:"maxRequests,omitempty" json:"maxRequests,omitempty"`
+	Interval    int    `yaml:"interval,omitempty" json:"interval,omitempty"`
+	Timeout     int    `yaml:"timeout,omitempty" json:"timeout,omitempty"`
+}
+
+// DNSConfig DNS Configuration
+type DNSConfig struct {
+	NameServer           string               `yaml:"nameServer,omitempty" json:"nameServer,omitempty"`
+	Timeout              int                  `yaml:"timeout,omitempty" json:"timeout,omitempty"`
+	CacheRefreshDuration int                  `yaml:"cacheRefreshDuration,omitempty" json:"cacheRefreshDuration,omitempty"`
+	CircuitBreaker       CircuitBreakerConfig `yaml:"circuitBreaker" json:"circuitBreaker"`
+}
+
 // MinionConfig represents basic Minion Configuration
 type MinionConfig struct {
 	ID               string            `yaml:"id" json:"id"`
@@ -42,6 +58,7 @@ type MinionConfig struct {
 	SyslogPort       int               `yaml:"syslogPort" json:"syslogPort"`
 	StatsPort        int               `yaml:"statsPort" json:"statsPort"`
 	LogLevel         string            `yaml:"logLevel" json:"logLevel"`
+	DNS              *DNSConfig        `yaml:"dns,omitempty" json:"dns,omitempty"`
 	Listeners        []MinionListener  `yaml:"listeners,omitempty" json:"listeners,omitempty"`
 }
 
@@ -98,6 +115,12 @@ func (cfg *MinionConfig) IsValid() error {
 	}
 	if cfg.BrokerURL == "" {
 		return fmt.Errorf("Broker URL required")
+	}
+	if cfg.DNS != nil && cfg.DNS.NameServer != "" {
+		ip := net.ParseIP(cfg.DNS.NameServer)
+		if ip == nil {
+			return fmt.Errorf("Invalid DNS name server")
+		}
 	}
 	return nil
 }
