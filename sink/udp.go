@@ -56,7 +56,9 @@ func (module *UDPForwardModule) Start(config *api.MinionConfig, sink api.Sink) e
 			payloadCut := make([]byte, size)
 			copy(payloadCut, payload[0:size])
 			log.Debugf("Received %d bytes from %s", size, pktAddr)
-			if bytes := wrapMessageToTelemetry(module.config, pktAddr.IP.String(), uint32(pktAddr.Port), payloadCut); bytes != nil {
+			messages := make([][]byte, 1)
+			messages[0] = payloadCut
+			if bytes := wrapMessageToTelemetry(module.config, pktAddr.IP.String(), uint32(pktAddr.Port), messages); bytes != nil {
 				sendBytes(module.GetID(), module.config, module.sink, bytes)
 			}
 		}

@@ -52,7 +52,9 @@ func TestWrapMessageToTelemetry(t *testing.T) {
 	data, err := xml.Marshal(object)
 	assert.NilError(t, err)
 
-	bytes := wrapMessageToTelemetry(config, ipaddr, port, data)
+	messages := make([][]byte, 1)
+	messages[0] = data
+	bytes := wrapMessageToTelemetry(config, ipaddr, port, messages)
 
 	telemetry := &telemetry.TelemetryMessageLog{}
 	err = proto.Unmarshal(bytes, telemetry)
