@@ -204,7 +204,7 @@ type SNMPValueDTO struct {
 type SNMPResultDTO struct {
 	XMLName  xml.Name     `xml:"result"`
 	Base     string       `xml:"base"`
-	Instance string       `xml:"instance"`
+	Instance string       `xml:"instance,omitempty"`
 	Value    SNMPValueDTO `xml:"value"`
 }
 
