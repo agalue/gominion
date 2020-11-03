@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/agalue/gominion/tools"
-	"github.com/soniah/gosnmp"
+	"github.com/gosnmp/gosnmp"
 	"gotest.tools/assert"
 )
 

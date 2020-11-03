@@ -3,7 +3,7 @@ package tools
 import (
 	"fmt"
 
-	"github.com/soniah/gosnmp"
+	"github.com/gosnmp/gosnmp"
 )
 
 // MockSNMPClient represents a mock implementation of the SNMP Handler for testing purposes

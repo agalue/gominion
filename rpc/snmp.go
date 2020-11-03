@@ -7,7 +7,7 @@ import (
 	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/ipc"
 	"github.com/agalue/gominion/tools"
-	"github.com/soniah/gosnmp"
+	"github.com/gosnmp/gosnmp"
 )
 
 // SNMPProxyRPCModule represents the RPC Module implementation for SNMP

@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 
 	"github.com/agalue/gominion/api"
-	"github.com/soniah/gosnmp"
+	"github.com/gosnmp/gosnmp"
 )
 
 // GetOidToWalk builds a walkable OID

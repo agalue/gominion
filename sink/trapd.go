@@ -10,7 +10,7 @@ import (
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/tools"
-	"github.com/soniah/gosnmp"
+	"github.com/gosnmp/gosnmp"
 )
 
 // SnmpTrapModule represents the SNMP trap receiver module

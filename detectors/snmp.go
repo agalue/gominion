@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/agalue/gominion/api"
-	"github.com/soniah/gosnmp"
+	"github.com/gosnmp/gosnmp"
 )
 
 const defaultOID = ".1.3.6.1.2.1.1.2.0"
