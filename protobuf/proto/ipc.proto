@@ -1,4 +1,4 @@
-// Source: https://github.com/OpenNMS/opennms/blob/develop/core/ipc/grpc/common/src/main/proto/ipc.proto
+// Source: https://github.com/OpenNMS/opennms/blob/master/core/ipc/grpc/common/src/main/proto/ipc.proto
 
 syntax = "proto3";
 

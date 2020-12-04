@@ -1,4 +1,4 @@
-// Source: https://github.com/OpenNMS/opennms/blob/develop/features/telemetry/protocols/netflow/transport/src/main/proto/netflow.proto
+// Source: https://github.com/OpenNMS/opennms/blob/master/features/telemetry/protocols/netflow/transport/src/main/proto/netflow.proto
 
 syntax = "proto3";
 

@@ -1,4 +1,4 @@
-// Source: https://github.com/OpenNMS/opennms/blob/develop/core/ipc/rpc/kafka/src/main/proto/kafka-rpc.proto
+// Source: https://github.com/OpenNMS/opennms/blob/master/core/ipc/rpc/kafka/src/main/proto/kafka-rpc.proto
 
 syntax = "proto3";
 
