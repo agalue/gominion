@@ -89,7 +89,7 @@ func (agent *SNMPAgentDTO) GetSNMPClient() SNMPHandler {
 		ExponentialTimeout: false,
 		MaxOids:            60, // default
 		Retries:            agent.Retries,
-		MaxRepetitions:     uint8(agent.MaxRepetitions),
+		MaxRepetitions:     uint32(agent.MaxRepetitions),
 	}
 	if agent.Version == 3 {
 		session.SecurityModel = gosnmp.UserSecurityModel
