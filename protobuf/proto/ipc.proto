@@ -2,7 +2,7 @@
 
 syntax = "proto3";
 
-option go_package = ".;ipc";
+option go_package = "./ipc";
 
 // service definitions of IPC between Minion and OpenNMS
 service OpenNMSIpc {
