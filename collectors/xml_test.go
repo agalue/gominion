@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/agalue/gominion/api"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 var mockXMLCollection = `

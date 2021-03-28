@@ -9,7 +9,7 @@ import (
 
 	"github.com/agalue/gominion/api"
 
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestSyslogBuildMessageLog(t *testing.T) {

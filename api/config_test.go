@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"gopkg.in/yaml.v2"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestGenerate(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"github.com/agalue/gominion/api"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestMinionConfig(t *testing.T) {

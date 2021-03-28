@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/agalue/gominion/api"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 var queryTestXML = `

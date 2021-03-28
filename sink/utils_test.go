@@ -9,7 +9,7 @@ import (
 	"github.com/agalue/gominion/protobuf/telemetry"
 	"github.com/golang/protobuf/proto"
 
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 type MockSink struct {

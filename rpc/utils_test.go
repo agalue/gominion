@@ -6,7 +6,7 @@ import (
 
 	"github.com/agalue/gominion/protobuf/ipc"
 
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 type Person struct {

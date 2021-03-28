@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 	"testing"
 
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestEchoRequest(t *testing.T) {

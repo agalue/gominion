@@ -9,7 +9,7 @@ import (
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/tools"
 	"github.com/gosnmp/gosnmp"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 var requestXML = `<snmp-request location="Test" description="SnmpCollectors for 192.168.0.17">
@@ -153,7 +153,7 @@ var expectedResponseXML = `<snmp-response>
 	</response>
 </snmp-response>`
 
-func TestSNMpResponse(t *testing.T) {
+func TestSNMPResponse(t *testing.T) {
 	req := &api.SNMPRequestDTO{}
 	err := xml.Unmarshal([]byte(requestXML), req)
 	assert.NilError(t, err)
@@ -208,7 +208,7 @@ func TestSNMpResponse(t *testing.T) {
 	}
 
 	response := snmpModule.getResponse(client, req)
-	bytes, err := xml.MarshalIndent(response, "", "  ")
+	bytes, err := xml.MarshalIndent(response, "", "	")
 	assert.NilError(t, err)
 	fmt.Println(string(bytes))
 	assert.Equal(t, expectedResponseXML, string(bytes))
