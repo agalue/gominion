@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ThreeDotsLabs/watermill"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -96,4 +97,46 @@ func InitLogger(logLevel string) {
 		panic(err)
 	}
 	log = logger.Sugar()
+}
+
+type WatermillAdapter struct {
+	fields watermill.LogFields
+}
+
+func (a WatermillAdapter) prepareFields(fields watermill.LogFields) []zap.Field {
+	fields = a.fields.Add(fields)
+	fs := make([]zap.Field, 0, len(fields)+1)
+	for k, v := range fields {
+		fs = append(fs, zap.Any(k, v))
+	}
+	return fs
+}
+
+func (a WatermillAdapter) Error(msg string, err error, fields watermill.LogFields) {
+	if log != nil {
+		fs := a.prepareFields(fields)
+		fs = append(fs, zap.Error(err))
+		log.Error(msg, fs)
+	}
+}
+
+func (a WatermillAdapter) Info(msg string, fields watermill.LogFields) {
+	if log != nil {
+		log.Info(msg, a.prepareFields(fields))
+	}
+}
+
+func (a WatermillAdapter) Debug(msg string, fields watermill.LogFields) {
+	if log != nil {
+		log.Debug(msg, a.prepareFields(fields))
+	}
+}
+
+func (a WatermillAdapter) Trace(msg string, fields watermill.LogFields) {
+}
+
+func (a WatermillAdapter) With(fields watermill.LogFields) watermill.LoggerAdapter {
+	return &WatermillAdapter{
+		fields: a.fields.Add(fields),
+	}
 }
