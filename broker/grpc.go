@@ -138,13 +138,13 @@ func (cli *GrpcClient) Send(msg *ipc.SinkMessage) error {
 	err := cli.sinkStream.Send(msg)
 	cli.sinkMutex.Unlock()
 	if err == nil {
-		cli.metrics.SinkMsgDeliverySucceeded.WithLabelValues(msg.ModuleId).Inc()
+		cli.metrics.SinkMsgDeliverySucceeded.WithLabelValues(msg.SystemId, msg.ModuleId).Inc()
 		return nil
 	}
 	if err == io.EOF {
 		err = fmt.Errorf("Server unreachable")
 	}
-	cli.metrics.SinkMsgDeliveryFailed.WithLabelValues(msg.ModuleId).Inc()
+	cli.metrics.SinkMsgDeliveryFailed.WithLabelValues(msg.SystemId, msg.ModuleId).Inc()
 	trace.SetTag("failed", "true")
 	trace.LogKV("event", err.Error())
 	return err
@@ -194,7 +194,7 @@ func (cli *GrpcClient) initRPCStream() error {
 			}
 			if request, err := cli.rpcStream.Recv(); err == nil {
 				cli.processRequest(request)
-				cli.metrics.RPCReqReceivedSucceeded.WithLabelValues(request.ModuleId).Inc()
+				cli.metrics.RPCReqReceivedSucceeded.WithLabelValues(request.SystemId, request.ModuleId).Inc()
 			} else {
 				if err == io.EOF {
 					break
@@ -202,7 +202,7 @@ func (cli *GrpcClient) initRPCStream() error {
 				if errStatus, _ := status.FromError(err); errStatus.Code() != codes.Unavailable {
 					log.Errorf("Cannot receive RPC Request: %v", err)
 				}
-				cli.metrics.RPCReqReceivedFailed.WithLabelValues(request.ModuleId).Inc()
+				cli.metrics.RPCReqReceivedFailed.WithLabelValues(request.SystemId, request.ModuleId).Inc()
 			}
 		}
 		log.Warnf("Terminating RPC API handler")
@@ -261,10 +261,10 @@ func (cli *GrpcClient) processRequest(request *ipc.RpcRequestProto) {
 			trace := startSpanFromRPCMessage(request)
 			var err error
 			if response := module.Execute(request); response != nil {
-				cli.metrics.RPCReqProcessedSucceeded.WithLabelValues(request.ModuleId).Inc()
+				cli.metrics.RPCReqProcessedSucceeded.WithLabelValues(request.SystemId, request.ModuleId).Inc()
 				err = cli.sendResponse(response)
 			} else {
-				cli.metrics.RPCReqProcessedFailed.WithLabelValues(request.ModuleId).Inc()
+				cli.metrics.RPCReqProcessedFailed.WithLabelValues(request.SystemId, request.ModuleId).Inc()
 				err = fmt.Errorf("Module %s returned an empty response for request %s, ignoring", request.ModuleId, request.RpcId)
 			}
 			if err != nil {
@@ -285,12 +285,12 @@ func (cli *GrpcClient) sendResponse(response *ipc.RpcResponseProto) error {
 		err := cli.rpcStream.Send(response)
 		cli.rpcMutex.Unlock()
 		if err == nil {
-			cli.metrics.RPCResSentSucceeded.WithLabelValues(response.ModuleId).Inc()
+			cli.metrics.RPCResSentSucceeded.WithLabelValues(response.SystemId, response.ModuleId).Inc()
 			return nil
 		}
-		cli.metrics.RPCResSentFailed.WithLabelValues(response.ModuleId).Inc()
+		cli.metrics.RPCResSentFailed.WithLabelValues(response.SystemId, response.ModuleId).Inc()
 		return fmt.Errorf("Cannot send RPC response for module %s with ID %s: %v", response.ModuleId, response.RpcId, err)
 	}
-	cli.metrics.RPCResSentFailed.WithLabelValues(response.ModuleId).Inc()
+	cli.metrics.RPCResSentFailed.WithLabelValues(response.SystemId, response.ModuleId).Inc()
 	return fmt.Errorf("Cannot connect to the server, ignoring RPC request for module %s with ID %s", response.ModuleId, response.RpcId)
 }

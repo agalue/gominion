@@ -36,34 +36,34 @@ func NewMetrics() Metrics {
 		SinkMsgDeliverySucceeded: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "onms_sink_messages_delivery_succeeded",
 			Help: "The total number of Sink messages successfully delivered per module",
-		}, []string{"module"}),
+		}, []string{"minion", "module"}),
 		SinkMsgDeliveryFailed: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "onms_sink_messages_delivery_failed",
 			Help: "The total number of failed attempts to send Sink messages per module",
-		}, []string{"module"}),
+		}, []string{"minion", "module"}),
 		RPCReqReceivedSucceeded: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "onms_rpc_requests_received_succeeded",
 			Help: "The total number of RPC requests successfully received per module",
-		}, []string{"module"}),
+		}, []string{"minion", "module"}),
 		RPCReqReceivedFailed: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "onms_rpc_requests_received_failed",
 			Help: "The total number of failed attempts to receive RPC messages per module",
-		}, []string{"module"}),
+		}, []string{"minion", "module"}),
 		RPCReqProcessedSucceeded: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "onms_rpc_requests_processed_succeeded",
 			Help: "The total number of RPC requests successfully processed per module",
-		}, []string{"module"}),
+		}, []string{"minion", "module"}),
 		RPCReqProcessedFailed: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "onms_rpc_requests_processed_failed",
 			Help: "The total number of failed attempts to process RPC messages per module",
-		}, []string{"module"}),
+		}, []string{"minion", "module"}),
 		RPCResSentSucceeded: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "onms_rpc_responses_sent_succeeded",
 			Help: "The total number of RPC responses successfully sent per module",
-		}, []string{"module"}),
+		}, []string{"minion", "module"}),
 		RPCResSentFailed: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "onms_rpc_responses_sent_failed",
 			Help: "The total number of failed attempts to send RPC responses per module",
-		}, []string{"module"}),
+		}, []string{"minion", "module"}),
 	}
 }

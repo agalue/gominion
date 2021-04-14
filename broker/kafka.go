@@ -115,8 +115,10 @@ func (cli *KafkaClient) Start(config *api.MinionConfig) error {
 			msg.Ack()
 			rpc := new(rpc.RpcMessageProto)
 			if err := proto.Unmarshal(msg.Payload, rpc); err == nil {
+				cli.metrics.RPCReqReceivedSucceeded.WithLabelValues(rpc.SystemId, rpc.ModuleId).Inc()
 				cli.processRequest(rpc)
 			} else {
+				cli.metrics.RPCReqReceivedFailed.WithLabelValues(rpc.SystemId, rpc.ModuleId).Inc()
 				log.Errorf("Cannot process RPC Request: %v", err)
 			}
 		}
@@ -158,12 +160,12 @@ func (cli *KafkaClient) Send(msg *ipc.SinkMessage) error {
 		}
 	}
 	if err != nil {
-		cli.metrics.SinkMsgDeliveryFailed.WithLabelValues(msg.ModuleId).Inc()
+		cli.metrics.SinkMsgDeliveryFailed.WithLabelValues(msg.SystemId, msg.ModuleId).Inc()
 		trace.SetTag("failed", "true")
 		trace.LogKV("event", err.Error())
 		return fmt.Errorf("cannot send message to %s: %v", topic, err)
 	}
-	cli.metrics.SinkMsgDeliverySucceeded.WithLabelValues(msg.ModuleId).Inc()
+	cli.metrics.SinkMsgDeliverySucceeded.WithLabelValues(msg.SystemId, msg.ModuleId).Inc()
 	return nil
 }
 
@@ -246,10 +248,10 @@ func (cli *KafkaClient) processRequest(request *rpc.RpcMessageProto) {
 			}
 			trace := startSpanFromRPCMessage(req)
 			if response := module.Execute(req); response != nil {
-				cli.metrics.RPCReqProcessedSucceeded.WithLabelValues(request.ModuleId).Inc()
+				cli.metrics.RPCReqProcessedSucceeded.WithLabelValues(request.SystemId, request.ModuleId).Inc()
 				err = cli.sendResponse(response)
 			} else {
-				cli.metrics.RPCReqProcessedFailed.WithLabelValues(request.ModuleId).Inc()
+				cli.metrics.RPCReqProcessedFailed.WithLabelValues(request.SystemId, request.ModuleId).Inc()
 				err = fmt.Errorf("Module %s returned an empty response for request %s, ignoring", request.ModuleId, request.RpcId)
 			}
 			if err != nil {
@@ -272,9 +274,11 @@ func (cli *KafkaClient) sendResponse(response *ipc.RpcResponseProto) error {
 		data := message.NewMessage(response.RpcId, bytes)
 		err := cli.publisher.Publish(topic, data)
 		if err != nil {
+			cli.metrics.RPCResSentFailed.WithLabelValues(response.SystemId, response.ModuleId).Inc()
 			return fmt.Errorf("cannot send message to %s: %v", topic, err)
 		}
 	}
+	cli.metrics.RPCResSentSucceeded.WithLabelValues(response.SystemId, response.ModuleId).Inc()
 	return nil
 }
 
