@@ -30,6 +30,8 @@ type KafkaClient struct {
 	metrics       Metrics
 	maxBufferSize int
 	instanceID    string
+	msgBuffer     map[string][]byte
+	chunkTracker  map[string]int32
 }
 
 // Start initializes the Kafka client.
@@ -38,6 +40,8 @@ func (cli *KafkaClient) Start(config *api.MinionConfig) error {
 	cli.config = config
 	var err error
 
+	cli.msgBuffer = make(map[string][]byte)
+	cli.chunkTracker = make(map[string]int32)
 	cli.metrics = NewMetrics()
 
 	// Maximum size of the buffer to split messages in chunks
@@ -58,6 +62,7 @@ func (cli *KafkaClient) Start(config *api.MinionConfig) error {
 
 	subsConfig := kafka.DefaultSaramaSubscriberConfig()
 	subsConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
+	subsConfig.Consumer.Offsets.AutoCommit.Enable = true
 
 	cli.subscriber, err = kafka.NewSubscriber(
 		kafka.SubscriberConfig{
@@ -101,13 +106,13 @@ func (cli *KafkaClient) Start(config *api.MinionConfig) error {
 	}
 	go func(messages <-chan *message.Message) {
 		for msg := range messages {
+			msg.Ack()
 			rpc := new(rpc.RpcMessageProto)
 			if err := proto.Unmarshal(msg.Payload, rpc); err == nil {
 				cli.processRequest(rpc)
 			} else {
 				log.Errorf("Cannot process RPC Request: %v", err)
 			}
-			msg.Ack()
 		}
 	}(rpcChannel)
 
@@ -197,6 +202,29 @@ func (cli *KafkaClient) getRemainingBufferSize(messageSize, chunk int32) int32 {
 
 // Processes an RPC API request sent by OpenNMS asynchronously within a goroutine and sends back the response from the module.
 func (cli *KafkaClient) processRequest(request *rpc.RpcMessageProto) {
+	// Process chunks
+	chunk := request.CurrentChunkNumber + 1 // Chunks starts at 0
+	log.Debugf("%s RPC chunk %d of %d for %s received", request.ModuleId, chunk, request.TotalChunks, request.RpcId)
+	if chunk != request.TotalChunks {
+		if cli.chunkTracker[request.RpcId] < chunk {
+			// Adds partial message to the buffer
+			cli.msgBuffer[request.RpcId] = append(cli.msgBuffer[request.RpcId], request.RpcContent...)
+			cli.chunkTracker[request.RpcId] = chunk
+		} else {
+			log.Warnf("Chunk %d from %s was already processed, ignoring...", chunk, request.RpcId)
+		}
+		return
+	}
+	// Retrieve the complete message from the buffer
+	var data []byte
+	if request.TotalChunks == 1 { // Handle special case chunk == total == 1
+		data = request.RpcContent
+	} else {
+		data = append(cli.msgBuffer[request.RpcId], request.RpcContent...)
+	}
+	delete(cli.msgBuffer, request.RpcId)
+	delete(cli.chunkTracker, request.RpcId)
+	// Process RPC request
 	log.Debugf("Received RPC request with ID %s for module %s", request.RpcId, request.ModuleId)
 	if module, ok := api.GetRPCModule(request.ModuleId); ok {
 		go func() {
@@ -206,7 +234,7 @@ func (cli *KafkaClient) processRequest(request *rpc.RpcMessageProto) {
 				SystemId:       request.SystemId,
 				ModuleId:       request.ModuleId,
 				ExpirationTime: request.ExpirationTime,
-				RpcContent:     request.RpcContent,
+				RpcContent:     data,
 				Location:       cli.config.Location,
 				TracingInfo:    request.TracingInfo,
 			}
@@ -251,7 +279,6 @@ func (cli *KafkaClient) wrapMessageToRPC(response *ipc.RpcResponseProto, chunk, 
 	rpcMsg := &rpc.RpcMessageProto{
 		RpcId:              response.RpcId,
 		RpcContent:         msg,
-		SystemId:           response.SystemId,
 		CurrentChunkNumber: chunk,
 		TotalChunks:        totalChunks,
 	}
