@@ -27,7 +27,7 @@ type KafkaClient struct {
 	ctx           context.Context
 	cancel        context.CancelFunc
 	traceCloser   io.Closer
-	metrics       Metrics
+	metrics       *api.Metrics
 	maxBufferSize int
 	instanceID    string
 	msgBuffer     map[string][]byte
@@ -36,13 +36,16 @@ type KafkaClient struct {
 
 // Start initializes the Kafka client.
 // Returns an error when the configuration is incorrect or cannot connect to the server.
-func (cli *KafkaClient) Start(config *api.MinionConfig) error {
+func (cli *KafkaClient) Start(config *api.MinionConfig, metrics *api.Metrics) error {
 	cli.config = config
 	var err error
 
 	cli.msgBuffer = make(map[string][]byte)
 	cli.chunkTracker = make(map[string]int32)
-	cli.metrics = NewMetrics()
+
+	if metrics == nil {
+		return fmt.Errorf("Metrics struct is required")
+	}
 
 	// Maximum size of the buffer to split messages in chunks
 	cli.maxBufferSize, err = strconv.Atoi(cli.config.BrokerProperties["max-buffer-size"])
@@ -92,10 +95,6 @@ func (cli *KafkaClient) Start(config *api.MinionConfig) error {
 	)
 	if err != nil {
 		return err
-	}
-
-	if config.StatsPort > 0 {
-		cli.metrics.Register()
 	}
 
 	for _, module := range api.GetAllSinkModules() {

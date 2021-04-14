@@ -32,20 +32,23 @@ type GrpcClient struct {
 	rpcStream   ipc.OpenNMSIpc_RpcStreamingClient
 	sinkStream  ipc.OpenNMSIpc_SinkStreamingClient
 	traceCloser io.Closer
-	metrics     Metrics
+	metrics     *api.Metrics
 	sinkMutex   *sync.Mutex
 	rpcMutex    *sync.Mutex
 }
 
 // Start initializes the gRPC client.
 // Returns an error when the configuration is incorrect or cannot connect to the server.
-func (cli *GrpcClient) Start(config *api.MinionConfig) error {
+func (cli *GrpcClient) Start(config *api.MinionConfig, metrics *api.Metrics) error {
 	cli.config = config
 	var err error
 
-	cli.metrics = NewMetrics()
 	cli.sinkMutex = new(sync.Mutex)
 	cli.rpcMutex = new(sync.Mutex)
+
+	if metrics == nil {
+		return fmt.Errorf("Metrics struct is required")
+	}
 
 	if cli.traceCloser, err = initTracing(cli.config); err != nil {
 		return err
@@ -71,7 +74,6 @@ func (cli *GrpcClient) Start(config *api.MinionConfig) error {
 	}
 
 	if config.StatsPort > 0 {
-		cli.metrics.Register()
 		options = append(options, grpc.WithStreamInterceptor(grpc_prometheus.StreamClientInterceptor))
 	}
 

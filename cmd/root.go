@@ -158,7 +158,11 @@ func rootHandler(cmd *cobra.Command, args []string) {
 		log.Fatalf("Cannot find broker implementation for %s", minionConfig.BrokerType)
 	}
 	log.Infof("Starting OpenNMS Minion...\n%s", minionConfig.String())
-	if err := client.Start(minionConfig); err != nil {
+	metrics := api.NewMetrics()
+	if minionConfig.StatsPort > 0 {
+		metrics.Register()
+	}
+	if err := client.Start(minionConfig, metrics); err != nil {
 		log.Fatalf("Cannot connect via %s: %v", minionConfig.BrokerType, err)
 	}
 	stop := make(chan os.Signal, 1)

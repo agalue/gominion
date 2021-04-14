@@ -1,4 +1,4 @@
-package broker
+package api
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
@@ -31,8 +31,8 @@ func (m *Metrics) Register() {
 }
 
 // NewMetrics returns a new Metrics object
-func NewMetrics() Metrics {
-	return Metrics{
+func NewMetrics() *Metrics {
+	return &Metrics{
 		SinkMsgDeliverySucceeded: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "onms_sink_messages_delivery_succeeded",
 			Help: "The total number of Sink messages successfully delivered per module",
