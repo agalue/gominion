@@ -75,8 +75,6 @@ func (module *UDPForwardModule) Stop() {
 	}
 }
 
-var graphiteModule = &UDPForwardModule{name: "Graphite"}
-
 func init() {
-	api.RegisterSinkModule(graphiteModule)
+	api.RegisterSinkModule(&UDPForwardModule{name: "Graphite"})
 }

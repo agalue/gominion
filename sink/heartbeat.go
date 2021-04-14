@@ -21,7 +21,7 @@ func (module *HeartbeatModule) Start(config *api.MinionConfig, sink api.Sink) er
 	go func() {
 		for {
 			log.Infof("Sending heartbeat for Minion with id %s at location %s", config.ID, config.Location)
-			sendResponse(module.GetID(), config, sink, module.getIdentity(config))
+			sendXMLResponse(module.GetID(), config, sink, module.getIdentity(config))
 			time.Sleep(30 * time.Second)
 		}
 	}()
@@ -41,8 +41,6 @@ func (module *HeartbeatModule) getIdentity(config *api.MinionConfig) *api.Minion
 	}
 }
 
-var heartbeatModule = &HeartbeatModule{}
-
 func init() {
-	api.RegisterSinkModule(heartbeatModule)
+	api.RegisterSinkModule(&HeartbeatModule{})
 }

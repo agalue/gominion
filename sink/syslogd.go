@@ -54,7 +54,7 @@ func (module *SyslogModule) Start(config *api.MinionConfig, sink api.Sink) error
 	go func(channel syslog.LogPartsChannel) {
 		for logParts := range channel {
 			if messageLog := module.buildMessageLog(logParts); messageLog != nil {
-				sendResponse(module.GetID(), module.config, module.sink, messageLog)
+				sendXMLResponse(module.GetID(), module.config, module.sink, messageLog)
 			}
 		}
 	}(module.channel)
@@ -93,8 +93,6 @@ func (module *SyslogModule) buildMessageLog(logParts map[string]interface{}) *ap
 	return messageLog
 }
 
-var syslogModule = &SyslogModule{}
-
 func init() {
-	api.RegisterSinkModule(syslogModule)
+	api.RegisterSinkModule(&SyslogModule{})
 }

@@ -14,7 +14,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func sendResponse(moduleID string, config *api.MinionConfig, sink api.Sink, object interface{}) {
+func sendXMLResponse(moduleID string, config *api.MinionConfig, sink api.Sink, object interface{}) {
 	bytes, err := xml.MarshalIndent(object, "", "   ")
 	if err != nil {
 		log.Errorf("Cannot parse Sink API response: %v", err)

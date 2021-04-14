@@ -27,12 +27,12 @@ type Person struct {
 	LastName  string   `xml:"last-name"`
 }
 
-func TestSendResponse(t *testing.T) {
+func TestSendXMLResponse(t *testing.T) {
 	sink := new(MockSink)
 	config := &api.MinionConfig{ID: "minion1", Location: "Test"}
 	object := Person{FirstName: "Alejandro", LastName: "Galue"}
 
-	sendResponse("Test", config, sink, object)
+	sendXMLResponse("Test", config, sink, object)
 
 	assert.Equal(t, 1, len(sink.messages))
 	msg := sink.messages[0]

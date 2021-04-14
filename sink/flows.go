@@ -388,14 +388,9 @@ func (module *NetflowModule) convertToNetflow(flowmsg *goflowMsg.FlowMessage) *n
 	return msg
 }
 
-var netflow5Module = &NetflowModule{name: "Netflow-5", goflowID: "NetFlowV5"}
-var netflow9Module = &NetflowModule{name: "Netflow-9", goflowID: "NetFlow"}
-var ipfixModule = &NetflowModule{name: "IPFIX", goflowID: "NetFlow"}
-var sflowModule = &NetflowModule{name: "SFlow", goflowID: "sFlow"}
-
 func init() {
-	api.RegisterSinkModule(netflow5Module)
-	api.RegisterSinkModule(netflow9Module)
-	api.RegisterSinkModule(ipfixModule)
-	api.RegisterSinkModule(sflowModule)
+	api.RegisterSinkModule(&NetflowModule{name: "Netflow-5", goflowID: "NetFlowV5"})
+	api.RegisterSinkModule(&NetflowModule{name: "Netflow-9", goflowID: "NetFlow"})
+	api.RegisterSinkModule(&NetflowModule{name: "IPFIX", goflowID: "NetFlow"})
+	api.RegisterSinkModule(&NetflowModule{name: "SFlow", goflowID: "sFlow"})
 }

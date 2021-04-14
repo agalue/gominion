@@ -93,8 +93,6 @@ func (module *NxosGrpcModule) MdtDialout(stream mdt_dialout.GRPCMdtDialout_MdtDi
 	return nil
 }
 
-var nxosGrpcModule = &NxosGrpcModule{}
-
 func init() {
-	api.RegisterSinkModule(nxosGrpcModule)
+	api.RegisterSinkModule(&NxosGrpcModule{})
 }

@@ -113,7 +113,7 @@ func (module *SnmpTrapModule) trapHandler(packet *gosnmp.SnmpPacket, addr *net.U
 	}
 
 	trapLog.AddTrap(trap)
-	sendResponse(module.GetID(), module.config, module.sink, trapLog)
+	sendXMLResponse(module.GetID(), module.config, module.sink, trapLog)
 }
 
 func (module *SnmpTrapModule) extractTrapIdentity(pdu gosnmp.SnmpPDU) *api.TrapIdentityDTO {
@@ -130,8 +130,6 @@ func (module *SnmpTrapModule) extractTrapIdentity(pdu gosnmp.SnmpPDU) *api.TrapI
 	}
 }
 
-var snmpTrapModule = &SnmpTrapModule{}
-
 func init() {
-	api.RegisterSinkModule(snmpTrapModule)
+	api.RegisterSinkModule(&SnmpTrapModule{})
 }
