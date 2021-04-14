@@ -69,7 +69,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is ~/.gominion.yaml)")
 	rootCmd.Flags().StringVarP(&minionConfig.ID, "id", "i", hostname, "Minion ID")
 	rootCmd.Flags().StringVarP(&minionConfig.Location, "location", "l", minionConfig.Location, "Minion Location")
-	rootCmd.Flags().StringVarP(&minionConfig.BrokerURL, "brokerUrl", "b", minionConfig.BrokerURL, "Broker URL")
+	rootCmd.Flags().StringVarP(&minionConfig.BrokerType, "brokerType", "b", minionConfig.BrokerURL, "Broker Type, either grpc or kafka")
+	rootCmd.Flags().StringVarP(&minionConfig.BrokerURL, "brokerUrl", "u", minionConfig.BrokerType, "Broker URL")
 	rootCmd.Flags().IntVarP(&minionConfig.TrapPort, "trapPort", "t", minionConfig.TrapPort, "SNMP Trap port")
 	rootCmd.Flags().IntVarP(&minionConfig.SyslogPort, "syslogPort", "s", minionConfig.SyslogPort, "Syslog port")
 	rootCmd.Flags().IntVarP(&minionConfig.StatsPort, "statsPort", "S", minionConfig.StatsPort, "HTTP Prometheus exporter statistics port")
@@ -154,11 +155,11 @@ func rootHandler(cmd *cobra.Command, args []string) {
 	// Start client
 	client := broker.GetBroker(minionConfig)
 	if client == nil {
-		log.Fatalf("Cannot find broker implementation")
+		log.Fatalf("Cannot find broker implementation for %s", minionConfig.BrokerType)
 	}
 	log.Infof("Starting OpenNMS Minion...\n%s", minionConfig.String())
 	if err := client.Start(minionConfig); err != nil {
-		log.Fatalf("Cannot connect to OpenNMS gRPC server: %v", err)
+		log.Fatalf("Cannot connect via %s: %v", minionConfig.BrokerType, err)
 	}
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)
