@@ -6,9 +6,9 @@ import (
 	"io"
 	"math"
 	"strconv"
+	"time"
 
 	"github.com/Shopify/sarama"
-	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-kafka/v2/pkg/kafka"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/golang/protobuf/proto"
@@ -63,13 +63,19 @@ func (cli *KafkaClient) Start(config *api.MinionConfig) error {
 	subsConfig := kafka.DefaultSaramaSubscriberConfig()
 	subsConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
 	subsConfig.Consumer.Offsets.AutoCommit.Enable = true
+	subsConfig.Consumer.Offsets.AutoCommit.Interval = 1 * time.Second
+
+	marshaler := kafka.NewWithPartitioningMarshaler(func(topic string, msg *message.Message) (string, error) {
+		return msg.UUID, nil
+	})
 
 	cli.subscriber, err = kafka.NewSubscriber(
 		kafka.SubscriberConfig{
 			Brokers:               []string{config.BrokerURL},
-			Unmarshaler:           kafka.DefaultMarshaler{},
+			Unmarshaler:           marshaler,
 			OverwriteSaramaConfig: subsConfig,
-			ConsumerGroup:         "gominion-" + cli.config.ID,
+			ConsumerGroup:         cli.config.Location,
+			NackResendSleep:       kafka.NoSleep,
 		},
 		log.WatermillAdapter{},
 	)
@@ -80,7 +86,7 @@ func (cli *KafkaClient) Start(config *api.MinionConfig) error {
 	cli.publisher, err = kafka.NewPublisher(
 		kafka.PublisherConfig{
 			Brokers:   []string{config.BrokerURL},
-			Marshaler: kafka.DefaultMarshaler{},
+			Marshaler: marshaler,
 		},
 		log.WatermillAdapter{},
 	)
@@ -145,7 +151,7 @@ func (cli *KafkaClient) Send(msg *ipc.SinkMessage) error {
 	topic := fmt.Sprintf("%s.Sink.%s", cli.instanceID, msg.ModuleId)
 	for chunk = 0; chunk < totalChunks; chunk++ {
 		bytes := cli.wrapMessageToSink(msg, chunk, totalChunks)
-		data := message.NewMessage(watermill.NewUUID(), bytes)
+		data := message.NewMessage(msg.MessageId, bytes)
 		err = cli.publisher.Publish(topic, data)
 		if err != nil {
 			break
@@ -177,7 +183,7 @@ func (cli *KafkaClient) wrapMessageToSink(request *ipc.SinkMessage, chunk, total
 	offset := chunk * int32(cli.maxBufferSize)
 	msg := request.Content[offset : offset+bufferSize]
 	sinkMsg := &sink.SinkMessage{
-		MessageId:          watermill.NewUUID(),
+		MessageId:          request.MessageId,
 		CurrentChunkNumber: chunk,
 		TotalChunks:        totalChunks,
 		Content:            msg,
@@ -263,7 +269,7 @@ func (cli *KafkaClient) sendResponse(response *ipc.RpcResponseProto) error {
 	topic := fmt.Sprintf("%s.rpc-response", cli.instanceID)
 	for chunk = 0; chunk < totalChunks; chunk++ {
 		bytes := cli.wrapMessageToRPC(response, chunk, totalChunks)
-		data := message.NewMessage(watermill.NewUUID(), bytes)
+		data := message.NewMessage(response.RpcId, bytes)
 		err := cli.publisher.Publish(topic, data)
 		if err != nil {
 			return fmt.Errorf("cannot send message to %s: %v", topic, err)
