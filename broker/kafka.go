@@ -6,7 +6,6 @@ import (
 	"io"
 	"math"
 	"strconv"
-	"time"
 
 	"github.com/Shopify/sarama"
 	"github.com/ThreeDotsLabs/watermill"
@@ -65,7 +64,7 @@ func (cli *KafkaClient) Start(config *api.MinionConfig) error {
 			Brokers:               []string{config.BrokerURL},
 			Unmarshaler:           kafka.DefaultMarshaler{},
 			OverwriteSaramaConfig: subsConfig,
-			ConsumerGroup:         "gominion",
+			ConsumerGroup:         "gominion-" + cli.config.ID,
 		},
 		log.WatermillAdapter{},
 	)
@@ -75,9 +74,8 @@ func (cli *KafkaClient) Start(config *api.MinionConfig) error {
 
 	cli.publisher, err = kafka.NewPublisher(
 		kafka.PublisherConfig{
-			Brokers:               []string{config.BrokerURL},
-			Marshaler:             kafka.DefaultMarshaler{},
-			OverwriteSaramaConfig: kafka.DefaultSaramaSubscriberConfig(),
+			Brokers:   []string{config.BrokerURL},
+			Marshaler: kafka.DefaultMarshaler{},
 		},
 		log.WatermillAdapter{},
 	)
@@ -101,20 +99,17 @@ func (cli *KafkaClient) Start(config *api.MinionConfig) error {
 	if err != nil {
 		return err
 	}
-	go func() {
-		for {
-			select {
-			case <-cli.ctx.Done():
-				return
-			case msg := <-rpcChannel:
-				rpc := new(rpc.RpcMessageProto)
-				if err := proto.Unmarshal(msg.Payload, rpc); err != nil {
-					cli.processRequest(rpc)
-				}
-				msg.Ack()
+	go func(messages <-chan *message.Message) {
+		for msg := range messages {
+			rpc := new(rpc.RpcMessageProto)
+			if err := proto.Unmarshal(msg.Payload, rpc); err == nil {
+				cli.processRequest(rpc)
+			} else {
+				log.Errorf("Cannot process RPC Request: %v", err)
 			}
+			msg.Ack()
 		}
-	}()
+	}(rpcChannel)
 
 	return nil
 }
@@ -125,6 +120,7 @@ func (cli *KafkaClient) Stop() {
 		module.Stop()
 	}
 	log.Warnf("Stopping Kafka client")
+	cli.cancel()
 	cli.subscriber.Close()
 	cli.publisher.Close()
 	if cli.traceCloser != nil {
@@ -143,7 +139,7 @@ func (cli *KafkaClient) Send(msg *ipc.SinkMessage) error {
 	var err error
 	topic := fmt.Sprintf("%s.Sink.%s", cli.instanceID, msg.ModuleId)
 	for chunk = 0; chunk < totalChunks; chunk++ {
-		bytes := cli.wrapMessageToSink(chunk, totalChunks, msg.Content)
+		bytes := cli.wrapMessageToSink(msg, chunk, totalChunks)
 		data := message.NewMessage(watermill.NewUUID(), bytes)
 		err = cli.publisher.Publish(topic, data)
 		if err != nil {
@@ -171,10 +167,10 @@ func (cli *KafkaClient) getTotalChunks(data []byte) int32 {
 	return chunks
 }
 
-func (cli *KafkaClient) wrapMessageToSink(chunk, totalChunks int32, data []byte) []byte {
-	bufferSize := cli.getRemainingBufferSize(int32(len(data)), chunk)
+func (cli *KafkaClient) wrapMessageToSink(request *ipc.SinkMessage, chunk, totalChunks int32) []byte {
+	bufferSize := cli.getRemainingBufferSize(int32(len(request.Content)), chunk)
 	offset := chunk * int32(cli.maxBufferSize)
-	msg := data[offset : offset+bufferSize]
+	msg := request.Content[offset : offset+bufferSize]
 	sinkMsg := &sink.SinkMessage{
 		MessageId:          watermill.NewUUID(),
 		CurrentChunkNumber: chunk,
@@ -238,7 +234,7 @@ func (cli *KafkaClient) sendResponse(response *ipc.RpcResponseProto) error {
 	var chunk int32
 	topic := fmt.Sprintf("%s.rpc-response", cli.instanceID)
 	for chunk = 0; chunk < totalChunks; chunk++ {
-		bytes := cli.wrapMessageToSink(chunk, totalChunks, response.RpcContent)
+		bytes := cli.wrapMessageToRPC(response, chunk, totalChunks)
 		data := message.NewMessage(watermill.NewUUID(), bytes)
 		err := cli.publisher.Publish(topic, data)
 		if err != nil {
@@ -248,15 +244,14 @@ func (cli *KafkaClient) sendResponse(response *ipc.RpcResponseProto) error {
 	return nil
 }
 
-func (cli *KafkaClient) wrapMessageToRPC(response *ipc.RpcResponseProto, chunk, totalChunks int32, data []byte) []byte {
-	bufferSize := cli.getRemainingBufferSize(int32(len(data)), chunk)
+func (cli *KafkaClient) wrapMessageToRPC(response *ipc.RpcResponseProto, chunk, totalChunks int32) []byte {
+	bufferSize := cli.getRemainingBufferSize(int32(len(response.RpcContent)), chunk)
 	offset := chunk * int32(cli.maxBufferSize)
-	msg := data[offset : offset+bufferSize]
+	msg := response.RpcContent[offset : offset+bufferSize]
 	rpcMsg := &rpc.RpcMessageProto{
 		RpcId:              response.RpcId,
 		RpcContent:         msg,
 		SystemId:           response.SystemId,
-		ExpirationTime:     uint64(time.Now().Unix()),
 		CurrentChunkNumber: chunk,
 		TotalChunks:        totalChunks,
 	}
