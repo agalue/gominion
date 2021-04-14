@@ -1,20 +1,20 @@
 # gominion [![Go Report Card](https://goreportcard.com/badge/github.com/agalue/gominion)](https://goreportcard.com/report/github.com/agalue/gominion)
 
-An implementation of the OpenNMS Minion in Go using gRPC
+An implementation of the OpenNMS Minion in Go.
 
-This project started as a proof of concept to understand how hard it would be to reimplement the OpenNMS Minion in Go because using low-powered devices like a Raspberry Pi as the Minion server could be a possibility. Still, the current Minion is very resource-demanding in typical production environments.
+This project started as a proof of concept to understand how hard it would be to reimplement the OpenNMS Minion in Go. Using low-powered devices like a Raspberry Pi as the Minion server could be a possibility. Still, the current Minion is very resource-demanding in typical production environments.
 
-The Java-based one has lots of features that the GO version is currently missing, but hopefully will be added soon.
+The Java-based one has many features that the GO version is currently missing but hopefully will be added soon.
 
-Kafka must be the broker technology used for the OpenNMS IPC API (both RPC and Sink). Also, the `single-topic` feature for RPC must be enabled in OpenNMS to utilize the gRPC server (regardless if it is the embedded one in OpenNMS or the stand-alone version).
-
-For this reason, Horizon 26 (or Meridian 2020) or newer is required.
+Kafka must be the broker technology used for the OpenNMS IPC API (both RPC and Sink), with the `single-topic` feature for RPC must be enabled.
 
 For the gRPC server, you could use:
 
-* The one [embedded](https://docs.opennms.org/opennms/releases/26.1.3/guide-install/guide-install.html#_configure_opennms_horizon_2) in OpenNMS.
+* The one [embedded](https://docs.opennms.org/opennms/releases/27.1.1/guide-install/guide-install.html#_configure_opennms_horizon_2) in OpenNMS.
 * The standalone one implemented in [Java](https://github.com/OpenNMS/grpc-server).
 * The standalone one implemented in [Go](https://github.com/agalue/onms-grpc-server).
+
+Alternatively, you can use Kafka directly. Although, you'd need Horizon 26 (or Merdian 2020) or newer to use this implementation.
 
 ## RPC Modules
 
@@ -78,6 +78,7 @@ Example YAML configuration:
 id: go-minion1
 location: Apex
 brokerUrl: grpc-server:8990
+brokerType: grpc
 trapPort: 1162
 syslogPort: 1514
 listeners:
@@ -107,6 +108,7 @@ For Transport TLS:
 
 ```yaml
 brokerUrl: grpc-server:8990
+brokerType: grpc
 brokerProperties:
   tls-enabled: "true"
   server-certificate-file: "/etc/server.crt"
@@ -116,10 +118,18 @@ Or,
 
 ```yaml
 brokerUrl: grpc-server:8990
+brokerType: grpc
 brokerProperties:
   tls-enabled: "true"
   server-certificate: +|
   -----BEGIN CERTIFICATE-----
   ...
   -----END CERTIFICATE-----
+```
+
+To use Kafka instead of GRPC:
+
+```yaml
+brokerUrl: kafka-server:9092
+brokerType: kafka
 ```
