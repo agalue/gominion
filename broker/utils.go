@@ -4,13 +4,21 @@ import (
 	"github.com/agalue/gominion/api"
 )
 
-// GetBroker gets a broker implementation
-func GetBroker(config *api.MinionConfig) api.Broker {
+// GetBroker returns a broker implementation
+func GetBroker(config *api.MinionConfig, registry *api.SinkRegistry, metrics *api.Metrics) api.Broker {
 	if config.BrokerType == "grpc" {
-		return &GrpcClient{}
+		return &GrpcClient{
+			config:   config,
+			registry: registry,
+			metrics:  metrics,
+		}
 	}
 	if config.BrokerType == "kafka" {
-		return &KafkaClient{}
+		return &KafkaClient{
+			config:   config,
+			registry: registry,
+			metrics:  metrics,
+		}
 	}
 	return nil
 }

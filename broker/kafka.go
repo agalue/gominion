@@ -37,31 +37,34 @@ type KafkaClient struct {
 
 // Start initializes the Kafka client.
 // Returns an error when the configuration is incorrect or cannot connect to the server.
-func (cli *KafkaClient) Start(config *api.MinionConfig, registry *api.SinkRegistry, metrics *api.Metrics) error {
-	cli.config = config
-	cli.registry = registry
+func (cli *KafkaClient) Start() error {
 	var err error
+	if cli.config == nil {
+		return fmt.Errorf("Minion configuration required")
+	}
+	if cli.registry == nil {
+		return fmt.Errorf("Sink registry required")
+	}
+	if cli.metrics == nil {
+		return fmt.Errorf("Prometheus Metrics required")
+	}
 
 	cli.msgBuffer = make(map[string][]byte)
 	cli.chunkTracker = make(map[string]int32)
 
-	if metrics == nil {
-		return fmt.Errorf("Metrics struct is required")
-	}
-
 	// Maximum size of the buffer to split messages in chunks
-	cli.maxBufferSize, err = strconv.Atoi(config.BrokerProperties["max-buffer-size"])
+	cli.maxBufferSize, err = strconv.Atoi(cli.config.BrokerProperties["max-buffer-size"])
 	if err != nil {
 		cli.maxBufferSize = 1024
 	}
 
 	// The OpenNMS Instance ID (org.opennms.instance.id), for Kafka topics
-	cli.instanceID = config.BrokerProperties["instance-id"]
+	cli.instanceID = cli.config.BrokerProperties["instance-id"]
 	if cli.instanceID == "" {
 		cli.instanceID = "OpenNMS"
 	}
 
-	if cli.traceCloser, err = initTracing(config); err != nil {
+	if cli.traceCloser, err = initTracing(cli.config); err != nil {
 		return err
 	}
 
@@ -76,10 +79,10 @@ func (cli *KafkaClient) Start(config *api.MinionConfig, registry *api.SinkRegist
 
 	cli.subscriber, err = kafka.NewSubscriber(
 		kafka.SubscriberConfig{
-			Brokers:               []string{config.BrokerURL},
+			Brokers:               []string{cli.config.BrokerURL},
 			Unmarshaler:           marshaler,
 			OverwriteSaramaConfig: subsConfig,
-			ConsumerGroup:         config.Location,
+			ConsumerGroup:         cli.config.Location,
 			NackResendSleep:       kafka.NoSleep,
 		},
 		log.WatermillAdapter{},
@@ -90,7 +93,7 @@ func (cli *KafkaClient) Start(config *api.MinionConfig, registry *api.SinkRegist
 
 	cli.publisher, err = kafka.NewPublisher(
 		kafka.PublisherConfig{
-			Brokers:   []string{config.BrokerURL},
+			Brokers:   []string{cli.config.BrokerURL},
 			Marshaler: marshaler,
 		},
 		log.WatermillAdapter{},
@@ -99,7 +102,7 @@ func (cli *KafkaClient) Start(config *api.MinionConfig, registry *api.SinkRegist
 		return err
 	}
 
-	for _, module := range registry.GetAllModules() {
+	for _, module := range cli.registry.GetAllModules() {
 		if err = module.Start(cli.config, cli); err != nil {
 			return fmt.Errorf("Cannot start Sink API module %s: %v", module.GetID(), err)
 		}

@@ -40,19 +40,22 @@ type GrpcClient struct {
 
 // Start initializes the gRPC client.
 // Returns an error when the configuration is incorrect or cannot connect to the server.
-func (cli *GrpcClient) Start(config *api.MinionConfig, registry *api.SinkRegistry, metrics *api.Metrics) error {
-	cli.config = config
-	cli.registry = registry
+func (cli *GrpcClient) Start() error {
 	var err error
+	if cli.config == nil {
+		return fmt.Errorf("Minion configuration required")
+	}
+	if cli.registry == nil {
+		return fmt.Errorf("Sink registry required")
+	}
+	if cli.metrics == nil {
+		return fmt.Errorf("Prometheus Metrics required")
+	}
 
 	cli.sinkMutex = new(sync.Mutex)
 	cli.rpcMutex = new(sync.Mutex)
 
-	if metrics == nil {
-		return fmt.Errorf("Metrics struct is required")
-	}
-
-	if cli.traceCloser, err = initTracing(config); err != nil {
+	if cli.traceCloser, err = initTracing(cli.config); err != nil {
 		return err
 	}
 
@@ -61,11 +64,11 @@ func (cli *GrpcClient) Start(config *api.MinionConfig, registry *api.SinkRegistr
 		grpc.WithStreamInterceptor(grpc_zap.StreamClientInterceptor(log.GetLogger())),
 	}
 
-	if config.BrokerProperties == nil {
+	if cli.config.BrokerProperties == nil {
 		options = append(options, grpc.WithInsecure())
 	} else {
 		// TODO add client certificate for authentication
-		tlsEnabled, ok := config.BrokerProperties["tls-enabled"]
+		tlsEnabled, ok := cli.config.BrokerProperties["tls-enabled"]
 		if ok && tlsEnabled == "true" {
 			cred, err := cli.getTransportCredentials()
 			if err != nil {
@@ -75,11 +78,11 @@ func (cli *GrpcClient) Start(config *api.MinionConfig, registry *api.SinkRegistr
 		}
 	}
 
-	if config.StatsPort > 0 {
+	if cli.config.StatsPort > 0 {
 		options = append(options, grpc.WithStreamInterceptor(grpc_prometheus.StreamClientInterceptor))
 	}
 
-	cli.conn, err = grpc.Dial(config.BrokerURL, options...)
+	cli.conn, err = grpc.Dial(cli.config.BrokerURL, options...)
 	if err != nil {
 		return fmt.Errorf("Cannot dial gRPC server: %v", err)
 	}
@@ -90,8 +93,8 @@ func (cli *GrpcClient) Start(config *api.MinionConfig, registry *api.SinkRegistr
 		return err
 	}
 
-	for _, module := range registry.GetAllModules() {
-		if err = module.Start(config, cli); err != nil {
+	for _, module := range cli.registry.GetAllModules() {
+		if err = module.Start(cli.config, cli); err != nil {
 			return fmt.Errorf("Cannot start Sink API module %s: %v", module.GetID(), err)
 		}
 	}

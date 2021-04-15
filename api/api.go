@@ -14,7 +14,7 @@ type Sink interface {
 // Broker represents a broker implementation
 type Broker interface {
 	// Starts the broker
-	Start(config *MinionConfig, registry *SinkRegistry, metrics *Metrics) error
+	Start() error
 
 	// Shutdown the broker
 	Stop()
