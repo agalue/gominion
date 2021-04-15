@@ -102,10 +102,8 @@ func (cli *KafkaClient) Start() error {
 		return err
 	}
 
-	for _, module := range cli.registry.GetAllModules() {
-		if err = module.Start(cli.config, cli); err != nil {
-			return fmt.Errorf("Cannot start Sink API module %s: %v", module.GetID(), err)
-		}
+	if err := cli.registry.StartModules(cli.config, cli); err != nil {
+		return err
 	}
 
 	cli.ctx, cli.cancel = context.WithCancel(context.Background())
@@ -133,9 +131,7 @@ func (cli *KafkaClient) Start() error {
 
 // Stop finalizes the Kafka client and all its dependencies.
 func (cli *KafkaClient) Stop() {
-	for _, module := range cli.registry.GetAllModules() {
-		module.Stop()
-	}
+	cli.registry.StopModules()
 	log.Warnf("Stopping Kafka client")
 	cli.cancel()
 	cli.subscriber.Close()

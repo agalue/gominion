@@ -1,49 +1,50 @@
 package api
 
 import (
-	"sync"
+	"fmt"
 )
 
 type SinkRegistry struct {
-	sinkRegistryMap   map[string]SinkModule
-	sinkRegistryMutex sync.RWMutex
+	sinkRegistryMap map[string]SinkModule
 }
 
 // Init initializing the Sink registry
 func (r *SinkRegistry) Init() {
 	r.sinkRegistryMap = make(map[string]SinkModule)
-	r.sinkRegistryMutex = sync.RWMutex{}
 }
 
 // RegisterModule registers a new RPC Module implementation
 func (r *SinkRegistry) RegisterModule(module SinkModule) {
-	r.sinkRegistryMutex.Lock()
 	r.sinkRegistryMap[module.GetID()] = module
-	r.sinkRegistryMutex.Unlock()
 }
 
 // UnregisterModule unregister an existing RPC Module implementation
 func (r *SinkRegistry) UnregisterModule(module SinkModule) {
-	r.sinkRegistryMutex.Lock()
 	delete(r.sinkRegistryMap, module.GetID())
-	r.sinkRegistryMutex.Unlock()
-}
-
-// GetModule gets the RPC Module implementation for a given ID
-func (r *SinkRegistry) GetModule(id string) (SinkModule, bool) {
-	r.sinkRegistryMutex.RLock()
-	defer r.sinkRegistryMutex.RUnlock()
-	module, ok := r.sinkRegistryMap[id]
-	return module, ok
 }
 
 // GetAllModules gets all the registered Sink modules
 func (r *SinkRegistry) GetAllModules() []SinkModule {
-	r.sinkRegistryMutex.RLock()
-	defer r.sinkRegistryMutex.RUnlock()
 	modules := make([]SinkModule, 0, len(r.sinkRegistryMap))
 	for _, v := range r.sinkRegistryMap {
 		modules = append(modules, v)
 	}
 	return modules
+}
+
+// StartModules starts all the registered Sink modules
+func (r *SinkRegistry) StartModules(config *MinionConfig, sink Sink) error {
+	for _, m := range r.sinkRegistryMap {
+		if err := m.Start(config, sink); err != nil {
+			return fmt.Errorf("Cannot start Sink API module %s: %v", m.GetID(), err)
+		}
+	}
+	return nil
+}
+
+// StopModules stops all the registered Sink modules
+func (r *SinkRegistry) StopModules() {
+	for _, m := range r.sinkRegistryMap {
+		m.Stop()
+	}
 }

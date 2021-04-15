@@ -93,10 +93,8 @@ func (cli *GrpcClient) Start() error {
 		return err
 	}
 
-	for _, module := range cli.registry.GetAllModules() {
-		if err = module.Start(cli.config, cli); err != nil {
-			return fmt.Errorf("Cannot start Sink API module %s: %v", module.GetID(), err)
-		}
+	if err := cli.registry.StartModules(cli.config, cli); err != nil {
+		return err
 	}
 
 	log.Infof("Starting RPC API Stream")
@@ -109,9 +107,7 @@ func (cli *GrpcClient) Start() error {
 
 // Stop finalizes the gRPC client and all its dependencies.
 func (cli *GrpcClient) Stop() {
-	for _, module := range cli.registry.GetAllModules() {
-		module.Stop()
-	}
+	cli.registry.StopModules()
 	log.Warnf("Stopping gRPC client")
 	if cli.rpcStream != nil {
 		cli.rpcStream.CloseSend()
