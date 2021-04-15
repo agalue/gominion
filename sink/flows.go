@@ -387,10 +387,3 @@ func (module *NetflowModule) convertToNetflow(flowmsg *goflowMsg.FlowMessage) *n
 	}
 	return msg
 }
-
-func init() {
-	api.RegisterSinkModule(&NetflowModule{name: "Netflow-5", goflowID: "NetFlowV5"})
-	api.RegisterSinkModule(&NetflowModule{name: "Netflow-9", goflowID: "NetFlow"})
-	api.RegisterSinkModule(&NetflowModule{name: "IPFIX", goflowID: "NetFlow"})
-	api.RegisterSinkModule(&NetflowModule{name: "SFlow", goflowID: "sFlow"})
-}

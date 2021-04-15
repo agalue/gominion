@@ -129,7 +129,3 @@ func (module *SnmpTrapModule) extractTrapIdentity(pdu gosnmp.SnmpPDU) *api.TrapI
 		Specific:     specific,
 	}
 }
-
-func init() {
-	api.RegisterSinkModule(&SnmpTrapModule{})
-}

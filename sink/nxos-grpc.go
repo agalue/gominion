@@ -92,7 +92,3 @@ func (module *NxosGrpcModule) MdtDialout(stream mdt_dialout.GRPCMdtDialout_MdtDi
 	log.Warnf("Terminating NX-OS handler")
 	return nil
 }
-
-func init() {
-	api.RegisterSinkModule(&NxosGrpcModule{})
-}

@@ -92,7 +92,3 @@ func (module *SyslogModule) buildMessageLog(logParts map[string]interface{}) *ap
 	messageLog.AddMessage(message)
 	return messageLog
 }
-
-func init() {
-	api.RegisterSinkModule(&SyslogModule{})
-}

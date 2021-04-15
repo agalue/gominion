@@ -27,6 +27,7 @@ import (
 // This should be equivalent to MinionGrpcClient.java
 type GrpcClient struct {
 	config      *api.MinionConfig
+	registry    *api.SinkRegistry
 	conn        *grpc.ClientConn
 	onms        ipc.OpenNMSIpcClient
 	rpcStream   ipc.OpenNMSIpc_RpcStreamingClient
@@ -39,8 +40,9 @@ type GrpcClient struct {
 
 // Start initializes the gRPC client.
 // Returns an error when the configuration is incorrect or cannot connect to the server.
-func (cli *GrpcClient) Start(config *api.MinionConfig, metrics *api.Metrics) error {
+func (cli *GrpcClient) Start(config *api.MinionConfig, registry *api.SinkRegistry, metrics *api.Metrics) error {
 	cli.config = config
+	cli.registry = registry
 	var err error
 
 	cli.sinkMutex = new(sync.Mutex)
@@ -50,7 +52,7 @@ func (cli *GrpcClient) Start(config *api.MinionConfig, metrics *api.Metrics) err
 		return fmt.Errorf("Metrics struct is required")
 	}
 
-	if cli.traceCloser, err = initTracing(cli.config); err != nil {
+	if cli.traceCloser, err = initTracing(config); err != nil {
 		return err
 	}
 
@@ -88,8 +90,8 @@ func (cli *GrpcClient) Start(config *api.MinionConfig, metrics *api.Metrics) err
 		return err
 	}
 
-	for _, module := range api.GetAllSinkModules() {
-		if err = module.Start(cli.config, cli); err != nil {
+	for _, module := range registry.GetAllModules() {
+		if err = module.Start(config, cli); err != nil {
 			return fmt.Errorf("Cannot start Sink API module %s: %v", module.GetID(), err)
 		}
 	}
@@ -104,7 +106,7 @@ func (cli *GrpcClient) Start(config *api.MinionConfig, metrics *api.Metrics) err
 
 // Stop finalizes the gRPC client and all its dependencies.
 func (cli *GrpcClient) Stop() {
-	for _, module := range api.GetAllSinkModules() {
+	for _, module := range cli.registry.GetAllModules() {
 		module.Stop()
 	}
 	log.Warnf("Stopping gRPC client")

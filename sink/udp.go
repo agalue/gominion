@@ -74,7 +74,3 @@ func (module *UDPForwardModule) Stop() {
 		module.conn.Close()
 	}
 }
-
-func init() {
-	api.RegisterSinkModule(&UDPForwardModule{name: "Graphite"})
-}

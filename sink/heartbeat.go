@@ -40,7 +40,3 @@ func (module *HeartbeatModule) getIdentity(config *api.MinionConfig) *api.Minion
 		Timestamp: &api.Timestamp{Time: time.Now()},
 	}
 }
-
-func init() {
-	api.RegisterSinkModule(&HeartbeatModule{})
-}

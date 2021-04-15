@@ -12,9 +12,9 @@ import (
 	"github.com/agalue/gominion/detectors"
 	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/monitors"
+	"github.com/agalue/gominion/sink"
 
-	_ "github.com/agalue/gominion/rpc"  // Load all RPC modules
-	_ "github.com/agalue/gominion/sink" // Load all Sink modules
+	_ "github.com/agalue/gominion/rpc" // Load all RPC modules
 
 	homedir "github.com/mitchellh/go-homedir"
 
@@ -112,11 +112,11 @@ func initConfig() {
 	}
 }
 
-func displayRegisteredModules() {
+func displayRegisteredModules(sinkRegistry *api.SinkRegistry) {
 	for _, m := range api.GetAllRPCModules() {
 		log.Debugf("Registered RPC module %s", m.GetID())
 	}
-	for _, m := range api.GetAllSinkModules() {
+	for _, m := range sinkRegistry.GetAllModules() {
 		log.Debugf("Registered Sink module %s", m.GetID())
 	}
 	for _, m := range collectors.GetAllCollectors() {
@@ -140,7 +140,8 @@ func rootHandler(cmd *cobra.Command, args []string) {
 		log.Fatalf("Invalid listener configuration: %v", err)
 	}
 	// Display loaded modules
-	displayRegisteredModules()
+	sinkRegistry := sink.CreateSinkRegistry()
+	displayRegisteredModules(sinkRegistry)
 	// Start statistics server
 	if minionConfig.StatsPort > 0 {
 		go func() {
@@ -162,7 +163,7 @@ func rootHandler(cmd *cobra.Command, args []string) {
 	if minionConfig.StatsPort > 0 {
 		metrics.Register()
 	}
-	if err := client.Start(minionConfig, metrics); err != nil {
+	if err := client.Start(minionConfig, sinkRegistry, metrics); err != nil {
 		log.Fatalf("Cannot connect via %s: %v", minionConfig.BrokerType, err)
 	}
 	stop := make(chan os.Signal, 1)
