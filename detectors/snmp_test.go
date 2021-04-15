@@ -17,6 +17,7 @@ func TestSnmpDetectorExist(t *testing.T) {
 			{Value: "ok"},
 		},
 	}
+	snmpDetector := new(SNMPDetector)
 	response := snmpDetector.detect(client, defaultOID, "Exist", "false", "")
 	assert.Equal(t, true, response.Detected)
 	assert.Equal(t, "", response.Error)
@@ -31,6 +32,7 @@ func TestSnmpDetectorAny(t *testing.T) {
 		{Value: "b"},
 		{Value: "c"},
 	}
+	snmpDetector := new(SNMPDetector)
 
 	// b is included in the responses
 	response := snmpDetector.detect(client, defaultOID, "Any", "true", "b")
@@ -57,6 +59,7 @@ func TestSnmpDetectorNone(t *testing.T) {
 		{Value: "b"},
 		{Value: "c"},
 	}
+	snmpDetector := new(SNMPDetector)
 
 	// b is included in the responses
 	response := snmpDetector.detect(client, defaultOID, "None", "true", "b")
@@ -83,6 +86,7 @@ func TestSnmpDetectorAll(t *testing.T) {
 		{Value: "aa"},
 		{Value: "aa"},
 	}
+	snmpDetector := new(SNMPDetector)
 
 	// aa is included in all the responses
 	response := snmpDetector.detect(client, defaultOID, "All", "true", "aa")

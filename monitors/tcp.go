@@ -46,8 +46,6 @@ func (monitor *TCPMonitor) Poll(request *api.PollerRequestDTO) *api.PollerRespon
 	return response
 }
 
-var tcpMonitor = &TCPMonitor{}
-
 func init() {
-	RegisterMonitor(tcpMonitor)
+	RegisterMonitor(&TCPMonitor{})
 }

@@ -28,8 +28,6 @@ func (monitor *ICMPMonitor) Poll(request *api.PollerRequestDTO) *api.PollerRespo
 	return response
 }
 
-var icmpMonitor = &ICMPMonitor{}
-
 func init() {
-	RegisterMonitor(icmpMonitor)
+	RegisterMonitor(&ICMPMonitor{})
 }

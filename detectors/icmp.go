@@ -26,8 +26,6 @@ func (detector *ICMPDetector) Detect(request *api.DetectorRequestDTO) *api.Detec
 	return results
 }
 
-var icmpDetector = &ICMPDetector{}
-
 func init() {
-	RegisterDetector(icmpDetector)
+	RegisterDetector(&ICMPDetector{})
 }

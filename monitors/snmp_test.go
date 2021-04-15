@@ -10,6 +10,8 @@ import (
 )
 
 func TestMeetCriteria(t *testing.T) {
+	snmpMonitor := new(SNMPMonitor)
+
 	assert.Assert(t, !snmpMonitor.meetsCriteria("", "=", "ok"))
 	assert.Assert(t, snmpMonitor.meetsCriteria("ok", "", ""))
 	assert.Assert(t, snmpMonitor.meetsCriteria("ok", "=", "ok"))
@@ -40,6 +42,7 @@ func TestSnmpMonitor(t *testing.T) {
 		{Value: "cc"},
 		{Value: "dd"},
 	}
+	snmpMonitor := new(SNMPMonitor)
 
 	// Test Equal
 	response := snmpMonitor.poll(client, defaultOID, "false", "false", "=", "ok", 0, 0)

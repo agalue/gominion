@@ -38,8 +38,6 @@ func (module *DetectorClientRPCModule) Execute(request *ipc.RpcRequestProto) *ip
 	return transformResponse(request, response)
 }
 
-var detectorModule = &DetectorClientRPCModule{}
-
 func init() {
-	api.RegisterRPCModule(detectorModule)
+	api.RegisterRPCModule(&DetectorClientRPCModule{})
 }

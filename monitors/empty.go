@@ -22,8 +22,6 @@ func (monitor *EmptyMonitor) Poll(request *api.PollerRequestDTO) *api.PollerResp
 	return response
 }
 
-var emptyMonitor = &EmptyMonitor{}
-
 func init() {
-	//	RegisterMonitor(emptyMonitor)
+	//	RegisterMonitor(&EmptyMonitor{})
 }

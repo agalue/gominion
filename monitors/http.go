@@ -129,10 +129,7 @@ func (monitor *HTTPMonitor) getResponseRange(request *api.PollerRequestDTO) (int
 	return tools.ParseHTTPResponseRange(responseRange)
 }
 
-var httpMonitor = &HTTPMonitor{Name: "HttpMonitor", Scheme: "http", DefaultPort: 80}
-var httpsMonitor = &HTTPMonitor{Name: "HttpsMonitor", Scheme: "https", DefaultPort: 443}
-
 func init() {
-	RegisterMonitor(httpMonitor)
-	RegisterMonitor(httpsMonitor)
+	RegisterMonitor(&HTTPMonitor{Name: "HttpMonitor", Scheme: "http", DefaultPort: 80})
+	RegisterMonitor(&HTTPMonitor{Name: "HttpsMonitor", Scheme: "https", DefaultPort: 443})
 }

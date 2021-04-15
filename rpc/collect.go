@@ -38,8 +38,6 @@ func (module *CollectorClientRPCModule) Execute(request *ipc.RpcRequestProto) *i
 	return transformResponse(request, response)
 }
 
-var collectModule = &CollectorClientRPCModule{}
-
 func init() {
-	api.RegisterRPCModule(collectModule)
+	api.RegisterRPCModule(&CollectorClientRPCModule{})
 }

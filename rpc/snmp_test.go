@@ -207,7 +207,8 @@ func TestSNMPResponse(t *testing.T) {
 		}
 	}
 
-	response := snmpModule.getResponse(client, req)
+	module := new(SNMPProxyRPCModule)
+	response := module.getResponse(client, req)
 	bytes, err := xml.MarshalIndent(response, "", "	")
 	assert.NilError(t, err)
 	fmt.Println(string(bytes))

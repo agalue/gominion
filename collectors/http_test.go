@@ -47,7 +47,8 @@ func TestAddResourceAttributes(t *testing.T) {
 	uri := collection.URIs.URIList[0]
 	resource := &api.CollectionResourceDTO{Name: "node"}
 	builder := api.NewCollectionSetBuilder(nil)
-	err = httpCollector.AddResourceAttributes(builder, resource, uri, mockHTML)
+	module := new(HTTPCollector)
+	err = module.AddResourceAttributes(builder, resource, uri, mockHTML)
 	assert.NilError(t, err)
 	cs := builder.Build()
 	assert.Equal(t, 1, len(cs.Resources))
@@ -77,7 +78,8 @@ func TestHttpCollector(t *testing.T) {
 			{Key: "port", Content: u.Port()},
 		},
 	}
-	response := httpCollector.Collect(request)
+	module := new(HTTPCollector)
+	response := module.Collect(request)
 	bytes, err := xml.MarshalIndent(response, "", "  ")
 	assert.NilError(t, err)
 	fmt.Println(string(bytes))

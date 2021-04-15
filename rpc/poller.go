@@ -38,8 +38,6 @@ func (module *PollerClientRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.
 	return transformResponse(request, response)
 }
 
-var pollerModule = &PollerClientRPCModule{}
-
 func init() {
-	api.RegisterRPCModule(pollerModule)
+	api.RegisterRPCModule(&PollerClientRPCModule{})
 }

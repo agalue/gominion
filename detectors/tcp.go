@@ -46,8 +46,6 @@ func (detector *TCPDetector) Detect(request *api.DetectorRequestDTO) *api.Detect
 	return results
 }
 
-var tcpDetector = &TCPDetector{}
-
 func init() {
-	RegisterDetector(tcpDetector)
+	RegisterDetector(&TCPDetector{})
 }

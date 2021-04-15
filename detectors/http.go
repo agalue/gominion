@@ -120,12 +120,8 @@ func (detector *HTTPDetector) isDetectedSimple(request *api.DetectorRequestDTO) 
 	return true
 }
 
-var httpDetector = &HTTPDetector{ID: "HttpDetector", Scheme: "http", DefaultPort: 80}
-var httpsDetector = &HTTPDetector{ID: "HttpsDetector", Scheme: "https", DefaultPort: 443}
-var webDetector = &HTTPDetector{ID: "WebDetector", Scheme: "http", DefaultPort: 80}
-
 func init() {
-	RegisterDetector(httpDetector)
-	RegisterDetector(httpsDetector)
-	RegisterDetector(webDetector)
+	RegisterDetector(&HTTPDetector{ID: "HttpDetector", Scheme: "http", DefaultPort: 80})
+	RegisterDetector(&HTTPDetector{ID: "HttpsDetector", Scheme: "https", DefaultPort: 443})
+	RegisterDetector(&HTTPDetector{ID: "WebDetector", Scheme: "http", DefaultPort: 80})
 }

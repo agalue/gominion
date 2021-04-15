@@ -26,8 +26,6 @@ func (monitor *JMXMonitor) Poll(request *api.PollerRequestDTO) *api.PollerRespon
 	return response
 }
 
-var jmxMonitor = &JMXMonitor{}
-
 func init() {
-	RegisterMonitor(jmxMonitor)
+	RegisterMonitor(&JMXMonitor{})
 }

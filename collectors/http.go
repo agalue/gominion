@@ -94,8 +94,6 @@ func (collector *HTTPCollector) AddResourceAttributes(builder *api.CollectionSet
 	return nil
 }
 
-var httpCollector = &HTTPCollector{}
-
 func init() {
-	RegisterCollector(httpCollector)
+	RegisterCollector(&HTTPCollector{})
 }

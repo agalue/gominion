@@ -148,8 +148,6 @@ func (detector *SNMPDetector) getAgent(request *api.DetectorRequestDTO) *api.SNM
 	return agent
 }
 
-var snmpDetector = &SNMPDetector{}
-
 func init() {
-	RegisterDetector(snmpDetector)
+	RegisterDetector(&SNMPDetector{})
 }

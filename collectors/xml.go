@@ -151,8 +151,6 @@ func (collector *XMLCollector) getDocument(querier XPathQuerier, src api.XMLSour
 	return doc, nil
 }
 
-var xmlCollector = &XMLCollector{}
-
 func init() {
-	RegisterCollector(xmlCollector)
+	RegisterCollector(&XMLCollector{})
 }

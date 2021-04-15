@@ -37,8 +37,6 @@ func (module *EchoRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.RpcRespo
 	return transformResponse(request, response)
 }
 
-var echoModule = &EchoRPCModule{}
-
 func init() {
-	api.RegisterRPCModule(echoModule)
+	api.RegisterRPCModule(&EchoRPCModule{})
 }

@@ -48,8 +48,6 @@ func (module *DNSLookupClientRPCModule) Execute(request *ipc.RpcRequestProto) *i
 	return transformResponse(request, response)
 }
 
-var dnsModule = &DNSLookupClientRPCModule{}
-
 func init() {
-	api.RegisterRPCModule(dnsModule)
+	api.RegisterRPCModule(&DNSLookupClientRPCModule{})
 }

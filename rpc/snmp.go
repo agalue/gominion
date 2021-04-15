@@ -61,8 +61,6 @@ func (module *SNMPProxyRPCModule) snmpWalk(client api.SNMPHandler, walk api.SNMP
 	return response
 }
 
-var snmpModule = &SNMPProxyRPCModule{}
-
 func init() {
-	api.RegisterRPCModule(snmpModule)
+	api.RegisterRPCModule(&SNMPProxyRPCModule{})
 }

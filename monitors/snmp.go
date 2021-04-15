@@ -168,8 +168,6 @@ func (monitor *SNMPMonitor) meetsCriteria(result string, operator string, operan
 	return false
 }
 
-var snmpMonitor = &SNMPMonitor{}
-
 func init() {
-	RegisterMonitor(snmpMonitor)
+	RegisterMonitor(&SNMPMonitor{})
 }

@@ -24,8 +24,6 @@ func (collector *EmptyCollector) Collect(request *api.CollectorRequestDTO) *api.
 	return response
 }
 
-var emptyCollector = &EmptyCollector{}
-
 func init() {
-	//	RegisterCollector(emptyCollector)
+	//	RegisterCollector(&EmptyCollector{})
 }

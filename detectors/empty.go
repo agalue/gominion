@@ -21,8 +21,6 @@ func (detector *EmptyDetector) Detect(request *api.DetectorRequestDTO) *api.Dete
 	return response
 }
 
-var emptyDetector = &EmptyDetector{}
-
 func init() {
-	//	RegisterDetector(emptyDetector)
+	//	RegisterDetector(&EmptyDetector{})
 }

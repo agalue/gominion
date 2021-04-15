@@ -36,8 +36,6 @@ func (module *PingProxyRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.Rpc
 	return transformResponse(request, response)
 }
 
-var pingProxyModule = &PingProxyRPCModule{}
-
 func init() {
-	api.RegisterRPCModule(pingProxyModule)
+	api.RegisterRPCModule(&PingProxyRPCModule{})
 }

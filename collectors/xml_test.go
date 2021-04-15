@@ -75,7 +75,8 @@ func TestXmlCollector(t *testing.T) {
 			{Key: "port", Content: u.Port()},
 		},
 	}
-	response := xmlCollector.Collect(request)
+	module := new(XMLCollector)
+	response := module.Collect(request)
 	bytes, err := xml.MarshalIndent(response, "", "  ")
 	assert.NilError(t, err)
 	fmt.Println(string(bytes))
