@@ -92,6 +92,8 @@ func InitLogger(logLevel string) {
 func InitProdLogger(logLevel string) {
 	config := zap.NewProductionConfig()
 	config.Level = getLogLevel(logLevel)
+	config.DisableStacktrace = true
+	config.DisableCaller = true
 	var err error
 	logger, err = config.Build()
 	if err != nil {
