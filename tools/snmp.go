@@ -30,9 +30,9 @@ func GetResultForPDU(pdu gosnmp.SnmpPDU, base string) api.SNMPResultDTO {
 	var valueBytes []byte
 	switch pdu.Type {
 	case gosnmp.OctetString:
-		valueBytes = []byte(pdu.Value.(string))
+		fallthrough
 	case gosnmp.IPAddress:
-		valueBytes = []byte(pdu.Value.(string))
+		fallthrough
 	case gosnmp.ObjectIdentifier:
 		valueBytes = getBytes(pdu.Value)
 	default:
