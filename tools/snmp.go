@@ -1,8 +1,10 @@
 package tools
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/gob"
 
 	"github.com/agalue/gominion/api"
 	"github.com/gosnmp/gosnmp"
@@ -28,11 +30,11 @@ func GetResultForPDU(pdu gosnmp.SnmpPDU, base string) api.SNMPResultDTO {
 	var valueBytes []byte
 	switch pdu.Type {
 	case gosnmp.OctetString:
-		fallthrough
-	case gosnmp.IPAddress:
-		fallthrough
-	case gosnmp.ObjectIdentifier:
 		valueBytes = []byte(pdu.Value.(string))
+	case gosnmp.IPAddress:
+		valueBytes = []byte(pdu.Value.(string))
+	case gosnmp.ObjectIdentifier:
+		valueBytes = getBytes(pdu.Value)
 	default:
 		valueBytes = BytesToJavaBigIntegerBytes(gosnmp.ToBigInt(pdu.Value).Bytes())
 	}
@@ -47,7 +49,17 @@ func GetResultForPDU(pdu gosnmp.SnmpPDU, base string) api.SNMPResultDTO {
 	return result
 }
 
+func getBytes(key interface{}) []byte {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	if err := enc.Encode(key); err != nil {
+		return make([]byte, 0)
+	}
+	return buf.Bytes()
+}
+
 // ToJavaBigIntegerBytes converts the value to a byte-array that can be used to initialize a java.math.BigInteger via the (byte[]) constructor.
+// source: https://github.com/j-white/underling/blob/master/underlinglib/snmp_helper.go
 func ToJavaBigIntegerBytes(value uint32) []byte {
 	// Convert the integer to a byte-array
 	bytes := make([]byte, 4)
@@ -55,7 +67,8 @@ func ToJavaBigIntegerBytes(value uint32) []byte {
 	return BytesToJavaBigIntegerBytes(bytes)
 }
 
-// BytesToJavaBigIntegerBytes performs the opposite of ToJavaBigIntegerBytes
+// BytesToJavaBigIntegerBytes performs the opposite of toJavaBigIntegerBytes
+// source: https://github.com/j-white/underling/blob/master/underlinglib/snmp_helper.go
 func BytesToJavaBigIntegerBytes(valueBytes []byte) []byte {
 	var bytes []byte
 	// Find the first byte with a non-zero value, and trim the slice
