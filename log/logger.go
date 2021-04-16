@@ -57,20 +57,9 @@ func GetSugaredLogger() *zap.SugaredLogger {
 	return log
 }
 
-// InitLogger initializes the error logger
+// InitLogger initializes colorized logger
 func InitLogger(logLevel string) {
-	level := zap.NewAtomicLevel()
-	switch strings.ToLower(logLevel) {
-	case "debug":
-		level.SetLevel(zap.DebugLevel)
-	case "info":
-		level.SetLevel(zap.InfoLevel)
-	case "warn":
-		level.SetLevel(zap.WarnLevel)
-	case "error":
-		level.SetLevel(zap.ErrorLevel)
-	}
-	fmt.Printf("Logging level: %s\n", level.String())
+	level := getLogLevel(logLevel)
 	config := zap.Config{
 		Level:             level,
 		Development:       false,
@@ -97,6 +86,34 @@ func InitLogger(logLevel string) {
 		panic(err)
 	}
 	log = logger.Sugar()
+}
+
+// InitProdLogger initializes production logger
+func InitProdLogger(logLevel string) {
+	config := zap.NewProductionConfig()
+	config.Level = getLogLevel(logLevel)
+	var err error
+	logger, err = config.Build()
+	if err != nil {
+		panic(err)
+	}
+	log = logger.Sugar()
+}
+
+func getLogLevel(logLevel string) zap.AtomicLevel {
+	level := zap.NewAtomicLevel()
+	switch strings.ToLower(logLevel) {
+	case "debug":
+		level.SetLevel(zap.DebugLevel)
+	case "info":
+		level.SetLevel(zap.InfoLevel)
+	case "warn":
+		level.SetLevel(zap.WarnLevel)
+	case "error":
+		level.SetLevel(zap.ErrorLevel)
+	}
+	fmt.Printf("Logging level: %s\n", level.String())
+	return level
 }
 
 type WatermillAdapter struct {
