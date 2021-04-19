@@ -2,7 +2,6 @@ package tools
 
 import (
 	"encoding/base64"
-	"encoding/binary"
 
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/log"
@@ -56,16 +55,7 @@ func GetResultForPDU(pdu gosnmp.SnmpPDU, base string) api.SNMPResultDTO {
 	}
 }
 
-// ToJavaBigIntegerBytes converts the value to a byte-array that can be used to initialize a java.math.BigInteger via the (byte[]) constructor.
-// source: https://github.com/j-white/underling/blob/master/underlinglib/snmp_helper.go
-func ToJavaBigIntegerBytes(value uint32) []byte {
-	// Convert the integer to a byte-array
-	bytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(bytes, value)
-	return BytesToJavaBigIntegerBytes(bytes)
-}
-
-// BytesToJavaBigIntegerBytes performs the opposite of toJavaBigIntegerBytes
+// BytesToJavaBigIntegerBytes transforms valueBytes so it can be used to initialize a java.math.BigInteger via the (byte[]) constructor.
 // source: https://github.com/j-white/underling/blob/master/underlinglib/snmp_helper.go
 func BytesToJavaBigIntegerBytes(valueBytes []byte) []byte {
 	var bytes []byte

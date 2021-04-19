@@ -35,7 +35,7 @@ func (cli *MockSNMPClient) Disconnect() error {
 // BulkWalk emulates a walk based on the provided list of PDUs
 func (cli *MockSNMPClient) BulkWalk(rootOid string, walkFn gosnmp.WalkFunc) error {
 	if cli.WalkMap == nil || len(cli.WalkMap) == 0 {
-		return fmt.Errorf("There was a problem")
+		return fmt.Errorf("there was a problem")
 	}
 	for _, pdu := range cli.WalkMap[rootOid] {
 		walkFn(pdu)
@@ -46,7 +46,7 @@ func (cli *MockSNMPClient) BulkWalk(rootOid string, walkFn gosnmp.WalkFunc) erro
 // Get emulates a get based on the provided map of PDU packets
 func (cli *MockSNMPClient) Get(oid string) (result *gosnmp.SnmpPacket, err error) {
 	if cli.GetMap == nil {
-		return nil, fmt.Errorf("There was a problem")
+		return nil, fmt.Errorf("there was a problem")
 	}
 	return cli.GetMap[oid], nil
 }
