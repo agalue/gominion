@@ -13,6 +13,7 @@ require (
 	github.com/antchfx/xmlquery v1.3.6
 	github.com/antchfx/xpath v1.1.11 // indirect
 	github.com/cloudflare/goflow/v3 v3.4.2
+	github.com/go-ping/ping v0.0.0-20210407214646-e4e642a95741
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.2.0
@@ -38,15 +39,15 @@ require (
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.7.1
-	github.com/uber/jaeger-client-go v2.25.0+incompatible
+	github.com/uber/jaeger-client-go v2.27.0+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.16.0
-	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2 // indirect
-	golang.org/x/net v0.0.0-20210410081132-afb366fc7cd1
+	golang.org/x/crypto v0.0.0-20210415154028-4f45737414dc // indirect
+	golang.org/x/net v0.0.0-20210415231046-e915ea6b2b7d
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20210414055047-fe65e336abe0 // indirect
-	google.golang.org/genproto v0.0.0-20210413151531-c14fb6ef47c3 // indirect
+	golang.org/x/sys v0.0.0-20210419170143-37df388d1f33 // indirect
+	google.golang.org/genproto v0.0.0-20210416161957-9910b6c460de // indirect
 	google.golang.org/grpc v1.37.0
 	google.golang.org/protobuf v1.26.0
 	gopkg.in/ini.v1 v1.62.0 // indirect
