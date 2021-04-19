@@ -111,7 +111,7 @@ services:
     - 8980:8980
     - 8101:8101
     volumes:
-    - ./opennms:/opt/opennms-etc-overlay
+    - ./opennms-etc:/opt/opennms-etc-overlay
     environment:
     - TZ=America/New_York
     - POSTGRES_HOST=database
@@ -217,6 +217,18 @@ services:
     - TOPIC=OpenNMS.Boston.rpc-request
     - IPC=rpc
 
+  rpc-request-apex:
+    image: agalue/onms-kafka-ipc-receiver
+    container_name: rpc-request-apex
+    hostname: rpc-request-apex
+    depends_on:
+    - kafka
+    environment:
+    - BOOTSTRAP_SERVER=kafka:9092
+    - KAFKA_ACKS=1
+    - TOPIC=OpenNMS.Apex.rpc-request
+    - IPC=rpc
+
   rpc-response:
     image: agalue/onms-kafka-ipc-receiver
     container_name: rpc-response
@@ -245,7 +257,7 @@ services:
     - 11162:1162/udp
     - 11514:1514/udp
     volumes:
-    - ./minion/gominion-kafka.yaml:/gominion.yaml
+    - ./gominion-cfg/kafka.yaml:/gominion.yaml
 
   gominion-grpc:
     build: ../
@@ -263,5 +275,33 @@ services:
     - 21162:1162/udp
     - 21514:1514/udp
     volumes:
-    - ./minion/gominion-grpc.yaml:/gominion.yaml
+    - ./gominion-cfg/grpc.yaml:/gominion.yaml
 
+  minion:
+    image: opennms/minion:27.1.1
+    container_name: minion
+    hostname: minion
+    depends_on:
+    - kafka
+    - opennms
+    command: [ -c ]
+    ports:
+    - 8201:8201
+    - 38877:8877/udp
+    - 34729:4729/udp
+    - 31162:1162/udp
+    - 31514:1514/udp
+    volumes:
+    - ./minion-etc:/opt/minion-etc-overlay
+    environment:
+    - TZ=America/New_York
+    - OPENNMS_HTTP_USER=admin
+    - OPENNMS_HTTP_PASS=admin
+    - MINION_ID=minion-java
+    - MINION_LOCATION=Apex
+    - OPENNMS_HTTP_URL=http://opennms:8980/opennms
+    healthcheck:
+      test: /health.sh
+      interval: 1m
+      timeout: 5s
+      retries: 3
