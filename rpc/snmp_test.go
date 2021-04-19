@@ -182,9 +182,9 @@ func TestSNMPResponse(t *testing.T) {
 			}
 		case ".1.3.6.1.2.1.31.1.1.1.1":
 			client.WalkMap[oid] = []gosnmp.SnmpPDU{
-				{Name: ".1.3.6.1.2.1.31.1.1.1.1.1", Type: gosnmp.OctetString, Value: "l0"},
-				{Name: ".1.3.6.1.2.1.31.1.1.1.1.2", Type: gosnmp.OctetString, Value: "eth0"},
-				{Name: ".1.3.6.1.2.1.31.1.1.1.1.3", Type: gosnmp.OctetString, Value: "wlan0"},
+				{Name: ".1.3.6.1.2.1.31.1.1.1.1.1", Type: gosnmp.OctetString, Value: []byte("l0")},
+				{Name: ".1.3.6.1.2.1.31.1.1.1.1.2", Type: gosnmp.OctetString, Value: []byte("eth0")},
+				{Name: ".1.3.6.1.2.1.31.1.1.1.1.3", Type: gosnmp.OctetString, Value: []byte("wlan0")},
 			}
 		case ".1.3.6.1.2.1.31.1.1.1.15":
 			client.WalkMap[oid] = []gosnmp.SnmpPDU{

@@ -1,12 +1,11 @@
 package tools
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/binary"
-	"encoding/gob"
 
 	"github.com/agalue/gominion/api"
+	"github.com/agalue/gominion/log"
 	"github.com/gosnmp/gosnmp"
 )
 
@@ -27,18 +26,27 @@ func GetOidToWalk(base string, instance string) string {
 
 // GetResultForPDU get results from a given SNMP PDU
 func GetResultForPDU(pdu gosnmp.SnmpPDU, base string) api.SNMPResultDTO {
+	log.Debugf("Processing PDU: %v", pdu)
 	var valueBytes []byte
 	switch pdu.Type {
-	case gosnmp.OctetString:
+	case gosnmp.ObjectIdentifier:
 		fallthrough
 	case gosnmp.IPAddress:
-		fallthrough
-	case gosnmp.ObjectIdentifier:
-		valueBytes = getBytes(pdu.Value)
+		if data, ok := pdu.Value.(string); ok {
+			valueBytes = []byte(data)
+		} else {
+			log.Warnf("Cannot parse PDU %v", pdu)
+		}
+	case gosnmp.OctetString:
+		if data, ok := pdu.Value.([]byte); ok {
+			valueBytes = data
+		} else {
+			log.Warnf("Cannot parse PDU %v", pdu)
+		}
 	default:
 		valueBytes = BytesToJavaBigIntegerBytes(gosnmp.ToBigInt(pdu.Value).Bytes())
 	}
-	result := api.SNMPResultDTO{
+	return api.SNMPResultDTO{
 		Base:     base,
 		Instance: pdu.Name[len(base):],
 		Value: api.SNMPValueDTO{
@@ -46,16 +54,6 @@ func GetResultForPDU(pdu gosnmp.SnmpPDU, base string) api.SNMPResultDTO {
 			Value: base64.StdEncoding.EncodeToString(valueBytes),
 		},
 	}
-	return result
-}
-
-func getBytes(key interface{}) []byte {
-	var buf bytes.Buffer
-	enc := gob.NewEncoder(&buf)
-	if err := enc.Encode(key); err != nil {
-		return make([]byte, 0)
-	}
-	return buf.Bytes()
 }
 
 // ToJavaBigIntegerBytes converts the value to a byte-array that can be used to initialize a java.math.BigInteger via the (byte[]) constructor.
