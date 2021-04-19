@@ -1,0 +1,255 @@
+version: '3.9'
+
+volumes:
+
+  zookeeper:
+  kafka:
+  postgres:
+
+services:
+
+  zookeeper:
+    image: zookeeper:3.5
+    container_name: zookeeper
+    hostname: zookeeper
+    ports:
+    - 8080:8080
+    volumes:
+    - zookeeper:/data
+    environment:
+    - TZ=America/New_York
+    - ZOO_MY_ID=1
+    - ZOO_SERVERS=server.1=zookeeper:2888:3888;2181
+    - ZOO_STANDALONE_ENABLED=true
+    - ZOO_4LW_COMMANDS_WHITELIST=*
+    healthcheck:
+      test: echo stat | nc zookeeper 2181
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  kafka:
+    image: wurstmeister/kafka:2.13-2.7.0
+    container_name: kafka
+    hostname: kafka
+    depends_on:
+    - zookeeper
+    ports:
+    - 9094:9094
+    volumes:
+    - kafka:/kafka
+    environment:
+    - TZ=America/New_York
+    - KAFKA_BROKER_ID=1
+    - KAFKA_ADVERTISED_LISTENERS=INSIDE://:9092,OUTSIDE://${EXTERNAL_IP:-192.168.0.40}:9094
+    - KAFKA_LISTENERS=INSIDE://:9092,OUTSIDE://:9094
+    - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+    - KAFKA_INTER_BROKER_LISTENER_NAME=INSIDE
+    - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181/kafka
+    - KAFKA_NUM_PARTITIONS=4
+    - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+    - KAFKA_DEFAULT_REPLICATION_FACTOR=1
+    - KAFKA_MIN_INSYNC_REPLICAS=1
+    - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+    - KAFKA_DELETE_TOPIC_ENABLE=true
+    - KAFKA_CONTROLLED_SHUTDOWN_ENABLE=true
+    - KAFKA_JMX_OPTS=-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka -Dcom.sun.management.jmxremote.rmi.port=9999
+    - JMX_PORT=9999
+    - KAFKA_HEAP_OPTS=-Xms${KAFKA_HEAP:-4g} -Xmx${KAFKA_HEAP:-4g}
+    healthcheck:
+      test: nc -z localhost 9092
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  manager:
+    image: hlebalbau/kafka-manager:stable
+    container_name: manager
+    hostname: manager
+    depends_on:
+    - zookeeper
+    ports:
+    - 9000:9000
+    environment:
+    - TZ=America/New_York
+    - ZK_HOSTS=zookeeper:2181
+    healthcheck:
+      test: wget --quiet --tries=1 --spider http://localhost:9000 || exit 1
+      interval: 1m
+      timeout: 5s
+      retries: 3
+
+  database:
+    image: postgres:12
+    container_name: database
+    hostname: database
+    volumes:
+    - postgres:/var/lib/postgresql/data
+    ports:
+    - 5432:5432
+    environment:
+    - TZ=America/New_York
+    - POSTGRES_HOST=database
+    - POSTGRES_PORT=5432
+    - POSTGRES_USER=postgres
+    - POSTGRES_PASSWORD=postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  opennms:
+    image: opennms/horizon:27.1.1
+    container_name: opennms
+    hostname: opennms
+    depends_on:
+    - database
+    - kafka
+    command: [ -s ]
+    ports:
+    - 8980:8980
+    - 8101:8101
+    volumes:
+    - ./opennms:/opt/opennms-etc-overlay
+    environment:
+    - TZ=America/New_York
+    - POSTGRES_HOST=database
+    - POSTGRES_PORT=5432
+    - POSTGRES_USER=postgres
+    - POSTGRES_PASSWORD=postgres
+    - JAVA_OPTS=-Xms${OPENNMS_HEAP:-4g} -Xmx${OPENNMS_HEAP:-4g} -XX:+AlwaysPreTouch -XX:+UseStringDeduplication
+    healthcheck:
+      test: curl -f -I http://localhost:8980/opennms/login.jsp
+      interval: 1m
+      timeout: 5s
+      retries: 3
+
+  grpc-server:
+    image: agalue/onms-grpc-server
+    container_name: grpc-server
+    hostname: grpc-server
+    depends_on:
+    - kafka
+    ports:
+    - 8990:8990
+    - 2112:2112
+    environment:
+    - TZ=America/New_York
+    - BOOTSTRAP_SERVER=kafka:9092
+    - PORT=8990
+    - HTTP_PORT=2112
+    - TLS_ENABLED=false
+
+  client-trap:
+    image: agalue/onms-kafka-ipc-receiver
+    container_name: client-trap
+    hostname: client-trap
+    depends_on:
+    - kafka
+    environment:
+    - BOOTSTRAP_SERVER=kafka:9092
+    - KAFKA_ACKS=1
+    - IPC=sink
+    - TOPIC=OpenNMS.Sink.Trap
+    - PARSER=snmp
+
+  client-syslog:
+    image: agalue/onms-kafka-ipc-receiver
+    container_name: client-syslog
+    hostname: client-syslog
+    depends_on:
+    - kafka
+    environment:
+    - BOOTSTRAP_SERVER=kafka:9092
+    - KAFKA_ACKS=1
+    - IPC=sink
+    - TOPIC=OpenNMS.Sink.Syslog
+    - PARSER=syslog
+
+  client-netflow5:
+    image: agalue/onms-kafka-ipc-receiver
+    container_name: client-netflow5
+    hostname: client-netflow5
+    depends_on:
+    - kafka
+    environment:
+    - BOOTSTRAP_SERVER=kafka:9092
+    - KAFKA_ACKS=1
+    - TOPIC=OpenNMS.Sink.Telemetry-Netflow-5
+    - IPC=sink
+    - PARSER=netflow
+
+  client-netflow9:
+    image: agalue/onms-kafka-ipc-receiver
+    container_name: client-netflow9
+    hostname: client-netflow9
+    depends_on:
+    - kafka
+    environment:
+    - BOOTSTRAP_SERVER=kafka:9092
+    - KAFKA_ACKS=1
+    - TOPIC=OpenNMS.Sink.Telemetry-Netflow-9
+    - IPC=sink
+    - PARSER=netflow
+
+  client-rpc-request:
+    image: agalue/onms-kafka-ipc-receiver
+    container_name: client-rpc-request
+    hostname: client-rpc-request
+    depends_on:
+    - kafka
+    environment:
+    - BOOTSTRAP_SERVER=kafka:9092
+    - KAFKA_ACKS=1
+    - TOPIC=OpenNMS.Local.rpc-request
+    - IPC=rpc
+
+  client-rpc-response:
+    image: agalue/onms-kafka-ipc-receiver
+    container_name: client-rpc-response
+    hostname: client-rpc-response
+    depends_on:
+    - kafka
+    environment:
+    - BOOTSTRAP_SERVER=kafka:9092
+    - KAFKA_ACKS=1
+    - TOPIC=OpenNMS.rpc-response
+    - IPC=rpc
+
+  gominion-kafka:
+    build: ../
+    image: agalue/gominion
+    container_name: gominion-kafka
+    hostname: gominion-kafka
+    depends_on:
+    - kafka
+    command:
+    - -c
+    - /gominion.yaml
+    ports:
+    - 18877:8877/udp
+    - 14729:4729/udp
+    - 11162:1162/udp
+    - 11514:1514/udp
+    volumes:
+    - ./minion/gominion-kafka.yaml:/gominion.yaml
+
+  gominion-grpc:
+    build: ../
+    image: agalue/gominion
+    container_name: gominion-grpc
+    hostname: gominion-grpc
+    depends_on:
+    - grpc-server
+    command:
+    - -c
+    - /gominion.yaml
+    ports:
+    - 28877:8877/udp
+    - 24729:4729/udp
+    - 21162:1162/udp
+    - 21514:1514/udp
+    volumes:
+    - ./minion/gominion-grpc.yaml:/gominion.yaml
+

@@ -1,0 +1,14 @@
+id: gominion-grpc
+location: Boston
+brokerType: grpc
+brokerUrl: grpc-server:8990
+trapPort: 1162
+syslogPort: 1514
+statsPort: 8080
+listeners:
+- name: Netflow-5
+  port: 8877
+  parser: Netflow5UdpParser
+- name: Netflow-9
+  port: 4729
+  parser: Netflow9UdpParser
