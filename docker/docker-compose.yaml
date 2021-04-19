@@ -219,8 +219,8 @@ services:
 
   rpc-response:
     image: agalue/onms-kafka-ipc-receiver
-    container_name: sink-rpc-response
-    hostname: sink-rpc-response
+    container_name: rpc-response
+    hostname: rpc-response
     depends_on:
     - kafka
     environment:
