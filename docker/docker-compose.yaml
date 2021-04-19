@@ -141,10 +141,10 @@ services:
     - HTTP_PORT=2112
     - TLS_ENABLED=false
 
-  client-trap:
+  sink-trap:
     image: agalue/onms-kafka-ipc-receiver
-    container_name: client-trap
-    hostname: client-trap
+    container_name: sink-trap
+    hostname: sink-trap
     depends_on:
     - kafka
     environment:
@@ -154,10 +154,10 @@ services:
     - TOPIC=OpenNMS.Sink.Trap
     - PARSER=snmp
 
-  client-syslog:
+  sink-syslog:
     image: agalue/onms-kafka-ipc-receiver
-    container_name: client-syslog
-    hostname: client-syslog
+    container_name: sink-syslog
+    hostname: sink-syslog
     depends_on:
     - kafka
     environment:
@@ -167,10 +167,10 @@ services:
     - TOPIC=OpenNMS.Sink.Syslog
     - PARSER=syslog
 
-  client-netflow5:
+  sink-netflow5:
     image: agalue/onms-kafka-ipc-receiver
-    container_name: client-netflow5
-    hostname: client-netflow5
+    container_name: sink-netflow5
+    hostname: sink-netflow5
     depends_on:
     - kafka
     environment:
@@ -180,10 +180,10 @@ services:
     - IPC=sink
     - PARSER=netflow
 
-  client-netflow9:
+  sink-netflow9:
     image: agalue/onms-kafka-ipc-receiver
-    container_name: client-netflow9
-    hostname: client-netflow9
+    container_name: sink-netflow9
+    hostname: sink-netflow9
     depends_on:
     - kafka
     environment:
@@ -193,22 +193,34 @@ services:
     - IPC=sink
     - PARSER=netflow
 
-  client-rpc-request:
+  rpc-request-newyork:
     image: agalue/onms-kafka-ipc-receiver
-    container_name: client-rpc-request
-    hostname: client-rpc-request
+    container_name: rpc-request-newyork
+    hostname: rpc-request-newyork
     depends_on:
     - kafka
     environment:
     - BOOTSTRAP_SERVER=kafka:9092
     - KAFKA_ACKS=1
-    - TOPIC=OpenNMS.Local.rpc-request
+    - TOPIC=OpenNMS.NewYork.rpc-request
     - IPC=rpc
 
-  client-rpc-response:
+  rpc-request-boston:
     image: agalue/onms-kafka-ipc-receiver
-    container_name: client-rpc-response
-    hostname: client-rpc-response
+    container_name: rpc-request-boston
+    hostname: rpc-request-boston
+    depends_on:
+    - kafka
+    environment:
+    - BOOTSTRAP_SERVER=kafka:9092
+    - KAFKA_ACKS=1
+    - TOPIC=OpenNMS.Boston.rpc-request
+    - IPC=rpc
+
+  rpc-response:
+    image: agalue/onms-kafka-ipc-receiver
+    container_name: sink-rpc-response
+    hostname: sink-rpc-response
     depends_on:
     - kafka
     environment:
