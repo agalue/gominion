@@ -43,13 +43,13 @@ type GrpcClient struct {
 func (cli *GrpcClient) Start() error {
 	var err error
 	if cli.config == nil {
-		return fmt.Errorf("Minion configuration required")
+		return fmt.Errorf("minion configuration required")
 	}
 	if cli.registry == nil {
-		return fmt.Errorf("Sink registry required")
+		return fmt.Errorf("sink registry required")
 	}
 	if cli.metrics == nil {
-		return fmt.Errorf("Prometheus Metrics required")
+		return fmt.Errorf("prometheus Metrics required")
 	}
 
 	cli.sinkMutex = new(sync.Mutex)
@@ -84,7 +84,7 @@ func (cli *GrpcClient) Start() error {
 
 	cli.conn, err = grpc.Dial(cli.config.BrokerURL, options...)
 	if err != nil {
-		return fmt.Errorf("Cannot dial gRPC server: %v", err)
+		return fmt.Errorf("cannot dial gRPC server: %v", err)
 	}
 	cli.onms = ipc.NewOpenNMSIpcClient(cli.conn)
 
@@ -145,7 +145,7 @@ func (cli *GrpcClient) Send(msg *ipc.SinkMessage) error {
 		return nil
 	}
 	if err == io.EOF {
-		err = fmt.Errorf("Server unreachable")
+		err = fmt.Errorf("server unreachable")
 	}
 	cli.metrics.SinkMsgDeliveryFailed.WithLabelValues(msg.SystemId, msg.ModuleId).Inc()
 	trace.SetTag("failed", "true")
@@ -166,7 +166,7 @@ func (cli *GrpcClient) initSinkStream() error {
 
 	cli.sinkStream, err = cli.onms.SinkStreaming(context.Background())
 	if err != nil {
-		return fmt.Errorf("Cannot initialize Sink API Stream: %v", err)
+		return fmt.Errorf("cannot initialize Sink API Stream: %v", err)
 	}
 
 	return nil
@@ -185,7 +185,7 @@ func (cli *GrpcClient) initRPCStream() error {
 
 	cli.rpcStream, err = cli.onms.RpcStreaming(context.Background())
 	if err != nil {
-		return fmt.Errorf("Cannot initialize RPC API Stream: %v", err)
+		return fmt.Errorf("cannot initialize RPC API Stream: %v", err)
 	}
 
 	// Goroutine to handle RPC API requests from the gRPC server.
@@ -234,14 +234,14 @@ func (cli *GrpcClient) getTransportCredentials() (credentials.TransportCredentia
 	if data, ok := cli.config.BrokerProperties["server-certificate"]; ok {
 		cert, err := x509.ParseCertificate([]byte(data))
 		if err != nil {
-			return nil, fmt.Errorf("Cannot parse server certificate: %v", err)
+			return nil, fmt.Errorf("cannot parse server certificate: %v", err)
 		}
 		tlsCert := &tls.Certificate{
 			Certificate: [][]byte{cert.Raw},
 		}
 		return credentials.NewServerTLSFromCert(tlsCert), nil
 	}
-	return nil, fmt.Errorf("Cannot find server certificate")
+	return nil, fmt.Errorf("cannot find server certificate")
 }
 
 // Sends the Minion headers as an RPC API response, to register the Minion as a client.
@@ -268,7 +268,7 @@ func (cli *GrpcClient) processRequest(request *ipc.RpcRequestProto) {
 				err = cli.sendResponse(response)
 			} else {
 				cli.metrics.RPCReqProcessedFailed.WithLabelValues(request.SystemId, request.ModuleId).Inc()
-				err = fmt.Errorf("Module %s returned an empty response for request %s, ignoring", request.ModuleId, request.RpcId)
+				err = fmt.Errorf("module %s returned an empty response for request %s, ignoring", request.ModuleId, request.RpcId)
 			}
 			if err != nil {
 				trace.SetTag("failed", "true")
@@ -292,8 +292,8 @@ func (cli *GrpcClient) sendResponse(response *ipc.RpcResponseProto) error {
 			return nil
 		}
 		cli.metrics.RPCResSentFailed.WithLabelValues(response.SystemId, response.ModuleId).Inc()
-		return fmt.Errorf("Cannot send RPC response for module %s with ID %s: %v", response.ModuleId, response.RpcId, err)
+		return fmt.Errorf("cannot send RPC response for module %s with ID %s: %v", response.ModuleId, response.RpcId, err)
 	}
 	cli.metrics.RPCResSentFailed.WithLabelValues(response.SystemId, response.ModuleId).Inc()
-	return fmt.Errorf("Cannot connect to the server, ignoring RPC request for module %s with ID %s", response.ModuleId, response.RpcId)
+	return fmt.Errorf("cannot connect to the server, ignoring RPC request for module %s with ID %s", response.ModuleId, response.RpcId)
 }

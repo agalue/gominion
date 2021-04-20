@@ -11,13 +11,14 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/ThreeDotsLabs/watermill-kafka/v2/pkg/kafka"
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/golang/protobuf/proto"
 
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/ipc"
 	"github.com/agalue/gominion/protobuf/rpc"
 	"github.com/agalue/gominion/protobuf/sink"
+
+	"google.golang.org/protobuf/proto"
 )
 
 type KafkaClient struct {
@@ -40,13 +41,13 @@ type KafkaClient struct {
 func (cli *KafkaClient) Start() error {
 	var err error
 	if cli.config == nil {
-		return fmt.Errorf("Minion configuration required")
+		return fmt.Errorf("minion configuration required")
 	}
 	if cli.registry == nil {
-		return fmt.Errorf("Sink registry required")
+		return fmt.Errorf("sink registry required")
 	}
 	if cli.metrics == nil {
-		return fmt.Errorf("Prometheus Metrics required")
+		return fmt.Errorf("prometheus Metrics required")
 	}
 
 	cli.msgBuffer = make(map[string][]byte)
@@ -252,7 +253,7 @@ func (cli *KafkaClient) processRequest(request *rpc.RpcMessageProto) {
 				err = cli.sendResponse(response)
 			} else {
 				cli.metrics.RPCReqProcessedFailed.WithLabelValues(request.SystemId, request.ModuleId).Inc()
-				err = fmt.Errorf("Module %s returned an empty response for request %s, ignoring", request.ModuleId, request.RpcId)
+				err = fmt.Errorf("module %s returned an empty response for request %s, ignoring", request.ModuleId, request.RpcId)
 			}
 			if err != nil {
 				trace.SetTag("failed", "true")

@@ -29,7 +29,7 @@ func (collector *XMLCollector) Collect(request *api.CollectorRequestDTO) *api.Co
 	xmlCollection := &api.XMLCollection{}
 	err := xml.Unmarshal([]byte(request.GetAttributeValue(xmlCollectionAttr, "")), xmlCollection)
 	if err != nil {
-		response.MarkAsFailed(request.CollectionAgent, fmt.Errorf("Cannot parse %s: %v", xmlCollectionAttr, err))
+		response.MarkAsFailed(request.CollectionAgent, fmt.Errorf("cannot parse %s: %v", xmlCollectionAttr, err))
 		return response
 	}
 	builder := api.NewCollectionSetBuilder(request.CollectionAgent)
@@ -54,7 +54,7 @@ func (collector *XMLCollector) Collect(request *api.CollectorRequestDTO) *api.Co
 }
 
 func (collector *XMLCollector) fillCollectionSet(querier XPathQuerier, src api.XMLSource, builder *api.CollectionSetBuilder, doc *XPathNode) error {
-	re, _ := regexp.Compile("[.\\d]+")
+	re, _ := regexp.Compile(`[.\d]+`)
 	for _, group := range src.Groups {
 		resources, err := querier.QueryAll(doc, group.ResourceXPath)
 		if err != nil {
@@ -106,7 +106,7 @@ func (collector *XMLCollector) getResourceName(querier XPathQuerier, group api.X
 	if err == nil {
 		return keyNode.GetContent(), nil
 	}
-	return "", fmt.Errorf("Cannot find resource name")
+	return "", fmt.Errorf("cannot find resource name")
 }
 
 // TODO pending parse for group.TimestampXPath and group.TimestampFormat

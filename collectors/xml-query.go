@@ -74,7 +74,7 @@ func (q *XPathQuery) Parse(reader io.Reader) (*XPathNode, error) {
 	case "json":
 		node, err = jsonquery.Parse(reader)
 	default:
-		return nil, fmt.Errorf("Cannot find implementation")
+		return nil, fmt.Errorf("cannot find implementation")
 	}
 	if err == nil {
 		return &XPathNode{impl: node}, nil
@@ -103,11 +103,11 @@ func (q *XPathQuery) Query(parent *XPathNode, xpath string) (*XPathNode, error) 
 		p := parent.impl.(*jsonquery.Node)
 		node, err = jsonquery.Query(p, xpath)
 	default:
-		return nil, fmt.Errorf("Cannot find implementation")
+		return nil, fmt.Errorf("cannot find implementation")
 	}
 	if err == nil {
 		if node == nil {
-			return nil, fmt.Errorf("Cannot find element")
+			return nil, fmt.Errorf("cannot find element")
 		}
 		return &XPathNode{impl: node}, nil
 	}
@@ -163,7 +163,7 @@ func (q *XPathQuery) QueryAll(parent *XPathNode, xpath string) ([]*XPathNode, er
 		}
 		return nodes, nil
 	default:
-		return nil, fmt.Errorf("Cannot find implementation")
+		return nil, fmt.Errorf("cannot find implementation")
 	}
 }
 
@@ -180,5 +180,5 @@ func NewQuerier(handlerClass string, req *api.XMLRequest) (XPathQuerier, error) 
 	if req != nil && req.GetParameterAsString("pre-parse-html") == "true" {
 		return &XPathQuery{kind: "html"}, nil
 	}
-	return nil, fmt.Errorf("Cannot find suitable implementation for %s", handlerClass)
+	return nil, fmt.Errorf("cannot find suitable implementation for %s", handlerClass)
 }

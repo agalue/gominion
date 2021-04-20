@@ -13,10 +13,11 @@ import (
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/netflow"
-	"github.com/golang/protobuf/proto"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/dnscache"
 	"github.com/sony/gobreaker"
+
+	"google.golang.org/protobuf/proto"
 
 	decoder "github.com/cloudflare/goflow/v3/decoders"
 	goflowMsg "github.com/cloudflare/goflow/v3/pb"

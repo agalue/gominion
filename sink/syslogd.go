@@ -43,13 +43,13 @@ func (module *SyslogModule) Start(config *api.MinionConfig, sink api.Sink) error
 	module.server.SetFormat(syslog.Automatic)
 	module.server.SetHandler(syslog.NewChannelHandler(module.channel))
 	if err := module.server.ListenUDP(listenAddr); err != nil {
-		return fmt.Errorf("Cannot start Syslog UDP listener: %s", err)
+		return fmt.Errorf("cannot start Syslog UDP listener: %s", err)
 	}
 	if err := module.server.ListenTCP(listenAddr); err != nil {
-		return fmt.Errorf("Cannot start Syslog TCP listener: %s", err)
+		return fmt.Errorf("cannot start Syslog TCP listener: %s", err)
 	}
 	if err := module.server.Boot(); err != nil {
-		return fmt.Errorf("Cannot boot Syslog server: %s", err)
+		return fmt.Errorf("cannot boot Syslog server: %s", err)
 	}
 	go func(channel syslog.LogPartsChannel) {
 		for logParts := range channel {

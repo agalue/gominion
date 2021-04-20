@@ -36,7 +36,7 @@ func (r *SinkRegistry) GetAllModules() []SinkModule {
 func (r *SinkRegistry) StartModules(config *MinionConfig, sink Sink) error {
 	for _, m := range r.sinkRegistryMap {
 		if err := m.Start(config, sink); err != nil {
-			return fmt.Errorf("Cannot start Sink API module %s: %v", m.GetID(), err)
+			return fmt.Errorf("cannot start Sink API module %s: %v", m.GetID(), err)
 		}
 	}
 	return nil

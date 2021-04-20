@@ -93,7 +93,7 @@ func TestXMLQuerier(t *testing.T) {
 		assert.NilError(t, err)
 		nlwp, err := querier.Query(zone, "parameter[@key='nlwp']/@value")
 		assert.NilError(t, err)
-		re, err := regexp.Compile("[.\\d]+")
+		re, err := regexp.Compile(`[.\d]+`)
 		assert.NilError(t, err)
 		data := re.FindAllString(nlwp.GetContent(), -1)
 		assert.Equal(t, 1, len(data))
@@ -114,7 +114,7 @@ func TestJSONQuerier(t *testing.T) {
 		assert.NilError(t, err)
 		nlwp, err := querier.Query(zone, "parameter/*[key='nlwp']/value")
 		assert.NilError(t, err)
-		re, err := regexp.Compile("[.\\d]+")
+		re, err := regexp.Compile(`[.\d]+`)
 		assert.NilError(t, err)
 		data := re.FindAllString(nlwp.GetContent(), -1)
 		assert.Equal(t, 1, len(data))
@@ -134,7 +134,7 @@ func TestHTMLQuerier(t *testing.T) {
 	assert.NilError(t, err)
 	temp, err := querier.Query(body, "p[@id='temp']")
 	assert.NilError(t, err)
-	re, err := regexp.Compile("[.\\d]+")
+	re, err := regexp.Compile(`[.\d]+`)
 	assert.NilError(t, err)
 	data := re.FindAllString(temp.GetContent(), -1)
 	assert.Equal(t, 1, len(data))
@@ -146,6 +146,7 @@ func TestHTMLQuerier(t *testing.T) {
 		name, err := querier.Query(resource, "td[@id='rack']")
 		assert.NilError(t, err)
 		value, err := querier.Query(resource, "td[@id='fan']")
+		assert.NilError(t, err)
 		fmt.Printf("%s = %s\n", name.GetContent(), value.GetContent())
 	}
 }
@@ -159,7 +160,7 @@ func TestCSSQuerier(t *testing.T) {
 	assert.NilError(t, err)
 	temp, err := querier.Query(body, "p[id='temp']")
 	assert.NilError(t, err)
-	re, err := regexp.Compile("[.\\d]+")
+	re, err := regexp.Compile(`[.\d]+`)
 	assert.NilError(t, err)
 	data := re.FindAllString(temp.GetContent(), -1)
 	assert.Equal(t, 1, len(data))
@@ -171,6 +172,7 @@ func TestCSSQuerier(t *testing.T) {
 		name, err := querier.Query(resource, "td[id='rack']")
 		assert.NilError(t, err)
 		value, err := querier.Query(resource, "td[id='fan']")
+		assert.NilError(t, err)
 		fmt.Printf("%s = %s\n", name.GetContent(), value.GetContent())
 	}
 }

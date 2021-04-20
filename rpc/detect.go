@@ -32,7 +32,7 @@ func (module *DetectorClientRPCModule) Execute(request *ipc.RpcRequestProto) *ip
 	if monitor, ok := detectors.GetDetector(detectorID); ok {
 		response = monitor.Detect(req)
 	} else {
-		response.Error = getError(request, fmt.Errorf("Cannot find implementation for detector %s", detectorID))
+		response.Error = getError(request, fmt.Errorf("cannot find implementation for detector %s", detectorID))
 	}
 	log.Infof("Sending detection status %s on %s as %s", detectorID, req.IPAddress, response.GetStatus())
 	return transformResponse(request, response)

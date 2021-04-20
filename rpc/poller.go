@@ -32,7 +32,7 @@ func (module *PollerClientRPCModule) Execute(request *ipc.RpcRequestProto) *ipc.
 	if monitor, ok := monitors.GetMonitor(monitorID); ok {
 		response = monitor.Poll(req)
 	} else {
-		response.Error = getError(request, fmt.Errorf("Cannot find implementation for monitor %s", monitorID))
+		response.Error = getError(request, fmt.Errorf("cannot find implementation for monitor %s", monitorID))
 	}
 	log.Debugf("Sending polling status of %s on %s as %s", req.ServiceName, req.IPAddress, response.Status.StatusName)
 	return transformResponse(request, response)

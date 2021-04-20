@@ -10,8 +10,9 @@ import (
 	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/ipc"
 	"github.com/agalue/gominion/protobuf/telemetry"
-	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
+
+	"google.golang.org/protobuf/proto"
 )
 
 func sendXMLResponse(moduleID string, config *api.MinionConfig, sink api.Sink, object interface{}) {
@@ -64,11 +65,11 @@ func wrapMessageToTelemetry(config *api.MinionConfig, sourceAddress string, sour
 func createUDPListener(port int) (*net.UDPConn, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp4", fmt.Sprintf(":%d", port))
 	if err != nil {
-		return nil, fmt.Errorf("Cannot resolve address: %s", err)
+		return nil, fmt.Errorf("cannot resolve address: %s", err)
 	}
 	conn, err := net.ListenUDP("udp4", udpAddr)
 	if err != nil {
-		return nil, fmt.Errorf("Cannot listen on UDP port %d: %s", port, err)
+		return nil, fmt.Errorf("cannot listen on UDP port %d: %s", port, err)
 	}
 	return conn, nil
 }

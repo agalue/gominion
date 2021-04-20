@@ -30,7 +30,7 @@ func (collector *HTTPCollector) Collect(request *api.CollectorRequestDTO) *api.C
 	httpCollection := &api.HTTPCollection{}
 	err := xml.Unmarshal([]byte(request.GetAttributeValue(httpCollectionAttr, "")), httpCollection)
 	if err != nil {
-		response.MarkAsFailed(request.CollectionAgent, fmt.Errorf("Cannot parse %s: %v", httpCollectionAttr, err))
+		response.MarkAsFailed(request.CollectionAgent, fmt.Errorf("cannot parse %s: %v", httpCollectionAttr, err))
 		return response
 	}
 	builder := api.NewCollectionSetBuilder(request.CollectionAgent)
@@ -62,7 +62,7 @@ func (collector *HTTPCollector) Collect(request *api.CollectorRequestDTO) *api.C
 		}
 		min, max := tools.ParseHTTPResponseRange(uri.URL.ResponseRange)
 		if httpres.StatusCode < min || httpres.StatusCode > max {
-			exerr := fmt.Errorf("Response code %d out of expected range: %d-%d", httpres.StatusCode, min, max)
+			exerr := fmt.Errorf("response code %d out of expected range: %d-%d", httpres.StatusCode, min, max)
 			response.MarkAsFailed(request.CollectionAgent, exerr)
 			return response
 		}

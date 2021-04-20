@@ -32,7 +32,7 @@ func (module *CollectorClientRPCModule) Execute(request *ipc.RpcRequestProto) *i
 	if collector, ok := collectors.GetCollector(collectorID); ok {
 		response = collector.Collect(req)
 	} else {
-		response.Error = getError(request, fmt.Errorf("Cannot find implementation for collector %s", collectorID))
+		response.Error = getError(request, fmt.Errorf("cannot find implementation for collector %s", collectorID))
 	}
 	log.Infof("Sending collection of %s from %s", response.GetStatus(), req.CollectionAgent.IPAddress)
 	return transformResponse(request, response)

@@ -7,7 +7,8 @@ import (
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/protobuf/ipc"
 	"github.com/agalue/gominion/protobuf/telemetry"
-	"github.com/golang/protobuf/proto"
+
+	"google.golang.org/protobuf/proto"
 
 	"gotest.tools/v3/assert"
 )

@@ -29,7 +29,7 @@ func (listener *MinionListener) GetParser() string {
 
 // Is returns true if the listener matches a given parser
 func (listener *MinionListener) Is(parser string) bool {
-	return strings.ToLower(listener.GetParser()) == strings.ToLower(parser)
+	return strings.EqualFold(listener.GetParser(), parser)
 }
 
 // CircuitBreakerConfig Circuit Breaker Configuration
@@ -71,10 +71,10 @@ func (cfg *MinionConfig) ParseListeners(csvs []string) error {
 				listener := MinionListener{Name: parts[0], Parser: parts[2], Port: port}
 				cfg.Listeners = append(cfg.Listeners, listener)
 			} else {
-				return fmt.Errorf("Invalid port on listener CSV %s: %s", csv, err)
+				return fmt.Errorf("invalid port on listener CSV %s: %s", csv, err)
 			}
 		} else {
-			return fmt.Errorf("Invalid listener CSV %s", csv)
+			return fmt.Errorf("invalid listener CSV %s", csv)
 		}
 	}
 	return nil
@@ -83,7 +83,7 @@ func (cfg *MinionConfig) ParseListeners(csvs []string) error {
 // GetListener gets a given listener by name
 func (cfg *MinionConfig) GetListener(name string) *MinionListener {
 	for _, listener := range cfg.Listeners {
-		if strings.ToLower(listener.Name) == strings.ToLower(name) {
+		if strings.EqualFold(listener.Name, name) {
 			return &listener
 		}
 	}
@@ -93,7 +93,7 @@ func (cfg *MinionConfig) GetListener(name string) *MinionListener {
 // GetListenerByParser gets a given listener by parser name
 func (cfg *MinionConfig) GetListenerByParser(parser string) *MinionListener {
 	for _, listener := range cfg.Listeners {
-		if strings.ToLower(listener.GetParser()) == strings.ToLower(parser) {
+		if strings.EqualFold(listener.GetParser(), parser) {
 			return &listener
 		}
 	}
@@ -108,18 +108,18 @@ func (cfg *MinionConfig) String() string {
 // IsValid returns an error if the configuration is not valid
 func (cfg *MinionConfig) IsValid() error {
 	if cfg.ID == "" {
-		return fmt.Errorf("Minion ID required")
+		return fmt.Errorf("minion ID required")
 	}
 	if cfg.Location == "" {
-		return fmt.Errorf("Location required")
+		return fmt.Errorf("location required")
 	}
 	if cfg.BrokerURL == "" {
-		return fmt.Errorf("Broker URL required")
+		return fmt.Errorf("broker URL required")
 	}
 	if cfg.DNS != nil && cfg.DNS.NameServer != "" {
 		ip := net.ParseIP(cfg.DNS.NameServer)
 		if ip == nil {
-			return fmt.Errorf("Invalid DNS name server")
+			return fmt.Errorf("invalid DNS name server")
 		}
 	}
 	return nil
