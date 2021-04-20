@@ -14,6 +14,7 @@ func Ping(addr string, timeout time.Duration) (time.Duration, error) {
 	}
 	pinger.Count = 1
 	pinger.Timeout = timeout
+	pinger.SetPrivileged(true)
 	if err := pinger.Run(); err != nil {
 		return 0, err
 	}
