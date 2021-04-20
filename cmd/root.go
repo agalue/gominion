@@ -44,7 +44,7 @@ var (
 	rootCmd = &cobra.Command{
 		Use:     "gominion",
 		Short:   "An implementation of OpenNMS Minion in Go",
-		Version: "0.1.3",
+		Version: "0.1.4",
 		Run:     rootHandler,
 		Args:    cobra.NoArgs,
 	}
