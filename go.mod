@@ -44,9 +44,9 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20210415154028-4f45737414dc // indirect
-	golang.org/x/net v0.0.0-20210415231046-e915ea6b2b7d
+	golang.org/x/net v0.0.0-20210420072503-d25e30425868
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20210419170143-37df388d1f33 // indirect
+	golang.org/x/sys v0.0.0-20210420072515-93ed5bcd2bfe // indirect
 	google.golang.org/genproto v0.0.0-20210416161957-9910b6c460de // indirect
 	google.golang.org/grpc v1.37.0
 	google.golang.org/protobuf v1.26.0
