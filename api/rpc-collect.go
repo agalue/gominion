@@ -232,6 +232,14 @@ func (builder *CollectionSetBuilder) WithAttribute(resource *CollectionResourceD
 	return builder
 }
 
+// WithMetric adds a metric/attribute object
+func (builder *CollectionSetBuilder) WithMetric(resource *CollectionResourceDTO, metric ResourceAttributeDTO) *CollectionSetBuilder {
+	attributes := builder.attributesByResource[resource]
+	attributes = append(attributes, metric)
+	builder.attributesByResource[resource] = attributes
+	return builder
+}
+
 // Build generates the collection set
 func (builder *CollectionSetBuilder) Build() *CollectionSetDTO {
 	cs := &CollectionSetDTO{
