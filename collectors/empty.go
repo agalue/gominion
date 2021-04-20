@@ -20,7 +20,7 @@ func (collector *EmptyCollector) GetID() string {
 // Collect execute the XXX collector request and return the collection response
 func (collector *EmptyCollector) Collect(request *api.CollectorRequestDTO) *api.CollectorResponseDTO {
 	response := new(api.CollectorResponseDTO)
-	response.MarkAsFailed(request.CollectionAgent, fmt.Errorf("not Implemented"))
+	response.MarkAsFailed(request.CollectionAgent, fmt.Errorf("not implemented"))
 	return response
 }
 

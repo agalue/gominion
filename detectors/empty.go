@@ -17,7 +17,7 @@ func (detector *EmptyDetector) GetID() string {
 
 // Detect execute the XXX detector request and return the detection response
 func (detector *EmptyDetector) Detect(request *api.DetectorRequestDTO) *api.DetectorResponseDTO {
-	response := &api.DetectorResponseDTO{Detected: false, Error: "Not Implemented"}
+	response := &api.DetectorResponseDTO{Detected: false, Error: "not implemented"}
 	return response
 }
 
