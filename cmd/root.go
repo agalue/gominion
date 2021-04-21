@@ -8,13 +8,8 @@ import (
 
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/broker"
-	"github.com/agalue/gominion/collectors"
-	"github.com/agalue/gominion/detectors"
 	"github.com/agalue/gominion/log"
-	"github.com/agalue/gominion/monitors"
 	"github.com/agalue/gominion/sink"
-
-	_ "github.com/agalue/gominion/rpc" // Load all RPC modules
 
 	homedir "github.com/mitchellh/go-homedir"
 
@@ -112,24 +107,6 @@ func initConfig() {
 	}
 }
 
-func displayRegisteredModules(sinkRegistry *api.SinkRegistry) {
-	for _, m := range api.GetAllRPCModules() {
-		log.Debugf("Registered RPC module %s", m.GetID())
-	}
-	for _, m := range sinkRegistry.GetAllModules() {
-		log.Debugf("Registered Sink module %s", m.GetID())
-	}
-	for _, m := range collectors.GetAllCollectors() {
-		log.Debugf("Registered collector module %s", m.GetID())
-	}
-	for _, m := range detectors.GetAllDetectors() {
-		log.Debugf("Registered detector module %s", m.GetID())
-	}
-	for _, m := range monitors.GetAllMonitors() {
-		log.Debugf("Registered poller module %s", m.GetID())
-	}
-}
-
 func rootHandler(cmd *cobra.Command, args []string) {
 	log.InitLogger(minionConfig.LogLevel)
 	// Validate Configuration
@@ -141,7 +118,7 @@ func rootHandler(cmd *cobra.Command, args []string) {
 	}
 	// Display loaded modules
 	sinkRegistry := sink.CreateSinkRegistry()
-	displayRegisteredModules(sinkRegistry)
+	broker.DisplayRegisteredModules(sinkRegistry)
 	// Start statistics server
 	if minionConfig.StatsPort > 0 {
 		go func() {
