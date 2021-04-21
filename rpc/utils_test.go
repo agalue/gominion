@@ -24,9 +24,12 @@ func TestTransformResponse(t *testing.T) {
 		Location: "Test",
 	}
 	response := transformResponse(request, object)
-	assert.Assert(t, response != nil)
-	received := &Person{}
-	err := xml.Unmarshal(response.RpcContent, received)
-	assert.NilError(t, err)
-	assert.Equal(t, object.FirstName, received.FirstName)
+	if response == nil {
+		t.FailNow()
+	} else {
+		received := &Person{}
+		err := xml.Unmarshal(response.RpcContent, received)
+		assert.NilError(t, err)
+		assert.Equal(t, object.FirstName, received.FirstName)
+	}
 }

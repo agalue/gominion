@@ -53,13 +53,23 @@ func TestHTTPRequest(t *testing.T) {
 	assert.Equal(t, 300, collection.RRD.Step)
 	assert.Equal(t, "RRA:AVERAGE:0.5:1:2016", collection.RRD.RRAs[0].Content)
 	uri := collection.FindURI("sensors")
-	assert.Assert(t, uri != nil)
-	assert.Equal(t, "100-399", uri.URL.ResponseRange)
-	assert.Equal(t, 2, len(uri.Attributes.AttributeList))
+	if uri == nil {
+		t.FailNow()
+	} else {
+		assert.Equal(t, "100-399", uri.URL.ResponseRange)
+		assert.Equal(t, 2, len(uri.Attributes.AttributeList))
+	}
 	temperature := uri.FindAttributeByAlias("temperature")
-	assert.Assert(t, temperature != nil)
-	assert.Equal(t, "temperature", temperature.Alias)
+	if temperature == nil {
+		t.FailNow()
+	} else {
+		assert.Equal(t, "temperature", temperature.Alias)
+	}
+
 	humidity := uri.FindAttributeByMatchGroup(2)
-	assert.Assert(t, humidity != nil)
-	assert.Equal(t, "humidity", humidity.Alias)
+	if humidity == nil {
+		t.FailNow()
+	} else {
+		assert.Equal(t, "humidity", humidity.Alias)
+	}
 }

@@ -68,9 +68,12 @@ listeners:
 	assert.Equal(t, uint32(5), config.DNS.CircuitBreaker.MaxRequests)
 
 	netflow := config.GetListener("Netflow-5")
-	assert.Assert(t, netflow != nil)
-	assert.Equal(t, 18877, netflow.Port)
-	assert.Assert(t, netflow.Is("Netflow5UdpParser"))
-	assert.Assert(t, netflow.Properties != nil)
-	assert.Equal(t, "4", netflow.Properties["workers"])
+	if netflow == nil {
+		t.FailNow()
+	} else {
+		assert.Equal(t, 18877, netflow.Port)
+		assert.Assert(t, netflow.Is("Netflow5UdpParser"))
+		assert.Assert(t, netflow.Properties != nil)
+		assert.Equal(t, "4", netflow.Properties["workers"])
+	}
 }

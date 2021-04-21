@@ -216,12 +216,15 @@ func TestSNMPResponse(t *testing.T) {
 	assert.Equal(t, len(req.Walks), len(response.Responses))
 
 	ifName := findResponse(response, "3-0")
-	assert.Assert(t, ifName != nil)
-	assert.Equal(t, 3, len(ifName.Results))
-	assert.Equal(t, ".2", ifName.Results[1].Instance)
-	eth0, err := base64.StdEncoding.DecodeString(ifName.Results[1].Value.Value)
-	assert.NilError(t, err)
-	assert.Equal(t, "eth0", string(eth0))
+	if ifName == nil {
+		t.FailNow()
+	} else {
+		assert.Equal(t, 3, len(ifName.Results))
+		assert.Equal(t, ".2", ifName.Results[1].Instance)
+		eth0, err := base64.StdEncoding.DecodeString(ifName.Results[1].Value.Value)
+		assert.NilError(t, err)
+		assert.Equal(t, "eth0", string(eth0))
+	}
 }
 
 func findResponse(response *api.SNMPMultiResponseDTO, correlationID string) *api.SNMPResponseDTO {

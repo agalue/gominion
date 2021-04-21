@@ -36,14 +36,17 @@ func TestSyslogBuildMessageLog(t *testing.T) {
 	assert.NilError(t, err)
 	fmt.Println(string(bytes))
 
-	assert.Assert(t, logMsg != nil)
-	assert.Equal(t, "Test", logMsg.Location)
-	assert.Equal(t, 1, len(logMsg.Messages))
-	decodedMsg, err := base64.StdEncoding.DecodeString(string(logMsg.Messages[0].Content))
-	assert.NilError(t, err)
-	expectedMsg := fmt.Sprintf("<%d>%s", logParts["priority"], logParts["content"])
-	fmt.Printf("Expected message: %s\n", expectedMsg)
-	assert.Equal(t, expectedMsg, string(decodedMsg))
+	if logMsg == nil {
+		t.FailNow()
+	} else {
+		assert.Equal(t, "Test", logMsg.Location)
+		assert.Equal(t, 1, len(logMsg.Messages))
+		decodedMsg, err := base64.StdEncoding.DecodeString(string(logMsg.Messages[0].Content))
+		assert.NilError(t, err)
+		expectedMsg := fmt.Sprintf("<%d>%s", logParts["priority"], logParts["content"])
+		fmt.Printf("Expected message: %s\n", expectedMsg)
+		assert.Equal(t, expectedMsg, string(decodedMsg))
+	}
 
 	logParts["content"] = "X"
 	logMsg = module.buildMessageLog(logParts)

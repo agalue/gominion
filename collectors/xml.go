@@ -90,11 +90,9 @@ func (collector *XMLCollector) getResourceName(querier XPathQuerier, group api.X
 	if group.HasMultipleResourceKeys() {
 		keys := make([]string, 0)
 		for _, key := range group.ResourceKey.KeyXPaths {
-			keyNode, err := querier.Query(node, key)
-			if err != nil {
+			if keyNode, err := querier.Query(node, key); err != nil {
 				keys = append(keys, keyNode.GetContent())
 			}
-			return "", err
 		}
 		return strings.Join(keys, "_"), nil
 	}
