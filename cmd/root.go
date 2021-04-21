@@ -109,16 +109,25 @@ func initConfig() {
 
 func rootHandler(cmd *cobra.Command, args []string) {
 	log.InitLogger(minionConfig.LogLevel)
-	// Validate Configuration
+	// Validate configuration
 	if err := minionConfig.IsValid(); err != nil {
 		log.Fatalf("Invalid configuration: %v", err)
 	}
 	if err := minionConfig.ParseListeners(listeners); err != nil {
 		log.Fatalf("Invalid listener configuration: %v", err)
 	}
-	// Display loaded modules
+	// Initialize metrics object
+	metrics := api.NewMetrics()
+	if minionConfig.StatsPort > 0 {
+		metrics.Register()
+	}
+	// Initialize client broker
 	sinkRegistry := sink.CreateSinkRegistry()
 	broker.DisplayRegisteredModules(sinkRegistry)
+	client := broker.GetBroker(minionConfig, sinkRegistry, metrics)
+	if client == nil {
+		log.Fatalf("Cannot find broker implementation for %s", minionConfig.BrokerType)
+	}
 	// Start statistics server
 	if minionConfig.StatsPort > 0 {
 		go func() {
@@ -130,20 +139,12 @@ func rootHandler(cmd *cobra.Command, args []string) {
 			}
 		}()
 	}
-	// Initialize metrics
-	metrics := api.NewMetrics()
-	if minionConfig.StatsPort > 0 {
-		metrics.Register()
-	}
-	// Start client
-	client := broker.GetBroker(minionConfig, sinkRegistry, metrics)
-	if client == nil {
-		log.Fatalf("Cannot find broker implementation for %s", minionConfig.BrokerType)
-	}
+	// Start client broker
 	log.Infof("Starting OpenNMS Minion...\n%s", minionConfig.String())
 	if err := client.Start(); err != nil {
 		log.Fatalf("Cannot connect via %s: %v", minionConfig.BrokerType, err)
 	}
+	// Wait for termination signal
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)
 	<-stop

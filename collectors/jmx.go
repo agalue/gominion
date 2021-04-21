@@ -1,10 +1,8 @@
 package collectors
 
-// Placeholder for implementing new collectors
-
 import (
 	"fmt"
-	"runtime/metrics"
+	"runtime"
 
 	"github.com/agalue/gominion/api"
 )
@@ -18,7 +16,8 @@ func (collector *JMXCollector) GetID() string {
 	return "Jsr160Collector"
 }
 
-// Collect execute the XXX collector request and return the collection response
+// Collect execute the JMX collector request and return the collection response.
+// Currently returns mock data for the JMX-Minion service.
 func (collector *JMXCollector) Collect(request *api.CollectorRequestDTO) *api.CollectorResponseDTO {
 	response := new(api.CollectorResponseDTO)
 	agent := request.CollectionAgent
@@ -43,24 +42,21 @@ func (collector *JMXCollector) Collect(request *api.CollectorRequestDTO) *api.Co
 // Mock content for JMX-Minion
 func (collector *JMXCollector) getAttributes(request *api.CollectorRequestDTO) []api.ResourceAttributeDTO {
 	attributes := make([]api.ResourceAttributeDTO, 2)
-	samples := []metrics.Sample{
-		{Name: "/memory/classes/total:bytes"},
-		{Name: "/sched/goroutines:goroutines"},
-	}
-	metrics.Read(samples)
+	stats := new(runtime.MemStats)
+	runtime.ReadMemStats(stats)
 	attributes[0] = api.ResourceAttributeDTO{
 		Name:       "TotalMemory",
 		Group:      "java_lang_type_OperatingSystem",
 		Identifier: "JMX_java.lang:type=OperatingSystem.TotalMemory",
 		Type:       "gauge",
-		Value:      fmt.Sprintf("%d", samples[0].Value.Uint64()),
+		Value:      fmt.Sprintf("%d", stats.Sys),
 	}
 	attributes[1] = api.ResourceAttributeDTO{
 		Name:       "ThreadCount",
 		Group:      "java_lang_type_Threading",
 		Identifier: "JMX_java.lang:type=Threading.ThreadCount",
 		Type:       "gauge",
-		Value:      fmt.Sprintf("%d", samples[1].Value.Uint64()),
+		Value:      fmt.Sprintf("%d", runtime.NumGoroutine()),
 	}
 	return attributes
 }
