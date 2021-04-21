@@ -29,6 +29,7 @@ func GetBroker(config *api.MinionConfig, registry *api.SinkRegistry, metrics *ap
 	return nil
 }
 
+// DisplayRegisteredModules displays all registered modules
 func DisplayRegisteredModules(sinkRegistry *api.SinkRegistry) {
 	for _, m := range api.GetAllRPCModules() {
 		log.Debugf("Registered RPC module %s", m.GetID())

@@ -118,6 +118,7 @@ func getLogLevel(logLevel string) zap.AtomicLevel {
 	return level
 }
 
+// WatermillAdapter represents a logger implementation for Watermill
 type WatermillAdapter struct {
 	fields watermill.LogFields
 }
@@ -131,6 +132,7 @@ func (a WatermillAdapter) prepareFields(fields watermill.LogFields) []zap.Field 
 	return fs
 }
 
+// Error logs a formatted error message
 func (a WatermillAdapter) Error(msg string, err error, fields watermill.LogFields) {
 	if log != nil {
 		fs := a.prepareFields(fields)
@@ -139,21 +141,25 @@ func (a WatermillAdapter) Error(msg string, err error, fields watermill.LogField
 	}
 }
 
+// Info logs a formatted info message
 func (a WatermillAdapter) Info(msg string, fields watermill.LogFields) {
 	if log != nil {
 		log.Info(msg, a.prepareFields(fields))
 	}
 }
 
+// Debug logs a formatted debug message
 func (a WatermillAdapter) Debug(msg string, fields watermill.LogFields) {
 	if log != nil {
 		log.Debug(msg, a.prepareFields(fields))
 	}
 }
 
+// Trace logs a formatted trace message
 func (a WatermillAdapter) Trace(msg string, fields watermill.LogFields) {
 }
 
+// With adds a log fields to the adapter
 func (a WatermillAdapter) With(fields watermill.LogFields) watermill.LoggerAdapter {
 	return &WatermillAdapter{
 		fields: a.fields.Add(fields),

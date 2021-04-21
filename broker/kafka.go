@@ -21,6 +21,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// KafkaClient represents the Kafka client implementation for the OpenNMS IPC API.
 type KafkaClient struct {
 	config        *api.MinionConfig
 	registry      *api.SinkRegistry

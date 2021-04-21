@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
+// SinkRegistry track all the enabled Sink module instances.
 type SinkRegistry struct {
 	sinkRegistryMap map[string]SinkModule
 }
