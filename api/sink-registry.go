@@ -4,12 +4,12 @@ import (
 	"fmt"
 )
 
-// SinkRegistry track all the enabled Sink module instances.
+// SinkRegistry tracks all the enabled Sink module instances for a given broker.
 type SinkRegistry struct {
 	sinkRegistryMap map[string]SinkModule
 }
 
-// Init initializing the Sink registry
+// Init initializes a new Sink registry
 func (r *SinkRegistry) Init() {
 	r.sinkRegistryMap = make(map[string]SinkModule)
 }
@@ -19,7 +19,7 @@ func (r *SinkRegistry) RegisterModule(module SinkModule) {
 	r.sinkRegistryMap[module.GetID()] = module
 }
 
-// UnregisterModule unregister an existing RPC Module implementation
+// UnregisterModule unregisters an existing RPC Module implementation
 func (r *SinkRegistry) UnregisterModule(module SinkModule) {
 	delete(r.sinkRegistryMap, module.GetID())
 }
@@ -33,7 +33,7 @@ func (r *SinkRegistry) GetAllModules() []SinkModule {
 	return modules
 }
 
-// StartModules starts all the registered Sink modules
+// StartModules starts all the registered Sink modules (non-blocking method)
 func (r *SinkRegistry) StartModules(config *MinionConfig, sink Sink) error {
 	for _, m := range r.sinkRegistryMap {
 		if err := m.Start(config, sink); err != nil {
