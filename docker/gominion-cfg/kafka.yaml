@@ -1,5 +1,5 @@
 id: gominion-kafka
-location: NewYork
+location: Miami
 brokerType: kafka
 brokerUrl: kafka:9092
 trapPort: 1162

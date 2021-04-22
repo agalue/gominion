@@ -101,7 +101,7 @@ services:
       retries: 3
 
   opennms:
-    image: opennms/horizon:27.1.1
+    image: opennms/horizon:release-27.x
     container_name: opennms
     hostname: opennms
     depends_on:
@@ -141,6 +141,7 @@ services:
     - PORT=8990
     - HTTP_PORT=2112
     - TLS_ENABLED=false
+    - CONSUMER_GROUP_ID=GRPC
 
   sink-trap:
     image: agalue/onms-kafka-ipc-receiver
@@ -198,7 +199,7 @@ services:
     - IPC=sink
     - PARSER=netflow
 
-  rpc-request-newyork:
+  rpc-request-miami:
     image: agalue/onms-kafka-ipc-receiver
     container_name: rpc-request-newyork
     hostname: rpc-request-newyork
@@ -208,7 +209,7 @@ services:
     environment:
     - BOOTSTRAP_SERVER=kafka:9092
     - KAFKA_ACKS=1
-    - TOPIC=OpenNMS.NewYork.rpc-request
+    - TOPIC=OpenNMS.Miami.rpc-request
     - IPC=rpc
 
   rpc-request-boston:
