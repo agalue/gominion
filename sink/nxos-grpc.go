@@ -14,6 +14,7 @@ import (
 
 // NxosGrpcModule represents the Cisco Nexus NX-OS Telemetry module via gRPC
 type NxosGrpcModule struct {
+	mdt_dialout.UnimplementedGRPCMdtDialoutServer
 	sink   api.Sink
 	config *api.MinionConfig
 	server *grpc.Server

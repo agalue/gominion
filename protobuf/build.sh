@@ -6,5 +6,5 @@ protoc --proto_path=./proto --go_out=./ sink-message.proto
 protoc --proto_path=./proto --go_out=./ kafka-rpc.proto
 protoc --proto_path=./proto --go_out=./ telemetry.proto
 protoc --proto_path=./proto --go_out=./ netflow.proto
-protoc --proto_path=./proto --go_out=plugins=grpc:./ ipc.proto
-protoc --proto_path=./proto --go_out=plugins=grpc:./ mdt_dialout.proto
+protoc --proto_path=./proto --go_out=./ --go-grpc_out=./ ipc.proto
+protoc --proto_path=./proto --go_out=./ --go-grpc_out=./ mdt_dialout.proto
