@@ -97,7 +97,7 @@ listeners:
 - name: NXOS
   port: 50000
   parser: NxosGrpcParser
-- name: SFlow
+- name: SFlow # For reference purposes. Not fully implemented.
   port: 6343
   parser: SFlowUdpParser
 ```
