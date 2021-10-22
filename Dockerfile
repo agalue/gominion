@@ -2,7 +2,10 @@ FROM golang:alpine AS builder
 RUN  apk add --no-cache alpine-sdk
 WORKDIR /app
 ADD ./ /app/
-RUN  GOOS=linux GOARCH=amd64 go build -tags musl -a -o gominion .
+RUN echo "@edgecommunity http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && \
+    apk update && \
+    apk add --no-cache alpine-sdk git cyrus-sasl-dev librdkafka-dev@edgecommunity && \
+    CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -tags static_all,netgo,musl -o gominion .
 
 FROM alpine
 COPY --from=builder /app/gominion /usr/local/bin/gominion

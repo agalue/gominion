@@ -102,9 +102,6 @@ func (cli *KafkaClient) Start() error {
 			case *kafka.Message:
 				if ev.TopicPartition.Error != nil {
 					log.Errorf("kafka delivery failed: %v", ev.TopicPartition)
-				} else {
-					bytes := len(ev.Value)
-					log.Infof("kafka delivered message of %d bytes with key %s to %v", bytes, ev.Key, ev.TopicPartition)
 				}
 			default:
 				log.Debugf("kafka event: %s", ev)
@@ -139,6 +136,7 @@ func (cli *KafkaClient) Start() error {
 func (cli *KafkaClient) Stop() {
 	cli.registry.StopModules()
 	log.Warnf("Stopping Kafka client")
+	cli.consumer.Unsubscribe()
 	cli.consumer.Close()
 	cli.producer.Close()
 	if cli.traceCloser != nil {
