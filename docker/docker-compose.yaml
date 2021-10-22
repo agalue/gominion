@@ -38,7 +38,7 @@ services:
     ports:
     - 9094:9094
     volumes:
-    - kafka:/kafka
+    - kafka:/bitnami/kafka
     environment:
     - TZ=America/New_York
     - ALLOW_PLAINTEXT_LISTENER=yes
