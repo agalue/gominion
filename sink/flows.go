@@ -18,11 +18,11 @@ import (
 	"github.com/sony/gobreaker"
 
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	decoder "github.com/cloudflare/goflow/v3/decoders"
 	goflowMsg "github.com/cloudflare/goflow/v3/pb"
 	goflow "github.com/cloudflare/goflow/v3/utils"
-	wrappers "github.com/golang/protobuf/ptypes/wrappers"
 )
 
 // UDPNetflow5Parser represents the UDP Netflow5 parser name
@@ -347,27 +347,27 @@ func (module *NetflowModule) convertToNetflow(flowmsg *goflowMsg.FlowMessage) *n
 		Direction:         netflow.Direction(flowmsg.FlowDirection),
 		Timestamp:         flowmsg.TimeReceived * 1000,
 		SrcAddress:        srcAddress,
-		SrcPort:           &wrappers.UInt32Value{Value: flowmsg.SrcPort},
-		SrcAs:             &wrappers.UInt64Value{Value: uint64(flowmsg.SrcAS)},
-		SrcMaskLen:        &wrappers.UInt32Value{Value: flowmsg.SrcNet},
+		SrcPort:           &wrapperspb.UInt32Value{Value: flowmsg.SrcPort},
+		SrcAs:             &wrapperspb.UInt64Value{Value: uint64(flowmsg.SrcAS)},
+		SrcMaskLen:        &wrapperspb.UInt32Value{Value: flowmsg.SrcNet},
 		DstAddress:        dstAddress,
-		DstPort:           &wrappers.UInt32Value{Value: flowmsg.DstPort},
-		DstAs:             &wrappers.UInt64Value{Value: uint64(flowmsg.DstAS)},
-		DstMaskLen:        &wrappers.UInt32Value{Value: flowmsg.DstNet},
+		DstPort:           &wrapperspb.UInt32Value{Value: flowmsg.DstPort},
+		DstAs:             &wrapperspb.UInt64Value{Value: uint64(flowmsg.DstAS)},
+		DstMaskLen:        &wrapperspb.UInt32Value{Value: flowmsg.DstNet},
 		NextHopAddress:    nextHopeAddress,
-		InputSnmpIfindex:  &wrappers.UInt32Value{Value: flowmsg.InIf},
-		OutputSnmpIfindex: &wrappers.UInt32Value{Value: flowmsg.OutIf},
-		FirstSwitched:     &wrappers.UInt64Value{Value: flowmsg.TimeFlowStart * 1000},
-		LastSwitched:      &wrappers.UInt64Value{Value: flowmsg.TimeFlowEnd * 1000},
-		TcpFlags:          &wrappers.UInt32Value{Value: flowmsg.TCPFlags},
-		Protocol:          &wrappers.UInt32Value{Value: flowmsg.Proto},
-		IpProtocolVersion: &wrappers.UInt32Value{Value: flowmsg.Etype},
-		Tos:               &wrappers.UInt32Value{Value: flowmsg.IPTos},
-		FlowSeqNum:        &wrappers.UInt64Value{Value: uint64(flowmsg.SequenceNum)},
-		SamplingInterval:  &wrappers.DoubleValue{Value: float64(flowmsg.SamplingRate)},
-		NumBytes:          &wrappers.UInt64Value{Value: flowmsg.Bytes},
-		NumPackets:        &wrappers.UInt64Value{Value: flowmsg.Packets},
-		Vlan:              &wrappers.UInt32Value{Value: flowmsg.VlanId},
+		InputSnmpIfindex:  &wrapperspb.UInt32Value{Value: flowmsg.InIf},
+		OutputSnmpIfindex: &wrapperspb.UInt32Value{Value: flowmsg.OutIf},
+		FirstSwitched:     &wrapperspb.UInt64Value{Value: flowmsg.TimeFlowStart * 1000},
+		LastSwitched:      &wrapperspb.UInt64Value{Value: flowmsg.TimeFlowEnd * 1000},
+		TcpFlags:          &wrapperspb.UInt32Value{Value: flowmsg.TCPFlags},
+		Protocol:          &wrapperspb.UInt32Value{Value: flowmsg.Proto},
+		IpProtocolVersion: &wrapperspb.UInt32Value{Value: flowmsg.Etype},
+		Tos:               &wrapperspb.UInt32Value{Value: flowmsg.IPTos},
+		FlowSeqNum:        &wrapperspb.UInt64Value{Value: uint64(flowmsg.SequenceNum)},
+		SamplingInterval:  &wrapperspb.DoubleValue{Value: float64(flowmsg.SamplingRate)},
+		NumBytes:          &wrapperspb.UInt64Value{Value: flowmsg.Bytes},
+		NumPackets:        &wrapperspb.UInt64Value{Value: flowmsg.Packets},
+		Vlan:              &wrapperspb.UInt32Value{Value: flowmsg.VlanId},
 	}
 	if module.isReverseDNSEnabled() {
 		wg := &sync.WaitGroup{}

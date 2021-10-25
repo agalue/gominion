@@ -14,7 +14,6 @@ require (
 	github.com/confluentinc/confluent-kafka-go v1.7.0
 	github.com/go-ping/ping v0.0.0-20211014180314-6e2b003bffdd
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.3.0
 	github.com/gosnmp/gosnmp v1.33.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
@@ -36,7 +35,7 @@ require (
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.19.1
 	golang.org/x/net v0.0.0-20211020060615-d418f374d309
-	golang.org/x/sys v0.0.0-20211020174200-9d6173849985 // indirect
+	golang.org/x/sys v0.0.0-20211025112917-711f33c9992c // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/genproto v0.0.0-20211021150943-2b146023228c // indirect
 	google.golang.org/grpc v1.41.0
