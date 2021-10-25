@@ -1,22 +1,19 @@
 package broker
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"math"
 	"strconv"
-	"time"
-
-	"github.com/Shopify/sarama"
-	"github.com/ThreeDotsLabs/watermill-kafka/v2/pkg/kafka"
-	"github.com/ThreeDotsLabs/watermill/message"
 
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/log"
 	"github.com/agalue/gominion/protobuf/ipc"
 	"github.com/agalue/gominion/protobuf/rpc"
 	"github.com/agalue/gominion/protobuf/sink"
+	"github.com/google/uuid"
+
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -25,10 +22,8 @@ import (
 type KafkaClient struct {
 	config        *api.MinionConfig
 	registry      *api.SinkRegistry
-	publisher     *kafka.Publisher
-	subscriber    *kafka.Subscriber
-	ctx           context.Context
-	cancel        context.CancelFunc
+	producer      *kafka.Producer
+	consumer      *kafka.Consumer
 	traceCloser   io.Closer
 	metrics       *api.Metrics
 	maxBufferSize int
@@ -70,63 +65,69 @@ func (cli *KafkaClient) Start() error {
 		return err
 	}
 
-	subsConfig := kafka.DefaultSaramaSubscriberConfig()
-	subsConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
-	subsConfig.Consumer.Offsets.AutoCommit.Enable = true
-	subsConfig.Consumer.Offsets.AutoCommit.Interval = 1 * time.Second
-
-	marshaler := kafka.NewWithPartitioningMarshaler(func(topic string, msg *message.Message) (string, error) {
-		return msg.UUID, nil
-	})
-
-	cli.subscriber, err = kafka.NewSubscriber(
-		kafka.SubscriberConfig{
-			Brokers:               []string{cli.config.BrokerURL},
-			Unmarshaler:           marshaler,
-			OverwriteSaramaConfig: subsConfig,
-			ConsumerGroup:         cli.config.Location,
-			NackResendSleep:       kafka.NoSleep,
-		},
-		log.WatermillAdapter{},
-	)
-	if err != nil {
-		return err
+	// Creating Kafka Producer
+	producerCfg := &kafka.ConfigMap{
+		"bootstrap.servers": cli.config.BrokerURL,
+	}
+	if cli.producer, err = kafka.NewProducer(producerCfg); err != nil {
+		return fmt.Errorf("could not create producer: %v", err)
 	}
 
-	cli.publisher, err = kafka.NewPublisher(
-		kafka.PublisherConfig{
-			Brokers:   []string{cli.config.BrokerURL},
-			Marshaler: marshaler,
-		},
-		log.WatermillAdapter{},
-	)
-	if err != nil {
-		return err
+	// Creating Kafka Consumer
+	consumerCfg := &kafka.ConfigMap{
+		"bootstrap.servers":       cli.config.BrokerURL,
+		"group.id":                cli.config.Location,
+		"enable.auto.commit":      true,
+		"auto.commit.interval.ms": 1000,
+	}
+	if cli.consumer, err = kafka.NewConsumer(consumerCfg); err != nil {
+		return fmt.Errorf("could not create producer: %v", err)
 	}
 
+	// Starting Sink Modules
 	if err := cli.registry.StartModules(cli.config, cli); err != nil {
 		return err
 	}
 
-	cli.ctx, cli.cancel = context.WithCancel(context.Background())
+	// Subscribe to RPC Requests
 	topic := fmt.Sprintf("%s.%s.rpc-request", cli.instanceID, cli.config.Location)
-	rpcChannel, err := cli.subscriber.Subscribe(cli.ctx, topic)
-	if err != nil {
-		return err
+	if err := cli.consumer.Subscribe(topic, nil); err != nil {
+		return fmt.Errorf("cannot subscribe to topic %s: %v", topic, err)
 	}
-	go func(messages <-chan *message.Message) {
-		for msg := range messages {
-			msg.Ack()
-			rpc := new(rpc.RpcMessageProto)
-			if err := proto.Unmarshal(msg.Payload, rpc); err == nil {
-				cli.metrics.RPCReqReceivedSucceeded.WithLabelValues(rpc.SystemId, rpc.ModuleId).Inc()
-				cli.processRequest(rpc)
-			} else {
-				cli.metrics.RPCReqReceivedFailed.WithLabelValues(rpc.SystemId, rpc.ModuleId).Inc()
-				log.Errorf("Cannot process RPC Request: %v", err)
+
+	go func() {
+		log.Infof("starting producer message logger")
+		for e := range cli.producer.Events() {
+			switch ev := e.(type) {
+			case *kafka.Message:
+				if ev.TopicPartition.Error != nil {
+					log.Errorf("kafka delivery failed: %v", ev.TopicPartition)
+				}
+			default:
+				log.Debugf("kafka event: %s", ev)
 			}
 		}
-	}(rpcChannel)
+	}()
+
+	go func() {
+		log.Infof("starting RPC consumer for location %s", cli.config.Location)
+		for {
+			event := cli.consumer.Poll(100)
+			switch e := event.(type) {
+			case *kafka.Message:
+				rpc := new(rpc.RpcMessageProto)
+				if err := proto.Unmarshal(e.Value, rpc); err == nil {
+					cli.metrics.RPCReqReceivedSucceeded.WithLabelValues(rpc.SystemId, rpc.ModuleId).Inc()
+					cli.processRequest(rpc)
+				} else {
+					cli.metrics.RPCReqReceivedFailed.WithLabelValues(rpc.SystemId, rpc.ModuleId).Inc()
+					log.Errorf("Cannot process RPC Request: %v", err)
+				}
+			case kafka.Error:
+				log.Errorf("kafka consumer error %v", e)
+			}
+		}
+	}()
 
 	return nil
 }
@@ -135,9 +136,9 @@ func (cli *KafkaClient) Start() error {
 func (cli *KafkaClient) Stop() {
 	cli.registry.StopModules()
 	log.Warnf("Stopping Kafka client")
-	cli.cancel()
-	cli.subscriber.Close()
-	cli.publisher.Close()
+	cli.consumer.Unsubscribe()
+	cli.consumer.Close()
+	cli.producer.Close()
 	if cli.traceCloser != nil {
 		cli.traceCloser.Close()
 	}
@@ -155,9 +156,12 @@ func (cli *KafkaClient) Send(msg *ipc.SinkMessage) error {
 	topic := fmt.Sprintf("%s.Sink.%s", cli.instanceID, msg.ModuleId)
 	for chunk = 0; chunk < totalChunks; chunk++ {
 		bytes := cli.wrapMessageToSink(msg, chunk, totalChunks)
-		data := message.NewMessage(msg.MessageId, bytes)
-		err = cli.publisher.Publish(topic, data)
-		if err != nil {
+		msg := &kafka.Message{
+			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+			Key:            []byte(uuid.New().String()),
+			Value:          bytes,
+		}
+		if err = cli.producer.Produce(msg, nil); err != nil {
 			break
 		}
 	}
@@ -273,9 +277,12 @@ func (cli *KafkaClient) sendResponse(response *ipc.RpcResponseProto) error {
 	topic := fmt.Sprintf("%s.rpc-response", cli.instanceID)
 	for chunk = 0; chunk < totalChunks; chunk++ {
 		bytes := cli.wrapMessageToRPC(response, chunk, totalChunks)
-		data := message.NewMessage(response.RpcId, bytes)
-		err := cli.publisher.Publish(topic, data)
-		if err != nil {
+		msg := &kafka.Message{
+			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+			Key:            []byte(response.RpcId),
+			Value:          bytes,
+		}
+		if err := cli.producer.Produce(msg, nil); err != nil {
 			cli.metrics.RPCResSentFailed.WithLabelValues(response.SystemId, response.ModuleId).Inc()
 			return fmt.Errorf("cannot send message to %s: %v", topic, err)
 		}

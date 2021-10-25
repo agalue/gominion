@@ -1,4 +1,4 @@
-version: '3.9'
+---
 
 volumes:
 
@@ -29,36 +29,37 @@ services:
       retries: 3
 
   kafka:
-    image: wurstmeister/kafka:2.13-2.7.0
+    image: bitnami/kafka:2.8.1
     container_name: kafka
     hostname: kafka
     depends_on:
-    - zookeeper
+      zookeeper:
+        condition: service_healthy
     ports:
     - 9094:9094
     volumes:
-    - kafka:/kafka
+    - kafka:/bitnami/kafka
     environment:
     - TZ=America/New_York
-    - KAFKA_BROKER_ID=1
-    - KAFKA_ADVERTISED_LISTENERS=INSIDE://:9092,OUTSIDE://${EXTERNAL_IP:-192.168.0.40}:9094
-    - KAFKA_LISTENERS=INSIDE://:9092,OUTSIDE://:9094
-    - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
-    - KAFKA_INTER_BROKER_LISTENER_NAME=INSIDE
-    - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181/kafka
-    - KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS=60000
-    - KAFKA_NUM_PARTITIONS=4
-    - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
-    - KAFKA_DEFAULT_REPLICATION_FACTOR=1
-    - KAFKA_MIN_INSYNC_REPLICAS=1
-    - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
-    - KAFKA_DELETE_TOPIC_ENABLE=true
-    - KAFKA_CONTROLLED_SHUTDOWN_ENABLE=true
-    - KAFKA_JMX_OPTS=-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka -Dcom.sun.management.jmxremote.rmi.port=9999
+    - ALLOW_PLAINTEXT_LISTENER=yes
+    - KAFKA_CFG_BROKER_ID=1
+    - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://:9092,EXTERNAL://${EXTERNAL_IP:-192.168.0.40}:9094
+    - KAFKA_CFG_LISTENERS=CLIENT://:9092,EXTERNAL://:9094
+    - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
+    - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=CLIENT
+    - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181/kafka
+    - KAFKA_CFG_ZOOKEEPER_CONNECTION_TIMEOUT_MS=60000
+    - KAFKA_CFG_NUM_PARTITIONS=4
+    - KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+    - KAFKA_CFG_DEFAULT_REPLICATION_FACTOR=1
+    - KAFKA_CFG_MIN_INSYNC_REPLICAS=1
+    - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+    - KAFKA_CFG_DELETE_TOPIC_ENABLE=true
+    - KAFKA_CFG_CONTROLLED_SHUTDOWN_ENABLE=true
+    - KAFKA_HEAP_OPTS=-Xmx${KAFKA_HEAP:-2g} -Xms${KAFKA_HEAP:-2g} -Dcom.sun.management.jmxremote.rmi.port=9999 -Djava.rmi.server.hostname=kafka
     - JMX_PORT=9999
-    - KAFKA_HEAP_OPTS=-Xms${KAFKA_HEAP:-4g} -Xmx${KAFKA_HEAP:-4g}
     healthcheck:
-      test: nc -z localhost 9092
+      test: JMX_PORT= kafka-topics.sh --list --bootstrap-server kafka:9092
       interval: 30s
       timeout: 5s
       retries: 3
@@ -68,7 +69,8 @@ services:
     container_name: manager
     hostname: manager
     depends_on:
-    - zookeeper
+      zookeeper:
+        condition: service_healthy
     ports:
     - 9000:9000
     environment:
@@ -101,12 +103,14 @@ services:
       retries: 3
 
   opennms:
-    image: opennms/horizon:release-27.x
+    image: opennms/horizon:28.1.1
     container_name: opennms
     hostname: opennms
     depends_on:
-    - database
-    - kafka
+      kafka:
+        condition: service_healthy
+      database:
+        condition: service_healthy
     command: [ -s ]
     ports:
     - 8980:8980
@@ -131,7 +135,8 @@ services:
     container_name: grpc-server
     hostname: grpc-server
     depends_on:
-    - kafka
+      kafka:
+        condition: service_healthy
     ports:
     - 8990:8990
     - 2112:2112
@@ -142,14 +147,21 @@ services:
     - HTTP_PORT=2112
     - TLS_ENABLED=false
     - CONSUMER_GROUP_ID=GRPC
+    healthcheck:
+      test: /bin/grpc_health_probe -addr ':8990' -rpc-timeout 2s
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   sink-trap:
     image: agalue/onms-kafka-ipc-receiver
     container_name: sink-trap
     hostname: sink-trap
     depends_on:
-    - kafka
-    - opennms
+      kafka:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
     environment:
     - BOOTSTRAP_SERVER=kafka:9092
     - KAFKA_ACKS=1
@@ -162,8 +174,10 @@ services:
     container_name: sink-syslog
     hostname: sink-syslog
     depends_on:
-    - kafka
-    - opennms
+      kafka:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
     environment:
     - BOOTSTRAP_SERVER=kafka:9092
     - KAFKA_ACKS=1
@@ -176,8 +190,10 @@ services:
     container_name: sink-netflow5
     hostname: sink-netflow5
     depends_on:
-    - kafka
-    - opennms
+      kafka:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
     environment:
     - BOOTSTRAP_SERVER=kafka:9092
     - KAFKA_ACKS=1
@@ -190,8 +206,10 @@ services:
     container_name: sink-netflow9
     hostname: sink-netflow9
     depends_on:
-    - kafka
-    - opennms
+      kafka:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
     environment:
     - BOOTSTRAP_SERVER=kafka:9092
     - KAFKA_ACKS=1
@@ -204,8 +222,10 @@ services:
     container_name: rpc-request-newyork
     hostname: rpc-request-newyork
     depends_on:
-    - kafka
-    - opennms
+      kafka:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
     environment:
     - BOOTSTRAP_SERVER=kafka:9092
     - KAFKA_ACKS=1
@@ -217,8 +237,10 @@ services:
     container_name: rpc-request-boston
     hostname: rpc-request-boston
     depends_on:
-    - kafka
-    - opennms
+      kafka:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
     environment:
     - BOOTSTRAP_SERVER=kafka:9092
     - KAFKA_ACKS=1
@@ -230,8 +252,10 @@ services:
     container_name: rpc-request-apex
     hostname: rpc-request-apex
     depends_on:
-    - kafka
-    - opennms
+      kafka:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
     environment:
     - BOOTSTRAP_SERVER=kafka:9092
     - KAFKA_ACKS=1
@@ -243,8 +267,10 @@ services:
     container_name: rpc-response
     hostname: rpc-response
     depends_on:
-    - kafka
-    - opennms
+      kafka:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
     environment:
     - BOOTSTRAP_SERVER=kafka:9092
     - KAFKA_ACKS=1
@@ -257,8 +283,10 @@ services:
     container_name: gominion-kafka
     hostname: gominion-kafka
     depends_on:
-    - kafka
-    - opennms
+      kafka:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
     command:
     - -c
     - /gominion.yaml
@@ -276,8 +304,10 @@ services:
     container_name: gominion-grpc
     hostname: gominion-grpc
     depends_on:
-    - grpc-server
-    - opennms
+      grpc-server:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
     command:
     - -c
     - /gominion.yaml
@@ -290,12 +320,14 @@ services:
     - ./gominion-cfg/grpc.yaml:/gominion.yaml
 
   minion:
-    image: opennms/minion:27.1.1
+    image: opennms/minion:28.1.1
     container_name: minion
     hostname: minion
     depends_on:
-    - kafka
-    - opennms
+      kafka:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
     command: [ -c ]
     ports:
     - 8201:8201
