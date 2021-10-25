@@ -104,28 +104,19 @@ listeners:
 
 On the above example, `grpc-server` can be a standalone one, or the one embedded with OpenNMS.
 
-For Transport TLS:
+For TLS:
 
 ```yaml
 brokerUrl: grpc-server:8990
 brokerType: grpc
 brokerProperties:
   tls-enabled: "true"
-  server-certificate-file: "/etc/server.crt"
+  server-cert-file: "/etc/server.crt"
+  client-cert-file: "/etc/client.crt"
+  client-key-file: "/etc/client.key"
 ```
 
-Or,
-
-```yaml
-brokerUrl: grpc-server:8990
-brokerType: grpc
-brokerProperties:
-  tls-enabled: "true"
-  server-certificate: +|
-  -----BEGIN CERTIFICATE-----
-  ...
-  -----END CERTIFICATE-----
-```
+Mutual TLS is enabled when adding `client-cert-file` and `client-key-file` besides `server-cert-file`. For `server-cert-file`, it could be the certificate of the CA that signed the server certificate (and the client one).
 
 To use Kafka instead of GRPC:
 

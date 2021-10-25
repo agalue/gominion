@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"sync"
 	"time"
 
@@ -67,7 +68,6 @@ func (cli *GrpcClient) Start() error {
 	if cli.config.BrokerProperties == nil {
 		options = append(options, grpc.WithInsecure())
 	} else {
-		// TODO add client certificate for authentication
 		tlsEnabled, ok := cli.config.BrokerProperties["tls-enabled"]
 		if ok && tlsEnabled == "true" {
 			cred, err := cli.getTransportCredentials()
@@ -228,20 +228,32 @@ func (cli *GrpcClient) initRPCStream() error {
 
 // Gets the TLS transport credentials from a file or a string.
 func (cli *GrpcClient) getTransportCredentials() (credentials.TransportCredentials, error) {
-	if srvCertPath, ok := cli.config.BrokerProperties["server-certificate-path"]; ok {
-		return credentials.NewClientTLSFromFile(srvCertPath, "")
+	srvCertPath, ok := cli.config.BrokerProperties["server-cert-path"]
+	if !ok {
+		return nil, fmt.Errorf("cannot find server certificate")
 	}
-	if data, ok := cli.config.BrokerProperties["server-certificate"]; ok {
-		cert, err := x509.ParseCertificate([]byte(data))
+	certPool := x509.NewCertPool()
+	bs, err := ioutil.ReadFile(srvCertPath)
+	if err != nil {
+		return nil, err
+	}
+	if ok := certPool.AppendCertsFromPEM(bs); !ok {
+		return nil, fmt.Errorf("failed to append certs")
+	}
+
+	cfg := &tls.Config{RootCAs: certPool}
+
+	cliCertPath, cliCertOk := cli.config.BrokerProperties["client-cert-path"]
+	cliKeyPath, cliKeyOk := cli.config.BrokerProperties["client-key-path"]
+	if cliCertOk && cliKeyOk {
+		certificate, err := tls.LoadX509KeyPair(cliCertPath, cliKeyPath)
 		if err != nil {
-			return nil, fmt.Errorf("cannot parse server certificate: %v", err)
+			return nil, err
 		}
-		tlsCert := &tls.Certificate{
-			Certificate: [][]byte{cert.Raw},
-		}
-		return credentials.NewServerTLSFromCert(tlsCert), nil
+		cfg.Certificates = []tls.Certificate{certificate}
 	}
-	return nil, fmt.Errorf("cannot find server certificate")
+
+	return credentials.NewTLS(cfg), nil
 }
 
 // Sends the Minion headers as an RPC API response, to register the Minion as a client.
