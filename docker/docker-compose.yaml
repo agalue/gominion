@@ -147,6 +147,11 @@ services:
     - HTTP_PORT=2112
     - TLS_ENABLED=false
     - CONSUMER_GROUP_ID=GRPC
+    healthcheck:
+      test: /bin/grpc_health_probe -addr ':8990' -rpc-timeout 2s
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   sink-trap:
     image: agalue/onms-kafka-ipc-receiver
@@ -299,7 +304,7 @@ services:
     container_name: gominion-grpc
     hostname: gominion-grpc
     depends_on:
-      kafka:
+      grpc-server:
         condition: service_healthy
       opennms:
         condition: service_healthy
