@@ -80,6 +80,16 @@ func (cfg *MinionConfig) ParseListeners(csvs []string) error {
 	return nil
 }
 
+func (cfg *MinionConfig) GetBrokerProperty(property string) string {
+	if cfg.BrokerProperties == nil {
+		return ""
+	}
+	if value, ok := cfg.BrokerProperties[property]; ok {
+		return value
+	}
+	return ""
+}
+
 // GetListener gets a given listener by name
 func (cfg *MinionConfig) GetListener(name string) *MinionListener {
 	for _, listener := range cfg.Listeners {

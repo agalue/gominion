@@ -117,12 +117,12 @@ brokerUrl: grpc-server:8990
 brokerType: grpc
 brokerProperties:
   tls-enabled: "true"
-  server-cert-file: "/etc/server.crt"
-  client-cert-file: "/etc/client.crt"
-  client-key-file: "/etc/client.key"
+  ca-cert-path: "/etc/server.crt"
+  client-cert-path: "/etc/client.crt"
+  client-key-path: "/etc/client.key"
 ```
 
-Mutual TLS is enabled when adding `client-cert-file` and `client-key-file` besides `server-cert-file`. For `server-cert-file`, it could be the certificate of the CA that signed the server certificate (and the client one).
+Mutual TLS is enabled when adding `client-cert-path` and `client-key-path` besides `ca-cert-path`. The latter could be the certificate of the CA that signed the server certificate and the client one.
 
 To use Kafka instead of GRPC:
 

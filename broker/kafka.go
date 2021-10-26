@@ -50,13 +50,13 @@ func (cli *KafkaClient) Start() error {
 	cli.chunkTracker = make(map[string]int32)
 
 	// Maximum size of the buffer to split messages in chunks
-	cli.maxBufferSize, err = strconv.Atoi(cli.config.BrokerProperties["max-buffer-size"])
+	cli.maxBufferSize, err = strconv.Atoi(cli.config.GetBrokerProperty("max-buffer-size"))
 	if err != nil {
 		cli.maxBufferSize = 1024
 	}
 
 	// The OpenNMS Instance ID (org.opennms.instance.id), for Kafka topics
-	cli.instanceID = cli.config.BrokerProperties["instance-id"]
+	cli.instanceID = cli.config.GetBrokerProperty("instance-id")
 	if cli.instanceID == "" {
 		cli.instanceID = "OpenNMS"
 	}

@@ -65,17 +65,16 @@ func (cli *GrpcClient) Start() error {
 		grpc.WithStreamInterceptor(grpc_zap.StreamClientInterceptor(log.GetLogger())),
 	}
 
-	if cli.config.BrokerProperties == nil {
-		options = append(options, grpc.WithInsecure())
-	} else {
-		tlsEnabled, ok := cli.config.BrokerProperties["tls-enabled"]
-		if ok && tlsEnabled == "true" {
-			cred, err := cli.getTransportCredentials()
-			if err != nil {
-				return err
-			}
+	if cli.config.GetBrokerProperty("tls-enabled") == "true" {
+		log.Infof("Enabling TLS")
+		if cred, err := cli.getTransportCredentials(); err == nil {
 			options = append(options, grpc.WithTransportCredentials(cred))
+		} else {
+			return err
 		}
+	} else {
+		log.Infof("Using Insecure Connection")
+		options = append(options, grpc.WithInsecure())
 	}
 
 	if cli.config.StatsPort > 0 {
@@ -228,24 +227,25 @@ func (cli *GrpcClient) initRPCStream() error {
 
 // Gets the TLS transport credentials from a file or a string.
 func (cli *GrpcClient) getTransportCredentials() (credentials.TransportCredentials, error) {
-	srvCertPath, ok := cli.config.BrokerProperties["server-cert-path"]
-	if !ok {
-		return nil, fmt.Errorf("cannot find server certificate")
-	}
-	certPool := x509.NewCertPool()
-	bs, err := ioutil.ReadFile(srvCertPath)
-	if err != nil {
-		return nil, err
-	}
-	if ok := certPool.AppendCertsFromPEM(bs); !ok {
-		return nil, fmt.Errorf("failed to append certs")
+	cfg := &tls.Config{}
+
+	if srvCertPath := cli.config.GetBrokerProperty("ca-cert-path"); srvCertPath != "" {
+		log.Infof("Loading CA certificate")
+		certPool := x509.NewCertPool()
+		if certificate, err := ioutil.ReadFile(srvCertPath); err == nil {
+			if ok := certPool.AppendCertsFromPEM(certificate); !ok {
+				return nil, fmt.Errorf("failed to append certs")
+			}
+		} else {
+			return nil, err
+		}
+		cfg.RootCAs = certPool
 	}
 
-	cfg := &tls.Config{RootCAs: certPool}
-
-	cliCertPath, cliCertOk := cli.config.BrokerProperties["client-cert-path"]
-	cliKeyPath, cliKeyOk := cli.config.BrokerProperties["client-key-path"]
-	if cliCertOk && cliKeyOk {
+	cliCertPath := cli.config.GetBrokerProperty("client-cert-path")
+	cliKeyPath := cli.config.GetBrokerProperty("client-key-path")
+	if cliCertPath != "" && cliKeyPath != "" {
+		log.Infof("Loading Client certificate for mTLS")
 		certificate, err := tls.LoadX509KeyPair(cliCertPath, cliKeyPath)
 		if err != nil {
 			return nil, err
