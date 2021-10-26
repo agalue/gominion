@@ -64,6 +64,12 @@ There are skeletons to implement new detectors, monitors and collectors.
 
 Each module folder contains a file called `empty.go` that can be used as a reference.
 
+## Compilation
+
+We use the [Confluent Go](https://github.com/confluentinc/confluent-kafka-go) client for the Kafka Implementation. This library relies on [librdkafka](https://github.com/edenhill/librdkafka), and you must have it installed on the machine you plan to compile `gominion`.
+
+Alternatively, you can build the tool using Docker with the specified `Dockerfile`.
+
 ## Usage
 
 The command configuration can be passed via:
