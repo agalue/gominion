@@ -1,6 +1,8 @@
 package broker
 
 import (
+	"strings"
+
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/collectors"
 	"github.com/agalue/gominion/detectors"
@@ -12,14 +14,14 @@ import (
 
 // GetBroker returns a broker implementation
 func GetBroker(config *api.MinionConfig, registry *api.SinkRegistry, metrics *api.Metrics) api.Broker {
-	if config.BrokerType == "grpc" {
+	if strings.ToLower(config.BrokerType) == "grpc" {
 		return &GrpcClient{
 			config:   config,
 			registry: registry,
 			metrics:  metrics,
 		}
 	}
-	if config.BrokerType == "kafka" {
+	if strings.ToLower(config.BrokerType) == "kafka" {
 		return &KafkaClient{
 			config:   config,
 			registry: registry,

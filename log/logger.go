@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ThreeDotsLabs/watermill"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -116,52 +115,4 @@ func getLogLevel(logLevel string) zap.AtomicLevel {
 	}
 	fmt.Printf("Logging level: %s\n", level.String())
 	return level
-}
-
-// WatermillAdapter represents a logger implementation for Watermill
-type WatermillAdapter struct {
-	fields watermill.LogFields
-}
-
-func (a WatermillAdapter) prepareFields(fields watermill.LogFields) []zap.Field {
-	fields = a.fields.Add(fields)
-	fs := make([]zap.Field, 0, len(fields)+1)
-	for k, v := range fields {
-		fs = append(fs, zap.Any(k, v))
-	}
-	return fs
-}
-
-// Error logs a formatted error message
-func (a WatermillAdapter) Error(msg string, err error, fields watermill.LogFields) {
-	if log != nil {
-		fs := a.prepareFields(fields)
-		fs = append(fs, zap.Error(err))
-		log.Error(msg, fs)
-	}
-}
-
-// Info logs a formatted info message
-func (a WatermillAdapter) Info(msg string, fields watermill.LogFields) {
-	if log != nil {
-		log.Info(msg, a.prepareFields(fields))
-	}
-}
-
-// Debug logs a formatted debug message
-func (a WatermillAdapter) Debug(msg string, fields watermill.LogFields) {
-	if log != nil {
-		log.Debug(msg, a.prepareFields(fields))
-	}
-}
-
-// Trace logs a formatted trace message
-func (a WatermillAdapter) Trace(msg string, fields watermill.LogFields) {
-}
-
-// With adds a log fields to the adapter
-func (a WatermillAdapter) With(fields watermill.LogFields) watermill.LoggerAdapter {
-	return &WatermillAdapter{
-		fields: a.fields.Add(fields),
-	}
 }

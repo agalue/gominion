@@ -4,7 +4,6 @@ go 1.16
 
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.0.0 // indirect
-	github.com/ThreeDotsLabs/watermill v1.1.1
 	github.com/andybalholm/cascadia v1.3.1
 	github.com/antchfx/htmlquery v1.2.4
 	github.com/antchfx/jsonquery v1.1.5
@@ -19,7 +18,6 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/libp2p/go-reuseport v0.1.0 // indirect
-	github.com/lithammer/shortuuid/v3 v3.0.7 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/prometheus/client_golang v1.11.0

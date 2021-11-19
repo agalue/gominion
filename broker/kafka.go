@@ -66,6 +66,7 @@ func (cli *KafkaClient) Start() error {
 	}
 
 	// Creating Kafka Producer
+	// TODO Parse external settings
 	producerCfg := &kafka.ConfigMap{
 		"bootstrap.servers": cli.config.BrokerURL,
 	}
@@ -74,6 +75,7 @@ func (cli *KafkaClient) Start() error {
 	}
 
 	// Creating Kafka Consumer
+	// TODO Parse external settings
 	consumerCfg := &kafka.ConfigMap{
 		"bootstrap.servers":       cli.config.BrokerURL,
 		"group.id":                cli.config.Location,
@@ -81,7 +83,7 @@ func (cli *KafkaClient) Start() error {
 		"auto.commit.interval.ms": 1000,
 	}
 	if cli.consumer, err = kafka.NewConsumer(consumerCfg); err != nil {
-		return fmt.Errorf("could not create producer: %v", err)
+		return fmt.Errorf("could not create consumer: %v", err)
 	}
 
 	// Starting Sink Modules
