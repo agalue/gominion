@@ -70,6 +70,13 @@ func (cli *KafkaClient) Start() error {
 	producerCfg := &kafka.ConfigMap{
 		"bootstrap.servers": cli.config.BrokerURL,
 	}
+
+	// enable SSL for producer
+	if cli.config.GetBrokerProperty("tls-enabled") == "true" {
+		log.Infof("Enabling TLS")
+		producerCfg.SetKey("security.protocol", "ssl")
+	}
+
 	if cli.producer, err = kafka.NewProducer(producerCfg); err != nil {
 		return fmt.Errorf("could not create producer: %v", err)
 	}
@@ -82,6 +89,13 @@ func (cli *KafkaClient) Start() error {
 		"enable.auto.commit":      true,
 		"auto.commit.interval.ms": 1000,
 	}
+
+	// enable SSL for consumer
+	if cli.config.GetBrokerProperty("tls-enabled") == "true" {
+		log.Infof("Enabling TLS")
+		consumerCfg.SetKey("security.protocol", "ssl")
+	}
+
 	if cli.consumer, err = kafka.NewConsumer(consumerCfg); err != nil {
 		return fmt.Errorf("could not create consumer: %v", err)
 	}

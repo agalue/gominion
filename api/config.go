@@ -54,7 +54,7 @@ type MinionConfig struct {
 	BrokerURL        string            `yaml:"brokerUrl" json:"brokerUrl"`
 	BrokerType       string            `yaml:"brokerType" json:"brokerType"`
 	BrokerProperties map[string]string `yaml:"brokerProperties,omitempty" json:"brokerProperties,omitempty"`
-	TrapPort         int               `yaml:"trapPort" json:"traPort"`
+	TrapPort         int               `yaml:"trapPort" json:"trapPort"`
 	SyslogPort       int               `yaml:"syslogPort" json:"syslogPort"`
 	StatsPort        int               `yaml:"statsPort" json:"statsPort"`
 	LogLevel         string            `yaml:"logLevel" json:"logLevel"`
