@@ -37,6 +37,8 @@ Alternatively, you can use Kafka directly. Although, you'd need Horizon 26 (or M
 
 > SFlow receiver is enabled, but the parser for Sink API has not been implemented.
 
+> OpenNMS TWIN API is not supported.
+
 ## Detectors
 
 * ICMP (`IcmpDetector`)
@@ -69,6 +71,14 @@ Each module folder contains a file called `empty.go` that can be used as a refer
 We use the [Confluent Go](https://github.com/confluentinc/confluent-kafka-go) client for the Kafka Implementation. This library relies on [librdkafka](https://github.com/edenhill/librdkafka), and you must have it installed on the machine you plan to compile `gominion`.
 
 Alternatively, you can build the tool using Docker with the specified `Dockerfile`.
+
+The following build and publish a Docker Image for x86_64 and ARM (to use Apple Silicon or Raspberry Pi).
+
+```bash
+docker buildx create --name local
+docker buildx use local
+docker buildx build --platform linux/amd64,linux/arm64 -t agalue/gominion --push .
+```
 
 ## Usage
 
