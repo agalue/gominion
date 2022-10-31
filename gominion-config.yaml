@@ -1,0 +1,27 @@
+id: go-minion1
+location: Apex
+
+brokerUrl: grpc.azure.agalue.net:443
+brokerType: grpc
+brokerProperties:
+  tls-enabled: "true"
+  client-cert-path: "/Users/agalue/Development/opennms/git/opennms-drift-kubernetes/client.pem"
+  client-key-path: "/Users/agalue/Development/opennms/git/opennms-drift-kubernetes/client-key.pem"
+
+trapPort: 1162
+syslogPort: 1514
+
+listeners:
+- name: Netflow-5
+  port: 8877
+  parser: Netflow5UdpParser
+- name: Netflow-9
+  port: 4729
+  parser: Netflow9UdpParser
+- name: IPFIX
+  port: 4730
+  parser: IpfixUdpParser
+- name: Graphite
+  port: 2003
+  parser: ForwardParser
+

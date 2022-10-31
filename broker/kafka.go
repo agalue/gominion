@@ -129,6 +129,9 @@ func (cli *KafkaClient) Start() error {
 		log.Infof("starting RPC consumer for location %s", cli.config.Location)
 		for {
 			event := cli.consumer.Poll(100)
+			if event == nil {
+				continue
+			}
 			switch e := event.(type) {
 			case *kafka.Message:
 				rpc := new(rpc.RpcMessageProto)
