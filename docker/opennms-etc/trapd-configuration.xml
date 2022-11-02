@@ -1,0 +1,3 @@
+<trapd-configuration xmlns="http://xmlns.opennms.org/xsd/config/trapd" snmp-trap-address="*" snmp-trap-port="1162" new-suspect-on-trap="false" include-raw-message="false" threads="0" queue-size="10000" batch-size="1000" batch-interval="500">
+    <snmpv3-user security-name="traptest" auth-passphrase="0p3nNMSv3" auth-protocol="SHA-256" privacy-passphrase="0p3nNMSv3" privacy-protocol="DES" />
+</trapd-configuration>

@@ -9,11 +9,9 @@ volumes:
 services:
 
   zookeeper:
-    image: zookeeper:3.5
+    image: zookeeper:3.8
     container_name: zookeeper
     hostname: zookeeper
-    ports:
-    - 8080:8080
     volumes:
     - zookeeper:/data
     environment:
@@ -29,7 +27,7 @@ services:
       retries: 3
 
   kafka:
-    image: bitnami/kafka:2.8.1
+    image: bitnami/kafka:3.3
     container_name: kafka
     hostname: kafka
     depends_on:
@@ -103,7 +101,7 @@ services:
       retries: 3
 
   opennms:
-    image: opennms/horizon:28.1.1
+    image: opennms/horizon:30.0.4
     container_name: opennms
     hostname: opennms
     depends_on:
@@ -320,7 +318,7 @@ services:
     - ./gominion-cfg/grpc.yaml:/gominion.yaml
 
   minion:
-    image: opennms/minion:28.1.1
+    image: opennms/minion:30.0.4
     container_name: minion
     hostname: minion
     depends_on:
@@ -339,11 +337,8 @@ services:
     - ./minion-etc:/opt/minion-etc-overlay
     environment:
     - TZ=America/New_York
-    - OPENNMS_HTTP_USER=admin
-    - OPENNMS_HTTP_PASS=admin
     - MINION_ID=minion-java
     - MINION_LOCATION=Apex
-    - OPENNMS_HTTP_URL=http://opennms:8980/opennms
     healthcheck:
       test: /health.sh
       interval: 1m
