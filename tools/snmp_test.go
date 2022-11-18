@@ -10,6 +10,9 @@ import (
 )
 
 func TestGetResultForPDU(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping TestGetResultForPDU")
+	}
 	log.InitLogger("debug")
 	gosnmp.Default.Target = "127.0.0.1"
 	err := gosnmp.Default.Connect()
@@ -39,5 +42,4 @@ func TestGetResultForPDU(t *testing.T) {
 		})
 		assert.NilError(t, err)
 	}
-
 }
