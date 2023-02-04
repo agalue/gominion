@@ -112,7 +112,7 @@ services:
       retries: 3
 
   sink-trap:
-    image: agalue/onms-kafka-ipc-receiver
+    image: agalue/onms-kafka-ipc-receiver:master
     container_name: sink-trap
     hostname: sink-trap
     depends_on:
@@ -120,16 +120,17 @@ services:
         condition: service_healthy
       opennms:
         condition: service_healthy
+    command:
+    - --bootstrap=redpanda:9092
+    - --group-id=sink-trap
+    - --ipc=sink
+    - --parser=snmp
+    - --topic=OpenNMS.Sink.Trap
     environment:
-      BOOTSTRAP_SERVER: redpanda:9092
-      KAFKA_ACKS: '1'
-      GROUP_ID: sink-trap
-      IPC: sink
-      TOPIC: OpenNMS.Sink.Trap
-      PARSER: snmp
+      TZ: America/New_York
 
   sink-syslog:
-    image: agalue/onms-kafka-ipc-receiver
+    image: agalue/onms-kafka-ipc-receiver:master
     container_name: sink-syslog
     hostname: sink-syslog
     depends_on:
@@ -137,16 +138,17 @@ services:
         condition: service_healthy
       opennms:
         condition: service_healthy
+    command:
+    - --bootstrap=redpanda:9092
+    - --group-id=sink-syslog
+    - --ipc=sink
+    - --parser=syslog
+    - --topic=OpenNMS.Sink.Syslog
     environment:
-      BOOTSTRAP_SERVER: redpanda:9092
-      KAFKA_ACKS: '1'
-      GROUP_ID: sink-syslog
-      IPC: sink
-      TOPIC: OpenNMS.Sink.Syslog
-      PARSER: syslog
+      TZ: America/New_York
 
   sink-netflow5:
-    image: agalue/onms-kafka-ipc-receiver
+    image: agalue/onms-kafka-ipc-receiver:master
     container_name: sink-netflow5
     hostname: sink-netflow5
     depends_on:
@@ -154,16 +156,17 @@ services:
         condition: service_healthy
       opennms:
         condition: service_healthy
+    command:
+    - --bootstrap=redpanda:9092
+    - --group-id=sink-netflow5
+    - --ipc=sink
+    - --parser=netflow
+    - --topic=OpenNMS.Sink.Telemetry-Netflow-5
     environment:
-      BOOTSTRAP_SERVER: redpanda:9092
-      KAFKA_ACKS: '1'
-      GROUP_ID: sink-netflow5
-      TOPIC: OpenNMS.Sink.Telemetry-Netflow-5
-      IPC: sink
-      PARSER: netflow
+      TZ: America/New_York
 
   sink-netflow9:
-    image: agalue/onms-kafka-ipc-receiver
+    image: agalue/onms-kafka-ipc-receiver:master
     container_name: sink-netflow9
     hostname: sink-netflow9
     depends_on:
@@ -171,16 +174,17 @@ services:
         condition: service_healthy
       opennms:
         condition: service_healthy
+    command:
+    - --bootstrap=redpanda:9092
+    - --group-id=sink-netflow9
+    - --ipc=sink
+    - --parser=netflow
+    - --topic=OpenNMS.Sink.Telemetry-Netflow-9
     environment:
-      BOOTSTRAP_SERVER: redpanda:9092
-      KAFKA_ACKS: '1'
-      GROUP_ID: sink-netflow9
-      TOPIC: OpenNMS.Sink.Telemetry-Netflow-9
-      IPC: sink
-      PARSER: netflow
+      TZ: America/New_York
 
   rpc-request-miami:
-    image: agalue/onms-kafka-ipc-receiver
+    image: agalue/onms-kafka-ipc-receiver:master
     container_name: rpc-request-miami
     hostname: rpc-request-miami
     depends_on:
@@ -188,15 +192,16 @@ services:
         condition: service_healthy
       opennms:
         condition: service_healthy
+    command:
+    - --bootstrap=redpanda:9092
+    - --group-id=rpc-request-miami
+    - --ipc=rpc
+    - --topic=OpenNMS.Miami.rpc-request
     environment:
-      BOOTSTRAP_SERVER: redpanda:9092
-      KAFKA_ACKS: '1'
-      GROUP_ID: rpc-request-miami
-      TOPIC: OpenNMS.Miami.rpc-request
-      IPC: rpc
+      TZ: America/New_York
 
   rpc-request-boston:
-    image: agalue/onms-kafka-ipc-receiver
+    image: agalue/onms-kafka-ipc-receiver:master
     container_name: rpc-request-boston
     hostname: rpc-request-boston
     depends_on:
@@ -204,15 +209,16 @@ services:
         condition: service_healthy
       opennms:
         condition: service_healthy
+    command:
+    - --bootstrap=redpanda:9092
+    - --group-id=rpc-request-boston
+    - --ipc=rpc
+    - --topic=OpenNMS.Boston.rpc-request
     environment:
-      BOOTSTRAP_SERVER: redpanda:9092
-      KAFKA_ACKS: 1
-      GROUP_ID: rpc-request-boston
-      TOPIC: OpenNMS.Boston.rpc-request
-      IPC: rpc
+      TZ: America/New_York
 
   rpc-request-apex:
-    image: agalue/onms-kafka-ipc-receiver
+    image: agalue/onms-kafka-ipc-receiver:master
     container_name: rpc-request-apex
     hostname: rpc-request-apex
     depends_on:
@@ -220,15 +226,16 @@ services:
         condition: service_healthy
       opennms:
         condition: service_healthy
+    command:
+    - --bootstrap=redpanda:9092
+    - --group-id=rpc-request-apex
+    - --ipc=rpc
+    - --topic=OpenNMS.Apex.rpc-request
     environment:
-      BOOTSTRAP_SERVER: redpanda:9092
-      KAFKA_ACKS: '1'
-      GROUP_ID: rpc-request-apex
-      TOPIC: OpenNMS.Apex.rpc-request
-      IPC: rpc
+      TZ: America/New_York
 
   rpc-response:
-    image: agalue/onms-kafka-ipc-receiver
+    image: agalue/onms-kafka-ipc-receiver:master
     container_name: rpc-response
     hostname: rpc-response
     depends_on:
@@ -236,12 +243,13 @@ services:
         condition: service_healthy
       opennms:
         condition: service_healthy
+    command:
+    - --bootstrap=redpanda:9092
+    - --group-id=rpc-response
+    - --ipc=rpc
+    - --topic=OpenNMS.rpc-response
     environment:
-      BOOTSTRAP_SERVER: redpanda:9092
-      KAFKA_ACKS: '1'
-      GROUP_ID: rpc-response
-      TOPIC: OpenNMS.rpc-response
-      IPC: rpc
+      TZ: America/New_York
 
   gominion-kafka:
     build: ../
@@ -263,6 +271,8 @@ services:
     - 11514:1514/udp
     volumes:
     - ./config/gominion/kafka.yaml:/gominion.yaml
+    environment:
+      TZ: America/New_York
 
   gominion-grpc:
     build: ../
@@ -284,6 +294,8 @@ services:
     - 21514:1514/udp
     volumes:
     - ./config/gominion/grpc.yaml:/gominion.yaml
+    environment:
+      TZ: America/New_York
 
   minion:
     image: opennms/minion:31.0.3
