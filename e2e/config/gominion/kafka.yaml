@@ -1,7 +1,7 @@
 id: gominion-kafka
 location: Miami
 brokerType: kafka
-brokerUrl: kafka:9092
+brokerUrl: redpanda:9092
 trapPort: 1162
 syslogPort: 1514
 statsPort: 8080

@@ -1,0 +1,49 @@
+kafka:
+  brokers:
+  - redpanda:9092
+  schemaRegistry:
+    enabled: true
+    urls:
+    - http://redpanda:8081
+  protobuf:
+    enabled: true
+    mappings:
+    - topicName: OpenNMS_Flows
+      valueProtoType: FlowDocument
+    - topicName: OpenNMS.Docker.rpc-request
+      valueProtoType: RpcMessageProto
+    - topicName: OpenNMS.rpc-response
+      valueProtoType: RpcMessageProto
+    - topicName: OpenNMS.Sink.DeviceConfig
+      valueProtoType: SinkMessage
+    - topicName: OpenNMS.Sink.Events
+      valueProtoType: SinkMessage
+    - topicName: OpenNMS.Sink.Heartbeat
+      valueProtoType: SinkMessage
+    - topicName: OpenNMS.Sink.Syslog
+      valueProtoType: SinkMessage
+    - topicName: OpenNMS.Sink.Telemetry-IPFIX
+      valueProtoType: SinkMessage
+    - topicName: OpenNMS.Sink.Telemetry-Netflow-5
+      valueProtoType: SinkMessage
+    - topicName: OpenNMS.Sink.Telemetry-Netflow-9
+      valueProtoType: SinkMessage
+    - topicName: OpenNMS.Sink.Telemetry-SFlow
+      valueProtoType: SinkMessage
+    - topicName: OpenNMS.Sink.Trap
+      valueProtoType: SinkMessage
+    - topicName: OpenNMS.twin.request
+      valueProtoType: TwinRequestProto
+    - topicName: OpenNMS.twin.response
+      valueProtoType: TwinResponseProto
+    - topicName: OpenNMS.twin.response.Docker
+      valueProtoType: TwinResponseProto
+    fileSystem:
+      enabled: true
+      paths:
+      - /tmp/protos
+redpanda:
+  adminApi:
+    enabled: true
+    urls:
+    - http://redpanda:9644
