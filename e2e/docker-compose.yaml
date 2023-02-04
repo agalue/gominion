@@ -1,0 +1,314 @@
+---
+services:
+
+  redpanda:
+    image: vectorized/redpanda:latest
+    hostname: redpanda
+    container_name: redpanda
+    command:
+    - redpanda
+    - start
+    - --kafka-addr internal://0.0.0.0:9092
+    - --advertise-kafka-addr internal://redpanda:9092
+    - --pandaproxy-addr internal://0.0.0.0:8082
+    - --advertise-pandaproxy-addr internal://redpanda:8082
+    - --schema-registry-addr redpanda:8081
+    - --rpc-addr redpanda:33145
+    - --advertise-rpc-addr redpanda:33145
+    - --overprovisioned
+    - --smp 1
+    - --memory 1G
+    - --reserve-memory 0M
+    - --node-id 0
+    - --check=false
+    environment:
+      TZ: America/New_York
+    healthcheck:
+      test: rpk cluster health
+      interval: 15s
+      timeout: 2s
+
+  console:
+    image: vectorized/console:latest
+    hostname: console
+    container_name: console
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    ports:
+    - 8000:8080
+    volumes:
+    - ./config/redpanda/console-config.yaml:/tmp/config.yml
+    - ./config/redpanda/protobuf/:/tmp/protos/
+    environment:
+      TZ: America/New_York
+      CONFIG_FILEPATH: /tmp/config.yml
+
+  database:
+    image: postgres:14
+    container_name: database
+    hostname: database
+    environment:
+      TZ: America/New_York
+      POSTGRES_HOST: database
+      POSTGRES_PORT: '5432'
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  opennms:
+    image: opennms/horizon:31.0.3
+    container_name: opennms
+    hostname: opennms
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      database:
+        condition: service_healthy
+    command: [ -s ]
+    ports:
+    - 8980:8980
+    - 8101:8101
+    volumes:
+    - ./config/opennms:/opt/opennms-etc-overlay
+    environment:
+      TZ: America/New_York
+      POSTGRES_HOST: database
+      POSTGRES_PORT: '5432'
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      JAVA_OPTS: -Xms${OPENNMS_HEAP:-4g} -Xmx${OPENNMS_HEAP:-4g} -XX:+AlwaysPreTouch -XX:+UseStringDeduplication
+    healthcheck:
+      test: curl -f -I http://localhost:8980/opennms/login.jsp
+      interval: 1m
+      timeout: 5s
+      retries: 3
+
+  grpc-server:
+    image: agalue/onms-grpc-server
+    container_name: grpc-server
+    hostname: grpc-server
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    ports:
+    - 8990:8990
+    - 2112:2112
+    environment:
+      TZ: America/New_York
+      BOOTSTRAP_SERVER: redpanda:9092
+      PORT: '8990'
+      HTTP_PORT: '2112'
+      TLS_ENABLED: 'false'
+      CONSUMER_GROUP_ID: Boston-grpc
+    healthcheck:
+      test: /bin/grpc_health_probe -addr ':8990' -rpc-timeout 2s
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  sink-trap:
+    image: agalue/onms-kafka-ipc-receiver
+    container_name: sink-trap
+    hostname: sink-trap
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
+    environment:
+      BOOTSTRAP_SERVER: redpanda:9092
+      KAFKA_ACKS: '1'
+      GROUP_ID: sink-trap
+      IPC: sink
+      TOPIC: OpenNMS.Sink.Trap
+      PARSER: snmp
+
+  sink-syslog:
+    image: agalue/onms-kafka-ipc-receiver
+    container_name: sink-syslog
+    hostname: sink-syslog
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
+    environment:
+      BOOTSTRAP_SERVER: redpanda:9092
+      KAFKA_ACKS: '1'
+      GROUP_ID: sink-syslog
+      IPC: sink
+      TOPIC: OpenNMS.Sink.Syslog
+      PARSER: syslog
+
+  sink-netflow5:
+    image: agalue/onms-kafka-ipc-receiver
+    container_name: sink-netflow5
+    hostname: sink-netflow5
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
+    environment:
+      BOOTSTRAP_SERVER: redpanda:9092
+      KAFKA_ACKS: '1'
+      GROUP_ID: sink-netflow5
+      TOPIC: OpenNMS.Sink.Telemetry-Netflow-5
+      IPC: sink
+      PARSER: netflow
+
+  sink-netflow9:
+    image: agalue/onms-kafka-ipc-receiver
+    container_name: sink-netflow9
+    hostname: sink-netflow9
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
+    environment:
+      BOOTSTRAP_SERVER: redpanda:9092
+      KAFKA_ACKS: '1'
+      GROUP_ID: sink-netflow9
+      TOPIC: OpenNMS.Sink.Telemetry-Netflow-9
+      IPC: sink
+      PARSER: netflow
+
+  rpc-request-miami:
+    image: agalue/onms-kafka-ipc-receiver
+    container_name: rpc-request-miami
+    hostname: rpc-request-miami
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
+    environment:
+      BOOTSTRAP_SERVER: redpanda:9092
+      KAFKA_ACKS: '1'
+      GROUP_ID: rpc-request-miami
+      TOPIC: OpenNMS.Miami.rpc-request
+      IPC: rpc
+
+  rpc-request-boston:
+    image: agalue/onms-kafka-ipc-receiver
+    container_name: rpc-request-boston
+    hostname: rpc-request-boston
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
+    environment:
+      BOOTSTRAP_SERVER: redpanda:9092
+      KAFKA_ACKS: 1
+      GROUP_ID: rpc-request-boston
+      TOPIC: OpenNMS.Boston.rpc-request
+      IPC: rpc
+
+  rpc-request-apex:
+    image: agalue/onms-kafka-ipc-receiver
+    container_name: rpc-request-apex
+    hostname: rpc-request-apex
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
+    environment:
+      BOOTSTRAP_SERVER: redpanda:9092
+      KAFKA_ACKS: '1'
+      GROUP_ID: rpc-request-apex
+      TOPIC: OpenNMS.Apex.rpc-request
+      IPC: rpc
+
+  rpc-response:
+    image: agalue/onms-kafka-ipc-receiver
+    container_name: rpc-response
+    hostname: rpc-response
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
+    environment:
+      BOOTSTRAP_SERVER: redpanda:9092
+      KAFKA_ACKS: '1'
+      GROUP_ID: rpc-response
+      TOPIC: OpenNMS.rpc-response
+      IPC: rpc
+
+  gominion-kafka:
+    build: ../
+    image: agalue/gominion
+    container_name: gominion-kafka
+    hostname: gominion-kafka
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
+    command:
+    - -c
+    - /gominion.yaml
+    ports:
+    - 18877:8877/udp
+    - 14729:4729/udp
+    - 11162:1162/udp
+    - 11514:1514/udp
+    volumes:
+    - ./config/gominion/kafka.yaml:/gominion.yaml
+
+  gominion-grpc:
+    build: ../
+    image: agalue/gominion
+    container_name: gominion-grpc
+    hostname: gominion-grpc
+    depends_on:
+      grpc-server:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
+    command:
+    - -c
+    - /gominion.yaml
+    ports:
+    - 28877:8877/udp
+    - 24729:4729/udp
+    - 21162:1162/udp
+    - 21514:1514/udp
+    volumes:
+    - ./config/gominion/grpc.yaml:/gominion.yaml
+
+  minion:
+    image: opennms/minion:31.0.3
+    container_name: minion
+    hostname: minion
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      opennms:
+        condition: service_healthy
+    command: [ -c ]
+    ports:
+    - 8201:8201
+    - 38877:8877/udp
+    - 34729:4729/udp
+    - 31162:1162/udp
+    - 31514:1514/udp
+    volumes:
+    - ./config/minion:/opt/minion-etc-overlay
+    environment:
+      TZ: America/New_York
+      MINION_ID: minion-java
+      MINION_LOCATION: Apex
+    healthcheck:
+      test: /health.sh
+      interval: 1m
+      timeout: 5s
+      retries: 3

@@ -6,7 +6,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"sync"
 	"time"
 
@@ -21,6 +21,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 )
 
@@ -74,7 +75,7 @@ func (cli *GrpcClient) Start() error {
 		}
 	} else {
 		log.Infof("Using Insecure Connection")
-		options = append(options, grpc.WithInsecure())
+		options = append(options, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 
 	if cli.config.StatsPort > 0 {
@@ -232,7 +233,7 @@ func (cli *GrpcClient) getTransportCredentials() (credentials.TransportCredentia
 	if srvCertPath := cli.config.GetBrokerProperty("ca-cert-path"); srvCertPath != "" {
 		log.Infof("Loading CA certificate")
 		certPool := x509.NewCertPool()
-		if certificate, err := ioutil.ReadFile(srvCertPath); err == nil {
+		if certificate, err := os.ReadFile(srvCertPath); err == nil {
 			if ok := certPool.AppendCertsFromPEM(certificate); !ok {
 				return nil, fmt.Errorf("failed to append certs")
 			}

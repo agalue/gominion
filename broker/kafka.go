@@ -1,10 +1,14 @@
 package broker
 
 import (
+	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
-	"math"
+	"net"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/agalue/gominion/api"
 	"github.com/agalue/gominion/log"
@@ -12,8 +16,7 @@ import (
 	"github.com/agalue/gominion/protobuf/rpc"
 	"github.com/agalue/gominion/protobuf/sink"
 	"github.com/google/uuid"
-
-	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/twmb/franz-go/pkg/kgo"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -22,14 +25,16 @@ import (
 type KafkaClient struct {
 	config        *api.MinionConfig
 	registry      *api.SinkRegistry
-	producer      *kafka.Producer
-	consumer      *kafka.Consumer
+	consumer      *kgo.Client
+	producer      *kgo.Client
 	traceCloser   io.Closer
 	metrics       *api.Metrics
 	maxBufferSize int
 	instanceID    string
 	msgBuffer     map[string][]byte
 	chunkTracker  map[string]int32
+	ctx           context.Context
+	ctxCancel     context.CancelFunc
 }
 
 // Start initializes the Kafka client.
@@ -65,38 +70,31 @@ func (cli *KafkaClient) Start() error {
 		return err
 	}
 
-	// Creating Kafka Producer
-	// TODO Parse external settings
-	producerCfg := &kafka.ConfigMap{
-		"bootstrap.servers": cli.config.BrokerURL,
-	}
+	// Creating Context for Kafka Clients
+	cli.ctx, cli.ctxCancel = context.WithCancel(context.Background())
 
-	// enable SSL for producer
+	// Creating Kafka Producer Client
+	producerCfg := []kgo.Opt{
+		kgo.SeedBrokers(strings.Split(cli.config.BrokerURL, ",")...),
+	}
 	if cli.config.GetBrokerProperty("tls-enabled") == "true" {
-		log.Infof("Enabling TLS")
-		producerCfg.SetKey("security.protocol", "ssl")
+		producerCfg = append(producerCfg, cli.enableTLS())
 	}
-
-	if cli.producer, err = kafka.NewProducer(producerCfg); err != nil {
+	if cli.producer, err = kgo.NewClient(producerCfg...); err != nil {
 		return fmt.Errorf("could not create producer: %v", err)
 	}
 
-	// Creating Kafka Consumer
-	// TODO Parse external settings
-	consumerCfg := &kafka.ConfigMap{
-		"bootstrap.servers":       cli.config.BrokerURL,
-		"group.id":                cli.config.Location,
-		"enable.auto.commit":      true,
-		"auto.commit.interval.ms": 1000,
+	// Creating Kafka Consumer Client
+	topic := fmt.Sprintf("%s.%s.rpc-request", cli.instanceID, cli.config.Location)
+	consumerCfg := []kgo.Opt{
+		kgo.SeedBrokers(strings.Split(cli.config.BrokerURL, ",")...),
+		kgo.ConsumerGroup(cli.config.Location),
+		kgo.ConsumeTopics(topic),
 	}
-
-	// enable SSL for consumer
 	if cli.config.GetBrokerProperty("tls-enabled") == "true" {
-		log.Infof("Enabling TLS")
-		consumerCfg.SetKey("security.protocol", "ssl")
+		consumerCfg = append(consumerCfg, cli.enableTLS())
 	}
-
-	if cli.consumer, err = kafka.NewConsumer(consumerCfg); err != nil {
+	if cli.consumer, err = kgo.NewClient(consumerCfg...); err != nil {
 		return fmt.Errorf("could not create consumer: %v", err)
 	}
 
@@ -105,45 +103,26 @@ func (cli *KafkaClient) Start() error {
 		return err
 	}
 
-	// Subscribe to RPC Requests
-	topic := fmt.Sprintf("%s.%s.rpc-request", cli.instanceID, cli.config.Location)
-	if err := cli.consumer.Subscribe(topic, nil); err != nil {
-		return fmt.Errorf("cannot subscribe to topic %s: %v", topic, err)
-	}
-
-	go func() {
-		log.Infof("starting producer message logger")
-		for e := range cli.producer.Events() {
-			switch ev := e.(type) {
-			case *kafka.Message:
-				if ev.TopicPartition.Error != nil {
-					log.Errorf("kafka delivery failed: %v", ev.TopicPartition)
-				}
-			default:
-				log.Debugf("kafka event: %s", ev)
-			}
-		}
-	}()
-
 	go func() {
 		log.Infof("starting RPC consumer for location %s", cli.config.Location)
 		for {
-			event := cli.consumer.Poll(100)
-			if event == nil {
+			fetches := cli.consumer.PollFetches(cli.ctx)
+			if fetches.IsClientClosed() {
 				continue
 			}
-			switch e := event.(type) {
-			case *kafka.Message:
+			if errs := fetches.Errors(); len(errs) > 0 {
+				log.Errorf("kafka consumer errors: %v", errs)
+				continue
+			}
+			for _, record := range fetches.Records() {
 				rpc := new(rpc.RpcMessageProto)
-				if err := proto.Unmarshal(e.Value, rpc); err == nil {
+				if err := proto.Unmarshal(record.Value, rpc); err == nil {
 					cli.metrics.RPCReqReceivedSucceeded.WithLabelValues(rpc.SystemId, rpc.ModuleId).Inc()
 					cli.processRequest(rpc)
 				} else {
 					cli.metrics.RPCReqReceivedFailed.WithLabelValues(rpc.SystemId, rpc.ModuleId).Inc()
 					log.Errorf("Cannot process RPC Request: %v", err)
 				}
-			case kafka.Error:
-				log.Errorf("kafka consumer error %v", e)
 			}
 		}
 	}()
@@ -151,11 +130,20 @@ func (cli *KafkaClient) Start() error {
 	return nil
 }
 
+func (cli *KafkaClient) enableTLS() kgo.Opt {
+	// Uses SystemCertPool for RootCAs by default.
+	dialer := &tls.Dialer{
+		NetDialer: &net.Dialer{Timeout: 10 * time.Second},
+		Config:    &tls.Config{InsecureSkipVerify: true},
+	}
+	return kgo.Dialer(dialer.DialContext)
+}
+
 // Stop finalizes the Kafka client and all its dependencies.
 func (cli *KafkaClient) Stop() {
 	cli.registry.StopModules()
 	log.Warnf("Stopping Kafka client")
-	cli.consumer.Unsubscribe()
+	cli.ctxCancel()
 	cli.consumer.Close()
 	cli.producer.Close()
 	if cli.traceCloser != nil {
@@ -175,12 +163,12 @@ func (cli *KafkaClient) Send(msg *ipc.SinkMessage) error {
 	topic := fmt.Sprintf("%s.Sink.%s", cli.instanceID, msg.ModuleId)
 	for chunk = 0; chunk < totalChunks; chunk++ {
 		bytes := cli.wrapMessageToSink(msg, chunk, totalChunks)
-		msg := &kafka.Message{
-			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-			Key:            []byte(uuid.New().String()),
-			Value:          bytes,
+		record := &kgo.Record{
+			Topic: topic,
+			Key:   []byte(uuid.New().String()),
+			Value: bytes,
 		}
-		if err = cli.producer.Produce(msg, nil); err != nil {
+		if err = cli.producer.ProduceSync(cli.ctx, record).FirstErr(); err != nil {
 			break
 		}
 	}
@@ -198,7 +186,7 @@ func (cli *KafkaClient) getTotalChunks(data []byte) int32 {
 	if cli.maxBufferSize == 0 {
 		return int32(1)
 	}
-	chunks := int32(math.Ceil(float64(len(data) / cli.maxBufferSize)))
+	chunks := int32(float64(len(data) / cli.maxBufferSize))
 	if len(data)%cli.maxBufferSize > 0 {
 		chunks++
 	}
@@ -296,12 +284,12 @@ func (cli *KafkaClient) sendResponse(response *ipc.RpcResponseProto) error {
 	topic := fmt.Sprintf("%s.rpc-response", cli.instanceID)
 	for chunk = 0; chunk < totalChunks; chunk++ {
 		bytes := cli.wrapMessageToRPC(response, chunk, totalChunks)
-		msg := &kafka.Message{
-			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-			Key:            []byte(response.RpcId),
-			Value:          bytes,
+		record := &kgo.Record{
+			Topic: topic,
+			Key:   []byte(response.RpcId),
+			Value: bytes,
 		}
-		if err := cli.producer.Produce(msg, nil); err != nil {
+		if err := cli.producer.ProduceSync(cli.ctx, record).FirstErr(); err != nil {
 			cli.metrics.RPCResSentFailed.WithLabelValues(response.SystemId, response.ModuleId).Inc()
 			return fmt.Errorf("cannot send message to %s: %v", topic, err)
 		}
