@@ -1,14 +1,14 @@
-FROM golang:1.19 AS builder
+FROM golang:1.22 AS builder
 
 WORKDIR /app
 
 COPY go.mod go.sum ./
 RUN go mod download -x
 
-ADD ./ /app/
-RUN apt update && GOOS=linux go build -o gominion .
+COPY ./ /app/
+RUN GOOS=linux go build -o gominion .
 
-FROM debian:11-slim
+FROM debian:12-slim
 
 COPY --from=builder /app/gominion /usr/local/bin/gominion
 
