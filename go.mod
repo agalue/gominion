@@ -24,8 +24,8 @@ require (
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
 	go.uber.org/zap v1.27.0
-	golang.org/x/net v0.25.0
-	google.golang.org/grpc v1.64.0
+	golang.org/x/net v0.26.0
+	google.golang.org/grpc v1.64.1
 	google.golang.org/protobuf v1.34.1
 	gopkg.in/mcuadros/go-syslog.v2 v2.3.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -66,8 +66,8 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
-	golang.org/x/text v0.15.0 // indirect
+	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240520151616-dc85e6b867a5 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
